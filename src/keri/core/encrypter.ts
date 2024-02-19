@@ -54,10 +54,21 @@ export class Encrypter extends Matter {
         }
 
         let code;
-        if (matter!.code == MtrDex.Salt_128) {
-            code = MtrDex.X25519_Cipher_Salt;
-        } else {
-            code = MtrDex.X25519_Cipher_Seed;
+        switch (matter!.code) {
+            case MtrDex.Salt_128:
+                code = MtrDex.X25519_Cipher_Salt;
+                break;
+            case MtrDex.StrB64_L0:
+                code = MtrDex.X25519_Cipher_L0;
+                break;
+            case MtrDex.StrB64_L1:
+                code = MtrDex.X25519_Cipher_L1;
+                break;
+            case MtrDex.StrB64_L2:
+                code = MtrDex.X25519_Cipher_L2;
+                break;
+            default:
+                MtrDex.X25519_Cipher_Seed;
         }
 
         return this._encrypt(matter!.qb64, this.raw, code);

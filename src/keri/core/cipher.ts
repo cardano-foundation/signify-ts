@@ -18,6 +18,9 @@ export class Cipher extends Matter {
             !Array.from([
                 MtrDex.X25519_Cipher_Salt,
                 MtrDex.X25519_Cipher_Seed,
+                MtrDex.X25519_Cipher_L0,
+                MtrDex.X25519_Cipher_L1,
+                MtrDex.X25519_Cipher_L2,
             ]).includes(this.code)
         ) {
             throw new Error(`Unsupported Cipher code == ${this.code}`);

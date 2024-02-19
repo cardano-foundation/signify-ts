@@ -73,6 +73,12 @@ export class Decrypter extends Matter {
             return new Salter({ qb64b: plain });
         } else if (cipher.code == MtrDex.X25519_Cipher_Seed) {
             return new Signer({ qb64b: plain, transferable: transferable });
+        } else if ([
+            MtrDex.X25519_Cipher_L0,
+            MtrDex.X25519_Cipher_L1,
+            MtrDex.X25519_Cipher_L2,
+        ].includes(cipher.code)) {
+            return new Matter({ qb64b: plain, code: cipher.code });
         } else {
             throw new Error(`Unsupported cipher text code == ${cipher.code}`);
         }
