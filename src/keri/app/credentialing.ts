@@ -96,6 +96,32 @@ export interface RevokeCredentialResult {
     op: Operation;
 }
 
+export interface IpexApplyArgs {
+    senderName: string;
+    recipient: string;
+    message?: string;
+    schema: unknown;  // todo SAID or SAD (any - is there anything better?)
+    attributes?: unknown; //todo
+    datetime?: string;
+}
+
+export interface IpexOfferArgs {
+    senderName: string;
+    recipient: string;
+    acdc: Serder; //todo SAID or SAD of metadata ACDC - Serder isn't a SAID but maybe its still represented that way...?
+    message?: string;
+    apply?: string;
+    datetime?: string;
+}
+
+export interface IpexAgreeArgs {
+    senderName: string;
+    recipient: string;
+    offer: string;
+    message?: string;
+    datetime?: string;
+}
+
 export interface IpexGrantArgs {
     /**
      * Alias for the IPEX sender AID
@@ -713,6 +739,141 @@ export class Ipex {
         this.client = client;
     }
 
+    /**
+     * Create an IPEX apply EXN message
+     */
+    async apply(args: IpexApplyArgs): Promise<[Serder, string[], string]> {
+        const hab = await this.client.identifiers().get(args.senderName);
+        const data = {
+            m: args.message ?? '',
+            s: args.schema,
+            a: args.attributes ?? {},
+            i: args.recipient,
+        };
+        
+        return this.client
+            .exchanges()
+            .createExchangeMessage(
+                hab,
+                '/ipex/apply',
+                data,
+                {},
+                undefined,
+                args.datetime,
+                undefined,
+            );
+    }
+
+    async submitApply(
+        name: string,
+        exn: Serder,
+        sigs: string[],
+        recp: string[]
+    ): Promise<any> {
+        const body = {
+            exn: exn.ked,
+            sigs,
+            rec: recp,
+        };
+
+        const response = await this.client.fetch(
+            `/identifiers/${name}/ipex/apply`,
+            'POST',
+            body
+        );
+
+        return response.json();
+    }
+
+    /**
+     * Create an IPEX offer EXN message
+     */
+    async offer(args: IpexOfferArgs): Promise<[Serder, string[], string]> {
+        const hab = await this.client.identifiers().get(args.senderName);
+        const data = {
+            m: args.message ?? '',
+        };
+
+        // attachment here needs to be a signature on it!
+        return this.client
+            .exchanges()
+            .createExchangeMessage(
+                hab,
+                '/ipex/offer',
+                data,
+                { acdc: [args.acdc, undefined] },
+                undefined,
+                args.datetime,
+                args.apply,
+            )
+    }
+    
+    async submitOffer(
+        name: string,
+        exn: Serder,
+        sigs: string[],
+        atc: string,
+        recp: string[]
+    ): Promise<any> {
+        const body = {
+            exn: exn.ked,
+            sigs,
+            atc,
+            rec: recp,
+        };
+
+        const response = await this.client.fetch(
+            `/identifiers/${name}/ipex/offer`,
+            'POST',
+            body,
+        );
+
+        return response.json();
+    }
+
+    /**
+     * Create an IPEX agree EXN message
+     */
+    async agree(args: IpexAgreeArgs): Promise<[Serder, string[], string]> {
+        const hab = await this.client.identifiers().get(args.senderName);
+        const data = {
+            m: args.message ?? '',
+        };
+
+        // attachment here needs to be a signature on it!
+        return this.client
+            .exchanges()
+            .createExchangeMessage(
+                hab,
+                '/ipex/agree',
+                data,
+                {},
+                undefined,
+                args.datetime,
+                args.offer,
+            )
+    }
+    
+    async submitAgree(
+        name: string,
+        exn: Serder,
+        sigs: string[],
+        recp: string[]
+    ): Promise<any> {
+        const body = {
+            exn: exn.ked,
+            sigs,
+            rec: recp,
+        };
+
+        const response = await this.client.fetch(
+            `/identifiers/${name}/ipex/agree`,
+            'POST',
+            body,
+        );
+
+        return response.json();
+    }
     /**
      * Create an IPEX grant EXN message
      */
