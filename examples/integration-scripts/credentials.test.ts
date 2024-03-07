@@ -282,7 +282,96 @@ test('single signature credentials', async () => {
         assert(holderCredential.atc !== undefined);
     });
 
-    await step('holder IPEX present', async () => {
+    await step('verifier IPEX apply', async () => {
+        const [apply, sigs, _] = await verifierClient.ipex().apply({
+            senderName: verifierAid.name,
+            schema: QVI_SCHEMA_SAID,
+            attributes: { LEI: "5493001KJTIIGC8Y1R17" },
+            recipient: holderAid.prefix,
+            datetime: createTimestamp(),
+        });
+
+        const op = await verifierClient.ipex().submitApply(
+            verifierAid.name, apply, sigs, [holderAid.prefix]
+        );
+        await waitOperation(verifierClient, op);
+    });
+
+    await step('holder IPEX apply receive and offer', async () => {
+        const holderNotifications = await waitForNotifications(
+            holderClient,
+            '/exn/ipex/apply'
+        );
+
+        const holderApplyNote = holderNotifications[0];
+        assert(holderApplyNote.a.d);
+
+        const apply = await holderClient.exchanges().get(holderApplyNote.a.d);
+        console.log(`DEMO: holder received apply of ${JSON.stringify(apply, null, 2)}`);
+
+        let filter: { [x: string]: any } = { '-s': apply.exn.a.s };//todo is this any?
+        for (const key in apply.exn.a.a) {
+            filter[`-a-${key}`] = apply.exn.a.a[key];
+        }
+
+        const matchingCreds = await holderClient.credentials().list({ filter });
+        expect(matchingCreds).toHaveLength(1);
+
+        await markAndRemoveNotification(holderClient, holderNotifications[0]);
+
+        const [offer, sigs, end] = await holderClient.ipex().offer({
+            senderName: holderAid.name,
+            recipient: verifierAid.prefix,
+            acdc: new Serder(matchingCreds[0].sad),
+            apply: apply.exn.d,
+            datetime: createTimestamp(),
+        });
+
+        const op = await holderClient.ipex().submitOffer(holderAid.name, offer, sigs, end, [verifierAid.prefix]);
+        await waitOperation(holderClient, op);
+    });
+
+    await step('verifier receive offer and agree', async () => {
+        const verifierNotifications = await waitForNotifications(
+            verifierClient,
+            '/exn/ipex/offer'
+        );
+
+        const verifierOfferNote = verifierNotifications[0];
+        assert(verifierOfferNote.a.d);
+
+        const offer = await verifierClient.exchanges().get(verifierOfferNote.a.d);
+        console.log(`DEMO: verifier received offer of ${JSON.stringify(offer, null, 2)}`);
+
+        expect(offer.exn.e.acdc.a.LEI).toBe("5493001KJTIIGC8Y1R17");  // todo if metadata ACDC this won't be a thing - look for other items...
+
+        await markAndRemoveNotification(verifierClient, verifierOfferNote);
+
+        const [agree, sigs, _] = await verifierClient.ipex().agree({
+            senderName: verifierAid.name,
+            recipient: holderAid.prefix,
+            offer: verifierOfferNote.a.d,
+            datetime: createTimestamp(),
+        });
+        
+        const op = await verifierClient.ipex().submitAgree(verifierAid.name, agree, sigs, [holderAid.prefix]);
+        await waitOperation(verifierClient, op);
+    });
+
+    await step('holder IPEX receive agree and grant/present', async () => {
+        const holderNotifications = await waitForNotifications(
+            holderClient,
+            '/exn/ipex/agree'
+        );
+
+        const holderAgreeNote = holderNotifications[0];
+        assert(holderAgreeNote.a.d);
+
+        const agree = await holderClient.exchanges().get(holderAgreeNote.a.d);
+        console.log(`DEMO: holder received agree of ${JSON.stringify(agree, null, 2)}`);
+
+        await markAndRemoveNotification(holderClient, holderAgreeNote);
+
         const holderCredential = await holderClient
             .credentials()
             .get(qviCredentialId);
@@ -296,6 +385,7 @@ test('single signature credentials', async () => {
             acdcAttachment: holderCredential.atc,
             ancAttachment: holderCredential.ancatc,
             issAttachment: holderCredential.issAtc,
+            agree: holderAgreeNote.a.d,
             datetime: createTimestamp(),
         });
 
@@ -314,6 +404,9 @@ test('single signature credentials', async () => {
         );
 
         const verifierGrantNote = verifierNotifications[0];
+        assert(verifierGrantNote.a.d);
+
+        console.log(`DEMO: verifier received grant of ${JSON.stringify(await verifierClient.exchanges().get(verifierGrantNote.a.d), null, 2)}`);
 
         const [admit3, sigs3, aend3] = await verifierClient
             .ipex()
@@ -347,6 +440,10 @@ test('single signature credentials', async () => {
             holderClient,
             '/exn/ipex/admit'
         );
+
+        const holderAdmitNote = holderNotifications[0];
+        assert(holderAdmitNote.a.d);
+        console.log(`DEMO: holder received admit of ${JSON.stringify(await verifierClient.exchanges().get(holderAdmitNote.a.d), null, 2)}`);
         await markAndRemoveNotification(holderClient, holderNotifications[0]);
     });
 
