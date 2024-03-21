@@ -307,7 +307,6 @@ test('single signature credentials', async () => {
         assert(holderApplyNote.a.d);
 
         const apply = await holderClient.exchanges().get(holderApplyNote.a.d);
-        console.log(`DEMO: holder received apply of ${JSON.stringify(apply, null, 2)}`);
 
         let filter: { [x: string]: any } = { '-s': apply.exn.a.s };//todo is this any?
         for (const key in apply.exn.a.a) {
@@ -341,7 +340,6 @@ test('single signature credentials', async () => {
         assert(verifierOfferNote.a.d);
 
         const offer = await verifierClient.exchanges().get(verifierOfferNote.a.d);
-        console.log(`DEMO: verifier received offer of ${JSON.stringify(offer, null, 2)}`);
 
         expect(offer.exn.e.acdc.a.LEI).toBe("5493001KJTIIGC8Y1R17");  // todo if metadata ACDC this won't be a thing - look for other items...
 
@@ -368,7 +366,6 @@ test('single signature credentials', async () => {
         assert(holderAgreeNote.a.d);
 
         const agree = await holderClient.exchanges().get(holderAgreeNote.a.d);
-        console.log(`DEMO: holder received agree of ${JSON.stringify(agree, null, 2)}`);
 
         await markAndRemoveNotification(holderClient, holderAgreeNote);
 
@@ -406,8 +403,6 @@ test('single signature credentials', async () => {
         const verifierGrantNote = verifierNotifications[0];
         assert(verifierGrantNote.a.d);
 
-        console.log(`DEMO: verifier received grant of ${JSON.stringify(await verifierClient.exchanges().get(verifierGrantNote.a.d), null, 2)}`);
-
         const [admit3, sigs3, aend3] = await verifierClient
             .ipex()
             .admit(
@@ -443,7 +438,6 @@ test('single signature credentials', async () => {
 
         const holderAdmitNote = holderNotifications[0];
         assert(holderAdmitNote.a.d);
-        console.log(`DEMO: holder received admit of ${JSON.stringify(await verifierClient.exchanges().get(holderAdmitNote.a.d), null, 2)}`);
         await markAndRemoveNotification(holderClient, holderNotifications[0]);
     });
 
