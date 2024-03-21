@@ -51,6 +51,10 @@ let holderAid: Aid;
 let verifierAid: Aid;
 let legalEntityAid: Aid;
 
+let applySaid: string;
+let offerSaid: string;
+let agreeSaid: string;
+
 beforeAll(async () => {
     [issuerClient, holderClient, verifierClient, legalEntityClient] =
         await getOrCreateClients(4);
@@ -307,8 +311,9 @@ test('single signature credentials', async () => {
         assert(holderApplyNote.a.d);
 
         const apply = await holderClient.exchanges().get(holderApplyNote.a.d);
+        applySaid = apply.exn.d;
 
-        let filter: { [x: string]: any } = { '-s': apply.exn.a.s };//todo is this any?
+        let filter: { [x: string]: any } = { '-s': apply.exn.a.s };
         for (const key in apply.exn.a.a) {
             filter[`-a-${key}`] = apply.exn.a.a[key];
         }
@@ -322,9 +327,10 @@ test('single signature credentials', async () => {
             senderName: holderAid.name,
             recipient: verifierAid.prefix,
             acdc: new Serder(matchingCreds[0].sad),
-            apply: apply.exn.d,
+            apply: applySaid,
             datetime: createTimestamp(),
         });
+
 
         const op = await holderClient.ipex().submitOffer(holderAid.name, offer, sigs, end, [verifierAid.prefix]);
         await waitOperation(holderClient, op);
@@ -340,15 +346,17 @@ test('single signature credentials', async () => {
         assert(verifierOfferNote.a.d);
 
         const offer = await verifierClient.exchanges().get(verifierOfferNote.a.d);
+        offerSaid = offer.exn.d;
 
-        expect(offer.exn.e.acdc.a.LEI).toBe("5493001KJTIIGC8Y1R17");  // todo if metadata ACDC this won't be a thing - look for other items...
+        expect(offer.exn.p).toBe(applySaid);
+        expect(offer.exn.e.acdc.a.LEI).toBe("5493001KJTIIGC8Y1R17");
 
         await markAndRemoveNotification(verifierClient, verifierOfferNote);
 
         const [agree, sigs, _] = await verifierClient.ipex().agree({
             senderName: verifierAid.name,
             recipient: holderAid.prefix,
-            offer: verifierOfferNote.a.d,
+            offer: offerSaid,
             datetime: createTimestamp(),
         });
         
@@ -366,6 +374,9 @@ test('single signature credentials', async () => {
         assert(holderAgreeNote.a.d);
 
         const agree = await holderClient.exchanges().get(holderAgreeNote.a.d);
+        agreeSaid = agree.exn.d;
+
+        expect(agree.exn.p).toBe(offerSaid);
 
         await markAndRemoveNotification(holderClient, holderAgreeNote);
 
@@ -382,7 +393,7 @@ test('single signature credentials', async () => {
             acdcAttachment: holderCredential.atc,
             ancAttachment: holderCredential.ancatc,
             issAttachment: holderCredential.issAtc,
-            agree: holderAgreeNote.a.d,
+            agree: agreeSaid,
             datetime: createTimestamp(),
         });
 
@@ -402,6 +413,9 @@ test('single signature credentials', async () => {
 
         const verifierGrantNote = verifierNotifications[0];
         assert(verifierGrantNote.a.d);
+
+        const grant = await holderClient.exchanges().get(verifierGrantNote.a.d);
+        expect(grant.exn.p).toBe(agreeSaid);
 
         const [admit3, sigs3, aend3] = await verifierClient
             .ipex()

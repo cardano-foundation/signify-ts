@@ -97,28 +97,81 @@ export interface RevokeCredentialResult {
 }
 
 export interface IpexApplyArgs {
+    /**
+     * Alias for the IPEX sender AID
+     */
     senderName: string;
+
+    /**
+     * Prefix of the IPEX recipient AID
+     */
     recipient: string;
+
+    /**
+     * Message to send
+     */
     message?: string;
+
+    /**
+     * SAID of schema to apply for
+     */
     schema: string;
+
+    /**
+     * Optional attributes for selective disclosure
+     */
     attributes?: Record<string, unknown>;
     datetime?: string;
 }
 
 export interface IpexOfferArgs {
+    /**
+     * Alias for the IPEX sender AID
+     */
     senderName: string;
+
+    /**
+     * Prefix of the IPEX recipient AID
+     */
     recipient: string;
-    acdc: Serder;
+
+    /**
+     * Message to send
+     */
     message?: string;
+
+    /**
+     * ACDC to offer
+     */
+    acdc: Serder;
+
+    /**
+     * Optional qb64 SAID of apply message this offer is responding to
+     */
     apply?: string;
     datetime?: string;
 }
 
 export interface IpexAgreeArgs {
+    /**
+     * Alias for the IPEX sender AID
+     */
     senderName: string;
+
+    /**
+     * Prefix of the IPEX recipient AID
+     */
     recipient: string;
-    offer: string;
+
+    /**
+     * Message to send
+     */
     message?: string;
+
+    /**
+     * qb64 SAID of offer message this agree is responding to
+     */
+    offer: string;
     datetime?: string;
 }
 
@@ -794,7 +847,6 @@ export class Ipex {
             m: args.message ?? '',
         };
 
-        // attachment here needs to be a signature on it!
         return this.client
             .exchanges()
             .createExchangeMessage(
@@ -840,7 +892,6 @@ export class Ipex {
             m: args.message ?? '',
         };
 
-        // attachment here needs to be a signature on it!
         return this.client
             .exchanges()
             .createExchangeMessage(
