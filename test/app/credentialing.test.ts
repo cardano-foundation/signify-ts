@@ -324,7 +324,7 @@ describe('Credentialing', () => {
 });
 
 describe('Ipex', () => {
-    it('IPEX grant-admit flow initiated by discloser', async () => {
+    it('IPEX - grant-admit flow initiated by discloser', async () => {
         await libsodium.ready;
         const bran = '0123456789abcdefghijk';
         const client = new SignifyClient(url, bran, Tier.low, boot_url);
@@ -359,7 +359,7 @@ describe('Ipex', () => {
             version: undefined,
             kind: undefined,
         });
-        
+ 
         const [grant, gsigs, end] = await ipex.grant({
             senderName: 'multisig',
             recipient: holder,
@@ -486,7 +486,7 @@ describe('Ipex', () => {
         assert.equal(aend, '');
     });
 
-    it('IPEX apply-admit flow initiated by disclosee', async () => {
+    it('IPEX - apply-admit flow initiated by disclosee', async () => {
         await libsodium.ready;
         const bran = '0123456789abcdefghijk';
         const client = new SignifyClient(url, bran, Tier.low, boot_url);
