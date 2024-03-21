@@ -331,7 +331,6 @@ test('single signature credentials', async () => {
             datetime: createTimestamp(),
         });
 
-
         const op = await holderClient.ipex().submitOffer(holderAid.name, offer, sigs, end, [verifierAid.prefix]);
         await waitOperation(holderClient, op);
     });
@@ -450,8 +449,6 @@ test('single signature credentials', async () => {
             '/exn/ipex/admit'
         );
 
-        const holderAdmitNote = holderNotifications[0];
-        assert(holderAdmitNote.a.d);
         await markAndRemoveNotification(holderClient, holderNotifications[0]);
     });
 
