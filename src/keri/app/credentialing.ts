@@ -100,15 +100,15 @@ export interface IpexApplyArgs {
     senderName: string;
     recipient: string;
     message?: string;
-    schema: unknown;  // todo SAID or SAD (any - is there anything better?)
-    attributes?: unknown; //todo
+    schema: string;
+    attributes?: Record<string, unknown>;
     datetime?: string;
 }
 
 export interface IpexOfferArgs {
     senderName: string;
     recipient: string;
-    acdc: Serder; //todo SAID or SAD of metadata ACDC - Serder isn't a SAID but maybe its still represented that way...?
+    acdc: Serder;
     message?: string;
     apply?: string;
     datetime?: string;
