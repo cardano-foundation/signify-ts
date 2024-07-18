@@ -36,7 +36,7 @@ test('test witness', async () => {
         toad: 1,
         wits: [WITNESS_AID],
         cnfg: ["RB"],
-        data: {"ledger": "CARDANO_PREVIEW"}
+        data: {"ledger": "CARDANO_PREVIEW", "d": ""}
     });
     await waitOperation(client1, await icpResult1.op());
     let aid1 = await client1.identifiers().get('aid1');
