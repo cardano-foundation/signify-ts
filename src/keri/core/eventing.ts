@@ -405,9 +405,10 @@ export function incept({
     }
 
     if (cnfg.includes(TraitDex.RegistrarBackers)) {
-        ked['a'] = { d: ked['d'] }
+        let new_data = {};
+        [, new_data] = Saider.saidify(ked["a"][0]);
+        ked['a'] = [new_data]
     }
-
     return new Serder(ked);
 }
 
