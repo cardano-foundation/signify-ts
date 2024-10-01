@@ -275,6 +275,21 @@ export class KeyStates {
 
         const method = 'POST';
         const res = await this.client.fetch(path, method, data);
-        return await res.json();
+        return res.json();
+    }
+
+    async telquery(pre: string, ri: string, i?: string): Promise<any> {
+        const path = `/queries`;
+        const data: any = {
+            pre: pre,
+            ri: ri,
+        };
+        if (i !== undefined) {
+            data.i = i;
+        }
+
+        const method = 'POST';
+        const res = await this.client.fetch(path, method, data);
+        return res.json();
     }
 }
