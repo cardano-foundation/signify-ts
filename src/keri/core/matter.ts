@@ -47,7 +47,6 @@ export class MatterCodex extends Codex {
     Bytes_Big_L0: string = '7AAB'; // Byte String Big Lead Size 0
     Bytes_Big_L1: string = '8AAB'; // Byte String Big Lead Size 1
     Bytes_Big_L2: string = '9AAB'; // Byte String Big Lead Size 2
-
     X25519_Cipher_L0:     string = '4C'  // X25519 sealed box cipher bytes of sniffable stream plaintext lead size 0
     X25519_Cipher_L1:     string = '5C'  // X25519 sealed box cipher bytes of sniffable stream plaintext lead size 1
     X25519_Cipher_L2:     string = '6C'  // X25519 sealed box cipher bytes of sniffable stream plaintext lead size 2
@@ -69,6 +68,36 @@ export class MatterCodex extends Codex {
 }
 
 export const MtrDex = new MatterCodex();
+
+export const ciXAllQB64Dex = [
+    MtrDex.X25519_Cipher_Seed,
+    MtrDex.X25519_Cipher_Salt,
+    MtrDex.X25519_Cipher_QB64_L0,
+    MtrDex.X25519_Cipher_QB64_L1,
+    MtrDex.X25519_Cipher_QB64_L2,
+    MtrDex.X25519_Cipher_QB64_Big_L0,
+    MtrDex.X25519_Cipher_QB64_Big_L1,
+    MtrDex.X25519_Cipher_QB64_Big_L2
+]
+
+export const ciXVarQB2Dex = [
+    MtrDex.X25519_Cipher_QB2_L0,
+    MtrDex.X25519_Cipher_QB2_L1,
+    MtrDex.X25519_Cipher_QB2_L2,
+    MtrDex.X25519_Cipher_QB2_Big_L0,
+    MtrDex.X25519_Cipher_QB2_Big_L1,
+    MtrDex.X25519_Cipher_QB2_Big_L2
+]
+
+export const ciXVarStrmDex = [
+    MtrDex.X25519_Cipher_L0,
+    MtrDex.X25519_Cipher_L1,
+    MtrDex.X25519_Cipher_L2,
+    MtrDex.X25519_Cipher_Big_L0,
+    MtrDex.X25519_Cipher_Big_L1,
+    MtrDex.X25519_Cipher_Big_L2
+]
+
 
 export class NonTransCodex extends Codex {
     Ed25519N: string = 'B'; // Ed25519 verification key non-transferable, basic derivation.
