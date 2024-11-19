@@ -47,6 +47,7 @@ export class MatterCodex extends Codex {
     Bytes_Big_L0: string = '7AAB'; // Byte String Big Lead Size 0
     Bytes_Big_L1: string = '8AAB'; // Byte String Big Lead Size 1
     Bytes_Big_L2: string = '9AAB'; // Byte String Big Lead Size 2
+
     X25519_Cipher_L0:     string = '4C'  // X25519 sealed box cipher bytes of sniffable stream plaintext lead size 0
     X25519_Cipher_L1:     string = '5C'  // X25519 sealed box cipher bytes of sniffable stream plaintext lead size 1
     X25519_Cipher_L2:     string = '6C'  // X25519 sealed box cipher bytes of sniffable stream plaintext lead size 2
@@ -204,6 +205,24 @@ export class Matter {
             '7AAB': new Sizage(4, 4, undefined, 0),
             '8AAB': new Sizage(4, 4, undefined, 1),
             '9AAB': new Sizage(4, 4, undefined, 2),
+            '4C': new Sizage(2, 2, undefined, 0),
+            '5C': new Sizage(2, 2, undefined, 1),
+            '6C': new Sizage(2, 2, undefined, 2),
+            '7AAC': new Sizage(4, 4, undefined, 0),
+            '8AAC': new Sizage(4, 4, undefined, 1),
+            '9AAC': new Sizage(4, 4, undefined, 2),
+            '4D': new Sizage(2, 2, undefined, 0),
+            '5D': new Sizage(2, 2, undefined, 1),
+            '6D': new Sizage(2, 2, undefined, 2),
+            '7AAD': new Sizage(4, 4, undefined, 0),
+            '8AAD': new Sizage(4, 4, undefined, 1),
+            '9AAD': new Sizage(4, 4, undefined, 2),
+            '4E': new Sizage(2, 2, undefined, 0),
+            '5E': new Sizage(2, 2, undefined, 1),
+            '6E': new Sizage(2, 2, undefined, 2),
+            '7AAE': new Sizage(4, 4, undefined, 0),
+            '8AAE': new Sizage(4, 4, undefined, 1),
+            '9AAE': new Sizage(4, 4, undefined, 2)
         })
     );
 
