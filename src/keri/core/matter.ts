@@ -41,6 +41,30 @@ export class MatterCodex extends Codex {
     StrB64_Big_L0: string = '7AAA'; // String Base64 Only Big Lead Size 0
     StrB64_Big_L1: string = '8AAA'; // String Base64 Only Big Lead Size 1
     StrB64_Big_L2: string = '9AAA'; // String Base64 Only Big Lead Size 2
+    Bytes_L0: string = '4B'; // Byte String Lead Size 0
+    Bytes_L1: string = '5B'; // Byte String Lead Size 1
+    Bytes_L2: string = '6B'; // Byte String Lead Size 2
+    Bytes_Big_L0: string = '7AAB'; // Byte String Big Lead Size 0
+    Bytes_Big_L1: string = '8AAB'; // Byte String Big Lead Size 1
+    Bytes_Big_L2: string = '9AAB'; // Byte String Big Lead Size 2
+    X25519_Cipher_L0:     string = '4C'  // X25519 sealed box cipher bytes of sniffable stream plaintext lead size 0
+    X25519_Cipher_L1:     string = '5C'  // X25519 sealed box cipher bytes of sniffable stream plaintext lead size 1
+    X25519_Cipher_L2:     string = '6C'  // X25519 sealed box cipher bytes of sniffable stream plaintext lead size 2
+    X25519_Cipher_Big_L0: string = '7AAC'  // X25519 sealed box cipher bytes of sniffable stream plaintext big lead size 0
+    X25519_Cipher_Big_L1: string = '8AAC'  // X25519 sealed box cipher bytes of sniffable stream plaintext big lead size 1
+    X25519_Cipher_Big_L2: string = '9AAC'  // X25519 sealed box cipher bytes of sniffable stream plaintext big lead size 2
+    X25519_Cipher_QB64_L0:     string = '4D'  // X25519 sealed box cipher bytes of QB64 plaintext lead size 0
+    X25519_Cipher_QB64_L1:     string = '5D'  // X25519 sealed box cipher bytes of QB64 plaintext lead size 1
+    X25519_Cipher_QB64_L2:     string = '6D'  // X25519 sealed box cipher bytes of QB64 plaintext lead size 2
+    X25519_Cipher_QB64_Big_L0: string = '7AAD'  // X25519 sealed box cipher bytes of QB64 plaintext big lead size 0
+    X25519_Cipher_QB64_Big_L1: string = '8AAD'  // X25519 sealed box cipher bytes of QB64 plaintext big lead size 1
+    X25519_Cipher_QB64_Big_L2: string = '9AAD'  // X25519 sealed box cipher bytes of QB64 plaintext big lead size 2
+    X25519_Cipher_QB2_L0:     string = '4E'  // X25519 sealed box cipher bytes of QB2 plaintext lead size 0
+    X25519_Cipher_QB2_L1:     string = '5E'  // X25519 sealed box cipher bytes of QB2 plaintext lead size 1
+    X25519_Cipher_QB2_L2:     string = '6E'  // X25519 sealed box cipher bytes of QB2 plaintext lead size 2
+    X25519_Cipher_QB2_Big_L0: string = '7AAE'  // X25519 sealed box cipher bytes of QB2 plaintext big lead size 0
+    X25519_Cipher_QB2_Big_L1: string = '8AAE'  // X25519 sealed box cipher bytes of QB2 plaintext big lead size 1
+    X25519_Cipher_QB2_Big_L2: string = '9AAE'  // X25519 sealed box cipher bytes of QB2 plaintext big lead size 2
 }
 
 export const MtrDex = new MatterCodex();
