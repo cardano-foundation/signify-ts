@@ -9,6 +9,7 @@ import {
     Version,
     Versionage,
 } from './core';
+import { TraitDex } from '../app/habery';
 import { Tholder } from './tholder';
 import { CesrNumber } from './number';
 import { Prefixer } from './prefixer';
@@ -403,6 +404,11 @@ export function incept({
         [, ked] = Saider.saidify(ked);
     }
 
+    if (cnfg.includes(TraitDex.RegistrarBackers)) {
+        let new_data = {};
+        [, new_data] = Saider.saidify(ked["a"][0]);
+        ked['a'] = [new_data]
+    }
     return new Serder(ked);
 }
 

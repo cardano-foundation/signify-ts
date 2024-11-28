@@ -20,6 +20,7 @@ export interface CreateIdentiferArgs {
     delpre?: string;
     dcode?: string;
     data?: any;
+    cnfg?: any[];
     algo?: Algos;
     pre?: string;
     states?: any[];
@@ -163,6 +164,7 @@ export class Identifier {
         const proxy = kargs.proxy;
         const delpre = kargs.delpre;
         const data = kargs.data != undefined ? [kargs.data] : [];
+        const cnfg = kargs.cnfg != undefined ? kargs.cnfg : [];
         const pre = kargs.pre;
         const states = kargs.states;
         const rstates = kargs.rstates;
@@ -223,7 +225,7 @@ export class Identifier {
                 nsith: nsith,
                 toad: toad,
                 wits: wits,
-                cnfg: [],
+                cnfg: cnfg,
                 data: data,
                 version: Versionage,
                 kind: Serials.JSON,
@@ -238,7 +240,7 @@ export class Identifier {
                 nsith: nsith,
                 toad: toad,
                 wits: wits,
-                cnfg: [],
+                cnfg: cnfg,
                 data: data,
                 version: Versionage,
                 kind: Serials.JSON,
