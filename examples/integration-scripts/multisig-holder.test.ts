@@ -46,24 +46,24 @@ test('multisig', async function run() {
 
     // Exchange OOBIs
     console.log('Resolving OOBIs');
-    const [oobi1, oobi2, oobi3] = await Promise.all([
+    const [oobi1, oobi2] = await Promise.all([
         client1.oobis().get('member1', 'agent'),
         client2.oobis().get('member2', 'agent'),
-        client3.oobis().get('issuer', 'agent'),
+        // client3.oobis().get('issuer', 'agent'),
     ]);
 
     let op1 = await client1.oobis().resolve(oobi2.oobis[0], 'member2');
     op1 = await waitOperation(client1, op1);
-    op1 = await client1.oobis().resolve(oobi3.oobis[0], 'issuer');
-    op1 = await waitOperation(client1, op1);
+    // op1 = await client1.oobis().resolve(oobi3.oobis[0], 'issuer');
+    // op1 = await waitOperation(client1, op1);
     op1 = await client1.oobis().resolve(SCHEMA_OOBI, 'schema');
     op1 = await waitOperation(client1, op1);
     console.log('Member1 resolved 3 OOBIs');
 
     let op2 = await client2.oobis().resolve(oobi1.oobis[0], 'member1');
     op2 = await waitOperation(client2, op2);
-    op2 = await client2.oobis().resolve(oobi3.oobis[0], 'issuer');
-    op2 = await waitOperation(client2, op2);
+    // op2 = await client2.oobis().resolve(oobi3.oobis[0], 'issuer');
+    // op2 = await waitOperation(client2, op2);
     op2 = await client2.oobis().resolve(SCHEMA_OOBI, 'schema');
     op2 = await waitOperation(client2, op2);
     console.log('Member2 resolved 3 OOBIs');
