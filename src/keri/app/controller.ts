@@ -325,7 +325,7 @@ export class Controller {
                 const signers = [];
                 for (const prx of prxs) {
                     const cipher = new Cipher({ qb64: prx });
-                    const dsigner = decrypter.decrypt(null, cipher, true);
+                    const dsigner = decrypter.decrypt(null, cipher, null,true);
                     signers.push(dsigner);
                     nprxs.push(encrypter.encrypt(b(dsigner.qb64)).qb64);
                 }
