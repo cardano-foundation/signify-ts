@@ -57,7 +57,7 @@ jobs:
     strategy:
       matrix:
         os: ['ubuntu-latest']
-        keria-version: ['0.2.0-dev3']
+        keria-version: ['0.2.0-dev5']
         node-version: ['20']
     env:
       KERIA_IMAGE_TAG: ${{ matrix.keria-version }}
@@ -76,7 +76,7 @@ jobs:
       - name: Print docker compose config
         run: docker compose config
       - name: Start dependencies
-        run: docker compose up deps --pull always
+        run: docker compose up --wait --pull always
       - name: Run integration test
         run: npm run test:integration
       - name: Print logs

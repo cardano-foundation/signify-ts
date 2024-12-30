@@ -229,6 +229,26 @@ export interface IpexAdmitArgs {
     datetime?: string;
 }
 
+export type CredentialState = {
+    vn: [number, number];
+    i: string;
+    s: string;
+    d: string;
+    ri: string;
+    a: { s: number; d: string };
+    dt: string;
+    et: string;
+} & (
+    | {
+          et: 'iss' | 'rev';
+          ra: Record<string, never>;
+      }
+    | {
+          et: 'bis' | 'brv';
+          ra: { i: string; s: string; d: string };
+      }
+);
+
 /**
  * Credentials
  */
@@ -283,6 +303,20 @@ export class Credentials {
         const res = await this.client.fetch(path, method, null, headers);
 
         return includeCESR ? await res.text() : await res.json();
+    }
+
+    /**
+     * Get the state of a credential
+     * @async
+     * @param {string} ri - management registry identifier
+     * @param {string} said - SAID of the credential
+     * @returns {Promise<CredentialState>} A promise to the credential registry state
+     */
+    async state(ri: string, said: string): Promise<CredentialState> {
+        const path = `/registries/${ri}/${said}`;
+        const method = 'GET';
+        const res = await this.client.fetch(path, method, null);
+        return res.json();
     }
 
     /**
@@ -471,133 +505,6 @@ export class Credentials {
             anc: new Serder(ixn),
             op,
         };
-    }
-
-    /**
-     * Present a credential
-     * @async
-     * @param {string} name Name or alias of the identifier
-     * @param {string} said SAID of the credential
-     * @param {string} recipient Identifier prefix of the receiver of the presentation
-     * @param {boolean} [include=true] Flag to indicate whether to stream credential alongside presentation exchange message
-     * @returns {Promise<string>} A promise to the long-running operation
-     */
-    async present(
-        name: string,
-        said: string,
-        recipient: string,
-        include: boolean = true
-    ): Promise<string> {
-        const hab = await this.client.identifiers().get(name);
-        const pre: string = hab.prefix;
-
-        const cred = await this.get(said);
-        const data = {
-            i: cred.sad.i,
-            s: cred.sad.s,
-            n: said,
-        };
-
-        const vs = versify(Ident.KERI, undefined, Serials.JSON, 0);
-
-        const _sad = {
-            v: vs,
-            t: Ilks.exn,
-            d: '',
-            dt: new Date().toISOString().replace('Z', '000+00:00'),
-            r: '/presentation',
-            q: {},
-            a: data,
-        };
-        const [, sad] = Saider.saidify(_sad);
-        const exn = new Serder(sad);
-
-        const keeper = this.client!.manager!.get(hab);
-
-        const sig = await keeper.sign(b(exn.raw), true);
-
-        const siger = new Siger({ qb64: sig[0] });
-        const seal = ['SealLast', { i: pre }];
-        let ims = messagize(exn, [siger], seal, undefined, undefined, true);
-        ims = ims.slice(JSON.stringify(exn.ked).length);
-
-        const body = {
-            exn: exn.ked,
-            sig: new TextDecoder().decode(ims),
-            recipient: recipient,
-            include: include,
-        };
-
-        const path = `/identifiers/${name}/credentials/${said}/presentations`;
-        const method = 'POST';
-        const headers = new Headers({
-            Accept: 'application/json+cesr',
-        });
-        const res = await this.client.fetch(path, method, body, headers);
-        return await res.text();
-    }
-
-    /**
-     * Request a presentation of a credential
-     * @async
-     * @param {string} name Name or alias of the identifier
-     * @param {string} recipient Identifier prefix of the receiver of the presentation
-     * @param {string} schema SAID of the schema
-     * @param {string} [issuer] Optional prefix of the issuer of the credential
-     * @returns {Promise<string>} A promise to the long-running operation
-     */
-    async request(
-        name: string,
-        recipient: string,
-        schema: string,
-        issuer?: string
-    ): Promise<string> {
-        const hab = await this.client.identifiers().get(name);
-        const pre: string = hab.prefix;
-
-        const data: any = {
-            s: schema,
-        };
-        if (issuer !== undefined) {
-            data['i'] = issuer;
-        }
-
-        const vs = versify(Ident.KERI, undefined, Serials.JSON, 0);
-
-        const _sad = {
-            v: vs,
-            t: Ilks.exn,
-            d: '',
-            dt: new Date().toISOString().replace('Z', '000+00:00'),
-            r: '/presentation/request',
-            q: {},
-            a: data,
-        };
-        const [, sad] = Saider.saidify(_sad);
-        const exn = new Serder(sad);
-
-        const keeper = this.client!.manager!.get(hab);
-
-        const sig = await keeper.sign(b(exn.raw), true);
-
-        const siger = new Siger({ qb64: sig[0] });
-        const seal = ['SealLast', { i: pre }];
-        let ims = messagize(exn, [siger], seal, undefined, undefined, true);
-        ims = ims.slice(JSON.stringify(exn.ked).length);
-
-        const body = {
-            exn: exn.ked,
-            sig: new TextDecoder().decode(ims),
-            recipient: recipient,
-        };
-
-        const path = `/identifiers/${name}/requests`;
-        const method = 'POST';
-        const headers = new Headers({
-            Accept: 'application/json+cesr',
-        });
-        const res = await this.client.fetch(path, method, body, headers);
-        return await res.text();
     }
 }
 
