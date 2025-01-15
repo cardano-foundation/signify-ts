@@ -45,7 +45,7 @@ export interface RotateIdentifierArgs {
     toad?: number;
     cuts?: string[];
     adds?: string[];
-    data?: Array<object>;
+    data?: any;
     ncode?: string;
     ncount?: number;
     ncodes?: string[];
