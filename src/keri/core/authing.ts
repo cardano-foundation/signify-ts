@@ -196,37 +196,14 @@ export class Authenticator {
 
         let body = '';
         if (request.method !== 'GET' && request.body) {
-            body = Buffer.from(await this.streamToBytes(request.body)).toString(
+            // Response provides convenience method to extract, better compatibility.
+            const tmpResponse = new Response(request.body);
+            body = Buffer.from(await tmpResponse.arrayBuffer()).toString(
                 'utf-8'
             );
         }
 
         return `${request.method} ${request.url} HTTP/1.1\r\n${headers}\r\n${body}`;
-    }
-
-    private static async streamToBytes(stream: ReadableStream) {
-        const reader = stream.getReader();
-        const chunks = [];
-        let done, value;
-
-        while ((({ done, value } = await reader.read()), !done)) {
-            if (value) chunks.push(value);
-        }
-        reader.releaseLock();
-
-        const totalLength = chunks.reduce(
-            (acc, chunk) => acc + chunk.length,
-            0
-        );
-        const result = new Uint8Array(totalLength);
-        let offset = 0;
-
-        for (const chunk of chunks) {
-            result.set(chunk, offset);
-            offset += chunk.length;
-        }
-
-        return result;
     }
 
     async unwrap(
