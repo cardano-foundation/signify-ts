@@ -195,7 +195,7 @@ export class Authenticator {
         });
 
         let body = '';
-        if (request.method !== 'GET' && request.body) {
+        if (request.method !== 'GET') {
             body = Buffer.from(await request.arrayBuffer()).toString('utf-8');
         }
 
