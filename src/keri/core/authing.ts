@@ -196,11 +196,7 @@ export class Authenticator {
 
         let body = '';
         if (request.method !== 'GET' && request.body) {
-            // Response provides convenience method to extract, better compatibility.
-            const tmpResponse = new Response(request.body);
-            body = Buffer.from(await tmpResponse.arrayBuffer()).toString(
-                'utf-8'
-            );
+            body = Buffer.from(await request.arrayBuffer()).toString('utf-8');
         }
 
         return `${request.method} ${request.url} HTTP/1.1\r\n${headers}\r\n${body}`;
