@@ -1077,7 +1077,7 @@ class Keeper implements KeyStore {
         const out = new Array<[string, Signer]>();
         this._pris.forEach(function (val, pubKey) {
             const verfer = new Verfer({ qb64: pubKey });
-            const signer = decrypter.decrypt(val, null, verfer.transferable);
+            const signer = decrypter.decrypt(val, null, null, verfer.transferable);
             out.push([pubKey, signer]);
         });
         return out;
@@ -1104,7 +1104,7 @@ class Keeper implements KeyStore {
         }
         const verfer = new Verfer({ qb64: pubKey });
 
-        return decrypter.decrypt(val, null, verfer.transferable);
+        return decrypter.decrypt(val, null, null, verfer.transferable);
     }
 
     pinPths(pubKey: string, val: PubPath): boolean {

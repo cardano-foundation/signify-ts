@@ -1,10 +1,11 @@
 import libsodium from 'libsodium-wrappers-sumo';
 
-import { Matter, MatterArgs, MtrDex } from './matter';
+import {ciXAllQB64Dex, ciXVarQB2Dex, ciXVarStrmDex, Matter, MatterArgs, MtrDex} from './matter';
 import { Signer } from './signer';
 import { Cipher } from './cipher';
 import { EmptyMaterialError } from './kering';
 import { Salter } from './salter';
+import {Streamer} from "./streamer";
 
 export class Decrypter extends Matter {
     private readonly _decrypt: any;
@@ -47,34 +48,56 @@ export class Decrypter extends Matter {
     }
 
     decrypt(
-        ser: Uint8Array | null = null,
+        ser: Uint8Array | null = null, // qb64b
         cipher: Cipher | null = null,
-        transferable: boolean = false
+        klas = null,
+        transferable: boolean = false,
+        bare: boolean = false
     ) {
-        if (ser == null && cipher == null) {
-            throw new EmptyMaterialError('Neither ser or cipher were provided');
+
+        if (!cipher){
+            if (ser != null) {
+                cipher = new Cipher({ qb64b: ser });
+            } else {
+                throw new Error(`Need one of cipher or qb64`);
+            }
         }
 
-        if (ser != null) {
-            cipher = new Cipher({ qb64b: ser });
-        }
-
-        return this._decrypt(cipher, this.raw, transferable);
+        return this._decrypt(cipher, this.raw, klas, transferable, bare);
     }
 
-    _x25519(cipher: Cipher, prikey: Uint8Array, transferable: boolean = false) {
+    _x25519(cipher: Cipher, prikey: Uint8Array, Klas?: typeof Matter | typeof Streamer, transferable: boolean = false, bare: boolean = false) {
         const pubkey = libsodium.crypto_scalarmult_base(prikey);
         const plain = libsodium.crypto_box_seal_open(
             cipher.raw,
             pubkey,
             prikey
         );
-        if (cipher.code == MtrDex.X25519_Cipher_Salt) {
-            return new Salter({ qb64b: plain });
-        } else if (cipher.code == MtrDex.X25519_Cipher_Seed) {
-            return new Signer({ qb64b: plain, transferable: transferable });
+
+        if (bare) {
+            return plain
         } else {
-            throw new Error(`Unsupported cipher text code == ${cipher.code}`);
+            if (!Klas) {
+                if (cipher.code === MtrDex.X25519_Cipher_Salt){
+                    Klas = Salter;
+                } else if (cipher.code === MtrDex.X25519_Cipher_Seed) {
+                    Klas = Signer;
+                } else if (ciXVarStrmDex.includes(cipher.code)){
+                    Klas = Streamer;
+                } else {
+                    throw new Error(`Unsupported cipher code = ${cipher.code} when klas missing.`);
+                }
+            }
+
+            if (ciXAllQB64Dex.includes(cipher.code)) {
+                // @ts-ignore
+                return new Klas({qb64b: plain, transferable});
+            } else if (ciXVarStrmDex.includes(cipher.code)){
+                // @ts-ignore
+                return new Klas(plain)
+            } else {
+                throw new Error(`Unsupported cipher code = ${cipher.code}.`);
+            }
         }
     }
 }

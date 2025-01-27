@@ -1,10 +1,11 @@
 import libsodium from 'libsodium-wrappers-sumo';
 
-import { Matter, MatterArgs, MtrDex } from './matter';
+import {ciXAllQB64Dex, ciXVarStrmDex, Matter, MatterArgs, MatterCodex, MtrDex} from './matter';
 import { Verfer } from './verfer';
 import { Signer } from './signer';
 import { Cipher } from './cipher';
 import { arrayEquals } from './utils';
+import {Streamer} from "./streamer";
 
 export class Encrypter extends Matter {
     private _encrypt: any;
@@ -44,23 +45,39 @@ export class Encrypter extends Matter {
         return arrayEquals(pubkey, this.raw);
     }
 
-    encrypt(ser: Uint8Array | null = null, matter: Matter | null = null) {
-        if (ser == null && matter == null) {
-            throw new Error('Neither ser nor matter are provided.');
+    encrypt(ser: Uint8Array | null = null, matter: Matter | Streamer | null = null, code: string | null = null) {
+
+        if (!ser) {
+            if (!matter){
+                throw new Error('Neither ser nor matter are provided.');
+            }
+
+            if (!code) {
+                if (!(matter instanceof Matter) || matter.code == MtrDex.Salt_128){
+                    code = MtrDex.X25519_Cipher_Salt;
+                } else if (matter.code == MtrDex.Ed25519_Seed){
+                    code = MtrDex.X25519_Cipher_Seed;
+                } else {
+                    throw new Error(`Unsupported primitive with code = ${matter.code} when cipher code is missing`);
+                }
+            }
+
+            if (ciXAllQB64Dex.includes(code)) {
+                if (matter instanceof Matter) {
+                    ser = matter.qb64b;
+                }
+            } else if (ciXVarStrmDex.includes(code)){
+                ser = (matter as Streamer).stream;
+            } else {
+                throw new Error(`Invalid primitive cipher ${(matter instanceof Matter) ? matter.code : matter.stream} not qb64`);
+            }
         }
 
-        if (ser != null) {
-            matter = new Matter({ qb64b: ser });
+        if (!code) { // assumes default is sniffable stream
+            code = MtrDex.X25519_Cipher_L0;
         }
 
-        let code;
-        if (matter!.code == MtrDex.Salt_128) {
-            code = MtrDex.X25519_Cipher_Salt;
-        } else {
-            code = MtrDex.X25519_Cipher_Seed;
-        }
-
-        return this._encrypt(matter!.qb64, this.raw, code);
+        return this._encrypt(ser, this.raw, code);
     }
 
     _x25519(ser: Uint8Array, pubkey: Uint8Array, code: string) {

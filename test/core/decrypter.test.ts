@@ -98,6 +98,7 @@ describe('Decrypter', () => {
         let designer = decrypter.decrypt(
             seedcipher.qb64b,
             null,
+            null,
             signer.verfer.transferable
         );
         assert.deepStrictEqual(designer.qb64b, seedqb64b);
@@ -109,6 +110,7 @@ describe('Decrypter', () => {
         designer = decrypter.decrypt(
             null,
             seedcipher,
+            null,
             signer.verfer.transferable
         );
         assert.deepStrictEqual(designer.qb64b, seedqb64b);
@@ -137,6 +139,7 @@ describe('Decrypter', () => {
             'PM9jOGWNYfjM_oLXJNaQ8UlFSAV5ACjsUY7J16xfzrlpc9Ve3A5WYrZ4o_NHtP5lhp78Usspl9fyFdnCdItNd5JyqZ6dt8SXOt6TOqOCs-gy0obrwFkPPqBvVkEw';
         designer = decrypter.decrypt(
             b(cipherseed),
+            null,
             null,
             signer.verfer.transferable
         );
