@@ -7,7 +7,7 @@ import { MtrDex } from '../core/matter';
 import { Serder } from '../core/serder';
 import { parseRangeHeaders } from '../core/httping';
 import { KeyManager } from '../core/keeping';
-import { HabState } from '../core/state';
+import { EstablishmentEvent, ExternState, GroupState, HabState, RandyState, SaltyState } from '../core/state';
 
 /** Arguments required to create an identfier */
 export interface CreateIdentiferArgs {
@@ -16,7 +16,6 @@ export interface CreateIdentiferArgs {
     nsith?: string | number | string[];
     wits?: string[];
     toad?: number;
-    proxy?: string;
     delpre?: string;
     dcode?: string;
     data?: any;
@@ -35,6 +34,19 @@ export interface CreateIdentiferArgs {
     tier?: Tier;
     extern_type?: string;
     extern?: any;
+    pidx?: number;
+}
+
+export interface CreateIdentifierBody {
+    name: string,
+    icp: EstablishmentEvent,
+    sigs: string[],
+    smids?: string[],
+    rmids?: string[],
+    [Algos.salty]?: SaltyState;
+    [Algos.randy]?: RandyState;
+    [Algos.group]?: GroupState;
+    [Algos.extern]?: ExternState;
 }
 
 /** Arguments required to rotate an identfier */
@@ -148,26 +160,17 @@ export class Identifier {
         return await res.json();
     }
 
-    /**
-     * Create a managed identifier
-     * @async
-     * @param {string} name Name or alias of the identifier
-     * @param {CreateIdentiferArgs} [kargs] Optional parameters to create the identifier
-     * @returns {EventResult} The inception result
-     */
-    async create(
+    async createInceptionData(
         name: string,
         kargs: CreateIdentiferArgs = {}
-    ): Promise<EventResult> {
-        const algo = kargs.algo == undefined ? Algos.salty : kargs.algo;
-
+    ): Promise<CreateIdentifierBody> {
+        const algo = kargs.algo ?? Algos.salty;
         const transferable = kargs.transferable ?? true;
         const isith = kargs.isith ?? '1';
         let nsith = kargs.nsith ?? '1';
         let wits = kargs.wits ?? [];
         const toad = kargs.toad ?? 0;
         let dcode = kargs.dcode ?? MtrDex.Blake3_256;
-        const proxy = kargs.proxy;
         const delpre = kargs.delpre;
         const data = kargs.data != undefined ? [kargs.data] : [];
         const pre = kargs.pre;
@@ -197,7 +200,6 @@ export class Identifier {
             nsith: nsith,
             wits: wits,
             toad: toad,
-            proxy: proxy,
             delpre: delpre,
             dcode: dcode,
             data: data,
@@ -220,61 +222,55 @@ export class Identifier {
 
         const keeper = this.client.manager!.new(algo, this.client.pidx, xargs);
         const [keys, ndigs] = await keeper!.incept(transferable);
-        wits = wits !== undefined ? wits : [];
-        let serder: Serder | undefined = undefined;
-        if (delpre == undefined) {
-            serder = incept({
-                keys: keys!,
-                isith: isith,
-                ndigs: ndigs,
-                nsith: nsith,
-                toad: toad,
-                wits: wits,
-                cnfg: [],
-                data: data,
-                version: Versionage,
-                kind: Serials.JSON,
-                code: dcode,
-                intive: false,
-            });
-        } else {
-            serder = incept({
-                keys: keys!,
-                isith: isith,
-                ndigs: ndigs,
-                nsith: nsith,
-                toad: toad,
-                wits: wits,
-                cnfg: [],
-                data: data,
-                version: Versionage,
-                kind: Serials.JSON,
-                code: dcode,
-                intive: false,
-                delpre: delpre,
-            });
-        }
+        const serder = incept({
+            keys,
+            isith,
+            ndigs,
+            nsith,
+            toad,
+            wits,
+            cnfg: [],
+            data,
+            version: Versionage,
+            kind: Serials.JSON,
+            code: dcode,
+            intive: false,
+            delpre,
+        });
 
         const sigs = await keeper!.sign(b(serder.raw));
-        const jsondata: any = {
-            name: name,
-            icp: serder.ked,
-            sigs: sigs,
-            proxy: proxy,
-            smids:
-                states != undefined
-                    ? states.map((state) => state.i)
-                    : undefined,
-            rmids:
-                rstates != undefined
-                    ? rstates.map((state) => state.i)
-                    : undefined,
-        };
-        jsondata[algo] = keeper.params();
-
         this.client.pidx = this.client.pidx + 1;
+
+        const icp = serder.ked as EstablishmentEvent;
+        return {
+            name,
+            icp,
+            sigs,
+            smids: states?.map(state => state.i),
+            rmids: rstates?.map((state) => state.i),
+            [algo]: keeper.params(),
+        };
+    }
+
+    async submitInceptionData(jsondata: CreateIdentifierBody) {
         const res = await this.client.fetch('/identifiers', 'POST', jsondata);
-        return new EventResult(serder, sigs, res);
+        return new EventResult(new Serder(jsondata.icp), jsondata.sigs, res); 
+    }
+
+    /**
+     * Create a managed identifier
+     * @async
+     * @param {string} name Name or alias of the identifier
+     * @param {CreateIdentiferArgs} [kargs] Optional parameters to create the identifier
+     * @returns {EventResult} The inception result
+     */
+    async create(
+        name: string,
+        kargs: CreateIdentiferArgs = {}
+    ): Promise<EventResult> {
+        const jsondata = await this.createInceptionData(name, kargs);
+        console.log(`the jsondata is ${JSON.stringify(jsondata, null, 2)}`);
+        return await this.submitInceptionData(jsondata);
     }
 
     /**
