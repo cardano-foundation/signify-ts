@@ -269,7 +269,6 @@ export class Identifier {
         kargs: CreateIdentiferArgs = {}
     ): Promise<EventResult> {
         const jsondata = await this.createInceptionData(name, kargs);
-        console.log(`the jsondata is ${JSON.stringify(jsondata, null, 2)}`);
         return await this.submitInceptionData(jsondata);
     }
 
