@@ -1,6 +1,23 @@
 import { Algos } from './manager';
 import { Tier } from './salter';
 
+export interface EstablishmentEvent {
+    v: string;
+    t: string;
+    d: string;
+    i: string;
+    s: string;
+    p?: string;
+    kt: string | string[];
+    k: string[];
+    nt: string | string[];
+    n: string[];
+    bt: string;
+    b: string[];
+    c: string[];
+    a: string[];
+}
+
 export interface State {
     vn: [number, number];
     i: string;

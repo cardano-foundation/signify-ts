@@ -26,7 +26,6 @@ export async function createMockIdentifierState(
     const wits = kargs.wits ?? [];
     const toad = kargs.toad ?? 0;
     const dcode = kargs.dcode ?? MtrDex.Blake3_256;
-    const proxy = kargs.proxy;
     const delpre = kargs.delpre;
     const data = kargs.data != undefined ? [kargs.data] : [];
     const pre = kargs.pre;
@@ -49,7 +48,6 @@ export async function createMockIdentifierState(
         nsith: nsith,
         wits: wits,
         toad: toad,
-        proxy: proxy,
         delpre: delpre,
         dcode: dcode,
         data: data,
