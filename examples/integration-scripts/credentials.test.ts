@@ -54,6 +54,13 @@ beforeAll(async () => {
 });
 
 beforeAll(async () => {
+    const result = await issuerClient.identifiers().create("testIdentifier");
+    await waitOperation(issuerClient, await result.op());
+    const regResult = await issuerClient.registries().create({ name: "testIdentifier", registryName: "testRegistry" });
+    await waitOperation(issuerClient, await regResult.op());
+    const endRoleResult = await issuerClient.identifiers().addEndRole("testIdentifier", "agent", issuerClient.agent!.pre);
+    await waitOperation(issuerClient, await endRoleResult.op());
+
     [issuerAid, holderAid, verifierAid, legalEntityAid] = await Promise.all([
         createAid(issuerClient, 'issuer'),
         createAid(holderClient, 'holder'),
