@@ -7,6 +7,13 @@ import { Counter, CtrDex } from '../core/counter';
 import { Saider } from '../core/saider';
 import { HabState } from '../core/state';
 
+export interface ExnMessageFilter {
+    filter?: object;
+    sort?: object[];
+    skip?: number;
+    limit?: number;
+}
+
 /**
  * Exchanges
  */
@@ -141,6 +148,24 @@ export class Exchanges {
         const path = `/exchanges/${said}`;
         const method = 'GET';
         const res = await this.client.fetch(path, method, null);
+        return await res.json();
+    }
+
+    async list(kargs: ExnMessageFilter): Promise<any> {
+        const path = '/exchanges/query';
+        const filtr = kargs.filter === undefined ? {} : kargs.filter;
+        const sort = kargs.sort === undefined ? [] : kargs.sort;
+        const limit = kargs.limit === undefined ? 25 : kargs.limit;
+        const skip = kargs.skip === undefined ? 0 : kargs.skip;
+
+        const data = {
+            filter: filtr,
+            sort: sort,
+            skip: skip,
+            limit: limit,
+        };
+        const method = 'POST';
+        const res = await this.client.fetch(path, method, data);
         return await res.json();
     }
 }
