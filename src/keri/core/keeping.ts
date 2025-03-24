@@ -559,8 +559,9 @@ export class RandyIdentifierManager implements IdentifierManager {
 
         this.signers = this.prxs.map((prx) =>
             this.decrypter.decrypt(
-                new Cipher({ qb64: prx }).qb64b,
-                undefined,
+                null,
+                new Cipher({ qb64: prx }),
+                null,
                 this.transferable
             )
         );
@@ -618,8 +619,9 @@ export class RandyIdentifierManager implements IdentifierManager {
 
         const signers = this.nxts!.map((nxt) =>
             this.decrypter.decrypt(
-                undefined,
+                null,
                 new Cipher({ qb64: nxt }),
+                null,
                 this.transferable
             )
         );
@@ -651,8 +653,9 @@ export class RandyIdentifierManager implements IdentifierManager {
     ): Promise<SignResult> {
         const signers = this.prxs!.map((prx) =>
             this.decrypter.decrypt(
-                new Cipher({ qb64: prx }).qb64b,
-                undefined,
+                null,
+                new Cipher({ qb64: prx }),
+                null,
                 this.transferable
             )
         );

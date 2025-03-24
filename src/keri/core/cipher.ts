@@ -14,12 +14,15 @@ export class Cipher extends Matter {
         }
         super({ raw: raw, code: code, qb64b: qb64b, qb64: qb64, qb2: qb2 });
 
-        if (
-            !Array.from([
-                MtrDex.X25519_Cipher_Salt,
-                MtrDex.X25519_Cipher_Seed,
-            ]).includes(this.code)
-        ) {
+        if (!this.code || ![
+            MtrDex.X25519_Cipher_Salt, MtrDex.X25519_Cipher_Seed,
+            MtrDex.X25519_Cipher_L0, MtrDex.X25519_Cipher_L1, MtrDex.X25519_Cipher_L2,
+            MtrDex.X25519_Cipher_Big_L0, MtrDex.X25519_Cipher_Big_L1, MtrDex.X25519_Cipher_Big_L2,
+            MtrDex.X25519_Cipher_QB64_L0, MtrDex.X25519_Cipher_QB64_L1, MtrDex.X25519_Cipher_QB64_L2,
+            MtrDex.X25519_Cipher_QB64_Big_L0, MtrDex.X25519_Cipher_QB64_Big_L1, MtrDex.X25519_Cipher_QB64_Big_L2,
+            MtrDex.X25519_Cipher_QB2_L0, MtrDex.X25519_Cipher_QB2_L1, MtrDex.X25519_Cipher_QB2_L2,
+            MtrDex.X25519_Cipher_QB2_Big_L0, MtrDex.X25519_Cipher_QB2_Big_L1, MtrDex.X25519_Cipher_QB2_Big_L2
+        ].includes(this.code)) {
             throw new Error(`Unsupported Cipher code == ${this.code}`);
         }
     }
