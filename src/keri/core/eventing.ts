@@ -9,6 +9,7 @@ import {
     Version,
     Vrsn_1_0,
 } from './core';
+import { TraitDex } from '../app/habery';
 import { Tholder } from './tholder';
 import { CesrNumber } from './number';
 import { Prefixer } from './prefixer';
