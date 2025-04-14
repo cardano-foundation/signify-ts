@@ -300,3 +300,30 @@ export class Config {
         return await res.json();
     }
 }
+
+/**
+ * Introductions
+ */
+export class Introductions {
+    public client: SignifyClient;
+    /**
+     * Introductions
+     * @param {SignifyClient} client
+     */
+    constructor(client: SignifyClient) {
+        this.client = client;
+    }
+
+
+    async submit(rec: string, rpy: string): Promise<any> {
+        const path = `/introduce`;
+        const data: any = {
+            rec: rec,
+            rpy: rpy,
+        };
+
+        const method = 'POST';
+        const res = await this.client.fetch(path, method, data);
+        return await res.json();
+    }
+}
