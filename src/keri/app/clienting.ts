@@ -6,7 +6,7 @@ import { Tier } from '../core/salter';
 import { Identifier } from './aiding';
 import { Contacts, Challenges } from './contacting';
 import { Agent, Controller } from './controller';
-import { Oobis, Operations, KeyEvents, KeyStates, Config } from './coring';
+import { Oobis, Operations, KeyEvents, KeyStates, Config, Replies } from './coring';
 import { Credentials, Ipex, Registries, Schemas } from './credentialing';
 import { Delegations } from './delegating';
 import { Escrows } from './escrowing';
@@ -482,5 +482,9 @@ export class SignifyClient {
      */
     config(): Config {
         return new Config(this);
+    }
+
+    replies(): Replies {
+        return new Replies(this);
     }
 }

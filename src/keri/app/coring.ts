@@ -301,3 +301,29 @@ export class Config {
         return await res.json();
     }
 }
+
+/**
+ * Replies
+ */
+export class Replies {
+    public client: SignifyClient;
+    /**
+     * Replies
+     * @param {SignifyClient} client
+     */
+    constructor(client: SignifyClient) {
+        this.client = client;
+    }
+
+
+    async submitRpy(rec: string, rpy: string): Promise<void> {
+        const path = `/replies`;
+        const data = {
+            rec: rec,
+            rpy: rpy,
+        };
+
+        const method = 'POST';
+        await this.client.fetch(path, method, data);
+    }
+}

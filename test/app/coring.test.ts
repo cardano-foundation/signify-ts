@@ -258,6 +258,28 @@ describe('Coring', () => {
         assert.equal(lastCall[0], '/config');
         assert.equal(lastCall[1], 'GET');
     });
+
+    it('Replies', async () => {
+        const bran = '0123456789abcdefghijk';
+
+        const client = new SignifyClient(url, bran, Tier.low, boot_url);
+        await client.boot();
+        await client.connect();
+
+        const replies = client.replies();
+
+        await replies.submitRpy(
+            'ELp_OCymCerMZY2kmexquBaQfdoBLbM4Y3gpkJTrbWJ_',
+            '{"v":"KERI10JSON00014e_","t":"rpy","d":"EDygCHTVxIyUpM1s4q9FMlv17ClOinTyZh207xjyLi-p","dt":"2025-04-16T13:27:17.352000+00:00","r":"/introduce","a":{"cid":"BDy-NRK64uh2NXeRUjhsp9SPSGf_Dhsm-OxbVzfh_Tvh","oobi":"http://127.0.0.1:3902/oobi/ENmzXRLhF5vL_wzerGjY2m1LfgVMS2FreuokVWkCKQRL/agent/EOb8OqfPUyIGKfveBvJA_drKI3yq0EFh3DRIrgbRipva"}}-CABBDy-NRK64uh2NXeRUjhsp9SPSGf_Dhsm-OxbVzfh_Tvh0BCXxC2RjltB7Z_jga7aVcvXG46p6S_51fKMdTNFEg2Ks1XUXN_J04lDpU03UQPzqdnAc1tR6iWI4itsXhY4z_sL'
+        );
+        const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
+        assert.equal(lastCall[0], '/replies');
+        assert.equal(lastCall[1], 'POST');
+        assert.deepEqual(lastCall[2], {
+            rec: 'ELp_OCymCerMZY2kmexquBaQfdoBLbM4Y3gpkJTrbWJ_',
+            rpy: '{"v":"KERI10JSON00014e_","t":"rpy","d":"EDygCHTVxIyUpM1s4q9FMlv17ClOinTyZh207xjyLi-p","dt":"2025-04-16T13:27:17.352000+00:00","r":"/introduce","a":{"cid":"BDy-NRK64uh2NXeRUjhsp9SPSGf_Dhsm-OxbVzfh_Tvh","oobi":"http://127.0.0.1:3902/oobi/ENmzXRLhF5vL_wzerGjY2m1LfgVMS2FreuokVWkCKQRL/agent/EOb8OqfPUyIGKfveBvJA_drKI3yq0EFh3DRIrgbRipva"}}-CABBDy-NRK64uh2NXeRUjhsp9SPSGf_Dhsm-OxbVzfh_Tvh0BCXxC2RjltB7Z_jga7aVcvXG46p6S_51fKMdTNFEg2Ks1XUXN_J04lDpU03UQPzqdnAc1tR6iWI4itsXhY4z_sL'
+        });
+    });
 });
 
 describe('Operations', () => {

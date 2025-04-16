@@ -465,13 +465,13 @@ export function messagize(
         atc = concat(
             atc,
             new Counter({
-                code: CtrDex.ControllerIdxSigs,
+                code: CtrDex.WitnessIdxSigs,
                 count: wigers.length,
             }).qb64b
         );
 
         wigers.forEach((wiger) => {
-            if (wiger.verfer && !(wiger.verfer.code in NonTransDex)) {
+            if (wiger.verfer && !(NonTransDex.has(wiger.verfer.code))) {
                 throw new Error(
                     `Attempt to use tranferable prefix=${wiger.verfer.qb64} for receipt.`
                 );
@@ -484,17 +484,18 @@ export function messagize(
         atc = concat(
             atc,
             new Counter({
-                code: CtrDex.ControllerIdxSigs,
+                code: CtrDex.NonTransReceiptCouples,
                 count: cigars.length,
             }).qb64b
         );
 
         cigars.forEach((cigar) => {
-            if (cigar.verfer && !(cigar.verfer.code in NonTransDex)) {
+            if (cigar.verfer && !(NonTransDex.has(cigar.verfer.code))) {
                 throw new Error(
                     `Attempt to use tranferable prefix=${cigar.verfer.qb64} for receipt.`
                 );
             }
+            atc = concat(atc, cigar.verfer!.qb64b);
             atc = concat(atc, cigar.qb64b);
         });
     }
