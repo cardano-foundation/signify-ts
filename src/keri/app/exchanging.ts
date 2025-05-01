@@ -193,15 +193,6 @@ export function exchange(
         [, e] = Saider.saidify(e);
     }
 
-    const attrs = {} as Dict<any>;
-
-    attrs['i'] = recipient;
-
-    const a = {
-        ...attrs,
-        ...payload,
-    };
-
     const _ked = {
         v: vs,
         t: ilk,
@@ -212,7 +203,7 @@ export function exchange(
         dt: dt,
         r: route,
         q: q,
-        a: a,
+        a: payload,
         e: e,
     };
     const [, ked] = Saider.saidify(_ked);
