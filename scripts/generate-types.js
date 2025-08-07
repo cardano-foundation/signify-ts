@@ -11,22 +11,26 @@ if (!specUrl) {
 }
 
 console.log(`📦 Generating types from ${specUrl}`);
-execSync(`npx openapi-typescript "${specUrl}" --output ${outputFile}`, {
+execSync(`npx openapi-typescript "${specUrl}" --output ${outputFile} --enum`, {
     stdio: 'inherit',
 });
 
 // Read the full file
 const fullContent = fs.readFileSync(outputFile, 'utf8');
 
-// Extract only the `export interface components { ... }` block
-const match = fullContent.match(/export interface components \{[\s\S]+?\n\}/);
+// Extract the `export interface components { ... }` block
+const componentsMatch = fullContent.match(/export interface components \{[\s\S]+?\n\}/);
 
-if (!match) {
+// Extract all `export enum ... { ... }` blocks
+const enumMatches = [...fullContent.matchAll(/export enum [\w\d_]+ \{[\s\S]+?\n\}/g)];
+
+if (!componentsMatch) {
     console.error("❌ Could not find 'export interface components' block.");
     process.exit(1);
 }
 
-// Add comment header
-const cleaned = `// AUTO-GENERATED: Only components retained from OpenAPI schema\n\n${match[0]}\n`;
+// Combine the interface and enums
+const enumsText = enumMatches.map(m => m[0]).join('\n\n');
+const cleaned = `// AUTO-GENERATED: Only components and enums retained from OpenAPI schema\n\n${enumsText}\n\n${componentsMatch[0]}\n`;
 
 fs.writeFileSync(outputFile, cleaned, 'utf8');

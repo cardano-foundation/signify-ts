@@ -3,6 +3,7 @@ import { assert, test } from 'vitest';
 import signify from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import { resolveOobi, waitOperation } from './utils/test-util.ts';
+import { Tier } from '../src/types/keria-api-schema.ts';
 
 const WITNESS_AID = 'BBilc4-L3tFUnfM_wJr4S4OJanAv_VmF_dJNN6vkf2Ha';
 const { url, bootUrl, witnessUrls } = resolveEnvironment();
@@ -14,7 +15,7 @@ test('test witness', async () => {
     const client1 = new signify.SignifyClient(
         url,
         bran1,
-        signify.Tier.low,
+        Tier.low,
         bootUrl
     );
     await client1.boot();

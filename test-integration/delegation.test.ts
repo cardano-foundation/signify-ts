@@ -9,6 +9,7 @@ import {
 } from './utils/test-util.ts';
 import { retry } from './utils/retry.ts';
 import { step } from './utils/test-step.ts';
+import { Tier } from '../src/types/keria-api-schema.ts';
 
 const { url, bootUrl } = resolveEnvironment();
 
@@ -20,13 +21,13 @@ test('delegation', async () => {
     const client1 = new signify.SignifyClient(
         url,
         bran1,
-        signify.Tier.low,
+        Tier.low,
         bootUrl
     );
     const client2 = new signify.SignifyClient(
         url,
         bran2,
-        signify.Tier.low,
+        Tier.low,
         bootUrl
     );
     await client1.boot();

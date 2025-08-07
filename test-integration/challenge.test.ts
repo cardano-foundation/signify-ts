@@ -1,5 +1,6 @@
 import { assert, test } from 'vitest';
 import signify, { Serder } from 'signify-ts';
+import { Tier } from '../src/types/keria-api-schema.ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import {
     assertOperations,
@@ -16,13 +17,13 @@ test('challenge', async () => {
     const client1 = new signify.SignifyClient(
         url,
         bran1,
-        signify.Tier.low,
+        Tier.low,
         bootUrl
     );
     const client2 = new signify.SignifyClient(
         url,
         bran2,
-        signify.Tier.low,
+        Tier.low,
         bootUrl
     );
     await client1.boot();

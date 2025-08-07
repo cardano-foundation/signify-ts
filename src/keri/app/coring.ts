@@ -5,6 +5,7 @@ import { Matter, MtrDex } from '../core/matter.ts';
 import { components } from '../../types/keria-api-schema.ts';
 
 type OperationBase = components['schemas']['OperationBase'];
+type OOBI = components['schemas']['OOBI'];
 
 export function randomPasscode(): string {
     const raw = libsodium.randombytes_buf(16);
@@ -36,7 +37,7 @@ export class Oobis {
      * @param {string} role Authorized role
      * @returns {Promise<any>} A promise to the OOBI(s)
      */
-    async get(name: string, role: string = 'agent'): Promise<any> {
+    async get(name: string, role: string = 'agent'): Promise<OOBI> {
         const path = `/identifiers/${name}/oobis?role=${role}`;
         const method = 'GET';
         const res = await this.client.fetch(path, method, null);
