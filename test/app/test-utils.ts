@@ -98,7 +98,7 @@ export async function createMockIdentifierState(
 
     // Mock for each algo type
     if (algo === Algos.salty) {
-        return ({
+        return {
             name,
             prefix: serder.pre,
             salty: keeper.params(),
@@ -116,17 +116,17 @@ export async function createMockIdentifierState(
                 n: serder.sad.n,
                 bt: serder.sad.bt,
                 b: serder.sad.b,
-                p: serder.sad.p ?? '',
+                p: (serder.sad.p as string) ?? '',
                 f: '',
                 dt: new Date().toISOString().replace('Z', '000+00:00'),
                 et: '',
                 c: [],
-                di: serder.sad.di ?? '',
+                di: (serder.sad.di as string) ?? '',
             } as KeyState,
             icp_dt: '2023-12-01T10:05:25.062609+00:00',
-        } as unknown) as HabState;
+        } as unknown as HabState;
     } else if (algo === Algos.randy) {
-        return ({
+        return {
             name,
             prefix: serder.pre,
             randy: keeper.params(),
@@ -144,17 +144,17 @@ export async function createMockIdentifierState(
                 n: serder.sad.n,
                 bt: serder.sad.bt,
                 b: serder.sad.b,
-                p: serder.sad.p ?? '',
+                p: (serder.sad.p as string) ?? '',
                 f: '',
                 dt: new Date().toISOString().replace('Z', '000+00:00'),
                 et: '',
                 c: [],
-                di: serder.sad.di ?? '',
+                di: (serder.sad.di as string) ?? '',
             } as KeyState,
             icp_dt: '2023-12-01T10:05:25.062609+00:00',
-        } as unknown) as HabState;
+        } as unknown as HabState;
     } else if (algo === Algos.group) {
-        return ({
+        return {
             name,
             prefix: serder.pre,
             group: keeper.params(),
@@ -172,17 +172,17 @@ export async function createMockIdentifierState(
                 n: serder.sad.n,
                 bt: serder.sad.bt,
                 b: serder.sad.b,
-                p: serder.sad.p ?? '',
+                p: (serder.sad.p as string) ?? '',
                 f: '',
                 dt: new Date().toISOString().replace('Z', '000+00:00'),
                 et: '',
                 c: [],
-                di: serder.sad.di ?? '',
+                di: (serder.sad.di as string) ?? '',
             } as KeyState,
             icp_dt: '2023-12-01T10:05:25.062609+00:00',
-        } as unknown) as HabState;
+        } as unknown as HabState;
     } else if (algo === Algos.extern) {
-        return ({
+        return {
             name,
             prefix: serder.pre,
             extern: extern ?? {},
@@ -202,15 +202,15 @@ export async function createMockIdentifierState(
                 n: serder.sad.n,
                 bt: serder.sad.bt,
                 b: serder.sad.b,
-                p: serder.sad.p ?? '',
+                p: (serder.sad.p as string) ?? '',
                 f: '',
                 dt: new Date().toISOString().replace('Z', '000+00:00'),
                 et: '',
                 c: [],
-                di: serder.sad.di ?? '',
+                di: (serder.sad.di as string) ?? '',
             } as KeyState,
             icp_dt: '2023-12-01T10:05:25.062609+00:00',
-        } as unknown) as HabState;
+        } as unknown as HabState;
     } else {
         throw new Error('Unknown algo type');
     }
