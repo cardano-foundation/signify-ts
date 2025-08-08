@@ -5,6 +5,7 @@ import {
     IdentifierManager,
     IdentifierManagerFactory,
     IdentifierManagerParams,
+    KArgs,
     Prefixer,
     RandyIdentifierManager,
 } from '../../src/index.ts';
@@ -745,7 +746,7 @@ describe('Manager', () => {
         const keeper0 = manager.new(
             Algos.randy,
             0,
-            {}
+            {} as KArgs
         ) as RandyIdentifierManager;
         const [keys] = await keeper0.incept(false);
         const prefixes = new Prefixer({ qb64: keys[0] });
@@ -770,9 +771,9 @@ describe('Manager', () => {
 
         const manager = new IdentifierManagerFactory(salter, []);
 
-        expect(() => manager.new(randomUUID() as Algos, 0, {})).toThrow(
-            'Unknown algo'
-        );
+        expect(() =>
+            manager.new(randomUUID() as Algos, 0, {} as KArgs)
+        ).toThrow('Unknown algo');
         expect(() =>
             manager.get({
                 prefix: '',
@@ -816,7 +817,7 @@ describe('Manager', () => {
             const keeper = manager.new(Algos.extern, 0, {
                 extern_type: 'mock',
                 param,
-            });
+            } as KArgs);
 
             assert(keeper instanceof MockModule);
             expect(keeper.params()).toMatchObject({ param });
@@ -833,7 +834,7 @@ describe('Manager', () => {
                 manager.new(Algos.extern, 0, {
                     extern_type: 'mock',
                     param,
-                })
+                } as KArgs)
             ).toThrow('unsupported external module type mock');
         });
 

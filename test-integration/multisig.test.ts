@@ -4,6 +4,7 @@ import signify, {
     Serder,
     IssueCredentialResult,
     KeyState,
+    Seal,
 } from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import {
@@ -324,7 +325,7 @@ test('multisig', async function run() {
     let rpy = endRoleRes.serder;
     sigs = endRoleRes.sigs;
     let mstate = hab['state'];
-    let seal = [
+    let seal: Seal = [
         'SealEvent',
         { i: hab['prefix'], s: mstate['ee']['s'], d: mstate['ee']['d'] },
     ];
