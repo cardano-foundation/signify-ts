@@ -1,6 +1,6 @@
 import { components } from '../../types/keria-api-schema.ts';
 import { b, Ilks, Serials, Vrsn_1_0 } from '../core/core.ts';
-import { incept, interact, reply, ReplyData, rotate } from '../core/eventing.ts';
+import { incept, interact, reply, EndRoleAddAttributes, rotate } from '../core/eventing.ts';
 import { parseRangeHeaders } from '../core/httping.ts';
 import { IdentifierManagerFactory } from '../core/keeping.ts';
 import { HabState } from '../core/keyState.ts';
@@ -475,7 +475,7 @@ export class Identifier {
         eid?: string,
         stamp?: string
     ): Serder {
-        const data: ReplyData = {
+        const data: EndRoleAddAttributes = {
             cid: pre,
             role: role,
         };
