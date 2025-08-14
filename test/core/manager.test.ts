@@ -9,8 +9,7 @@ import {
 } from '../../src/keri/core/manager.ts';
 import { assert, describe, it, expect, vitest, Mocked } from 'vitest';
 import { MtrDex } from '../../src/keri/core/matter.ts';
-import { Salter } from '../../src/keri/core/salter.ts';
-import { Tier } from '../../src/types/keria-api-schema.ts';
+import { Salter, Tier } from '../../src/keri/core/salter.ts';
 import { Signer } from '../../src/keri/core/signer.ts';
 import { Encrypter } from '../../src/keri/core/encrypter.ts';
 import { Decrypter } from '../../src/keri/core/decrypter.ts';
@@ -27,11 +26,7 @@ import {
     Prefixer,
     RandyIdentifierManager,
 } from '../../src/index.ts';
-import {
-    RandyKeyState,
-    KeyState,
-    HabState,
-} from '../../src/keri/core/keyState.ts';
+import { RandyKeyState, KeyState, RandyHabState, ExternHabState, HabState } from '../../src/keri/core/keyState.ts';
 import { randomUUID } from 'node:crypto';
 
 describe('RandyCreator', () => {
@@ -756,7 +751,7 @@ describe('Manager', () => {
             transferable: false,
             windexes: [],
             icp_dt: '2023-12-01T10:05:25.062609+00:00',
-        });
+        } as unknown as RandyHabState);
 
         assert(keeper0 instanceof RandyIdentifierManager);
         assert(keeper1 instanceof RandyIdentifierManager);
@@ -771,19 +766,16 @@ describe('Manager', () => {
         expect(() => manager.new(randomUUID() as Algos, 0, {})).toThrow(
             'Unknown algo'
         );
-
-        // Just use a partial for testing purpose
-        const partialHabState: Partial<HabState> = {
-            prefix: '',
-            name: '',
-            state: keystate,
-            transferable: false,
-            windexes: [],
-            icp_dt: '2023-12-01T10:05:25.062609+00:00',
-        };
-        expect(() => manager.get(partialHabState as HabState)).toThrow(
-            'No algo specified'
-        );
+        expect(() =>
+            manager.get({
+                prefix: '',
+                name: '',
+                state: {} as KeyState,
+                transferable: false,
+                windexes: [],
+                icp_dt: '2023-12-01T10:05:25.062609+00:00',
+            } as unknown as HabState)
+        ).toThrow('No algo specified');
     });
 
     describe('External Module ', () => {
@@ -860,7 +852,7 @@ describe('Manager', () => {
                 },
                 transferable: true,
                 icp_dt: '2023-12-01T10:05:25.062609+00:00',
-            });
+            } as unknown as ExternHabState);
 
             assert(keeper instanceof MockModule);
             expect(keeper.params()).toMatchObject({ param, pidx: 3 });
@@ -887,7 +879,7 @@ describe('Manager', () => {
                     },
                     transferable: true,
                     icp_dt: '2023-12-01T10:05:25.062609+00:00',
-                })
+                } as unknown as ExternHabState)
             ).toThrow('unsupported external module type mock');
         });
     });
