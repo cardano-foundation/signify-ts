@@ -2,7 +2,6 @@ import { assert, test } from 'vitest';
 import signify from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import { assertOperations, waitOperation } from './utils/test-util.ts';
-import { Tier } from '../src/types/keria-api-schema.ts';
 
 const { url, bootUrl } = resolveEnvironment();
 
@@ -13,7 +12,7 @@ test('salty', async () => {
     const client1 = new signify.SignifyClient(
         url,
         bran1,
-        Tier.low,
+        signify.Tier.low,
         bootUrl
     );
     await client1.boot();

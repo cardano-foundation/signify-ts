@@ -3,7 +3,6 @@ import signify from 'signify-ts';
 import { BIP39Shim } from './modules/bip39_shim.ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import { assertOperations, waitOperation } from './utils/test-util.ts';
-import { Tier } from '../src/types/keria-api-schema.ts';
 
 const { url, bootUrl } = resolveEnvironment();
 
@@ -18,7 +17,7 @@ test('bip39_shim', async () => {
     const client1 = new signify.SignifyClient(
         url,
         bran1,
-        Tier.low,
+        signify.Tier.low,
         bootUrl,
         [externalModule]
     );
