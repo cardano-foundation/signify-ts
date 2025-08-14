@@ -205,29 +205,6 @@ export interface components {
             c?: string[];
             a?: unknown;
         };
-        IcpV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            b?: string[];
-            c?: string[];
-            a?: unknown;
-        };
         RotV1: {
             /** @default  */
             v: string;
@@ -253,58 +230,7 @@ export interface components {
             ba?: string[];
             a?: unknown;
         };
-        RotV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            p: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            br?: string[];
-            ba?: string[];
-            c?: string[];
-            a?: unknown;
-        };
         DipV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            b?: string[];
-            c?: string[];
-            a?: unknown;
-            /** @default  */
-            di: string;
-        };
-        DipV2: {
             /** @default  */
             v: string;
             /** @default  */
@@ -354,32 +280,6 @@ export interface components {
             ba?: string[];
             a?: unknown;
         };
-        DrtV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            p: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            br?: string[];
-            ba?: string[];
-            c?: string[];
-            a?: unknown;
-        };
         VcpV1: {
             /** @default  */
             v: string;
@@ -417,6 +317,425 @@ export interface components {
             bt: string;
             br?: string[];
             ba?: string[];
+        };
+        IxnV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default  */
+            p: string;
+            a?: unknown;
+        };
+        RctV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+        };
+        QryV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            /** @default  */
+            rr: string;
+            q?: {
+                [key: string]: unknown;
+            };
+        };
+        RpyV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            a?: unknown;
+        };
+        ProV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            /** @default  */
+            rr: string;
+            q?: {
+                [key: string]: unknown;
+            };
+        };
+        BarV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            a?: unknown;
+        };
+        ExnV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default  */
+            rp: string;
+            /** @default  */
+            p: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            q?: {
+                [key: string]: unknown;
+            };
+            a?: unknown;
+            e?: {
+                [key: string]: unknown;
+            };
+        };
+        IssV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default  */
+            ri: string;
+            /** @default  */
+            dt: string;
+        };
+        RevV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default  */
+            ri: string;
+            /** @default  */
+            p: string;
+            /** @default  */
+            dt: string;
+        };
+        BisV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default  */
+            ii: string;
+            /** @default 0 */
+            s: string;
+            ra?: {
+                [key: string]: unknown;
+            };
+            /** @default  */
+            dt: string;
+        };
+        BrvV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default  */
+            p: string;
+            ra?: {
+                [key: string]: unknown;
+            };
+            /** @default  */
+            dt: string;
+        };
+        IcpV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default 0 */
+            kt: string;
+            k?: string[];
+            /** @default 0 */
+            nt: string;
+            n?: string[];
+            /** @default 0 */
+            bt: string;
+            b?: string[];
+            c?: string[];
+            a?: unknown;
+        };
+        RotV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default  */
+            p: string;
+            /** @default 0 */
+            kt: string;
+            k?: string[];
+            /** @default 0 */
+            nt: string;
+            n?: string[];
+            /** @default 0 */
+            bt: string;
+            br?: string[];
+            ba?: string[];
+            c?: string[];
+            a?: unknown;
+        };
+        DipV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default 0 */
+            kt: string;
+            k?: string[];
+            /** @default 0 */
+            nt: string;
+            n?: string[];
+            /** @default 0 */
+            bt: string;
+            b?: string[];
+            c?: string[];
+            a?: unknown;
+            /** @default  */
+            di: string;
+        };
+        DrtV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default  */
+            p: string;
+            /** @default 0 */
+            kt: string;
+            k?: string[];
+            /** @default 0 */
+            nt: string;
+            n?: string[];
+            /** @default 0 */
+            bt: string;
+            br?: string[];
+            ba?: string[];
+            c?: string[];
+            a?: unknown;
+        };
+        IxnV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default  */
+            p: string;
+            a?: unknown;
+        };
+        RctV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+        };
+        QryV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            /** @default  */
+            rr: string;
+            q?: {
+                [key: string]: unknown;
+            };
+        };
+        RpyV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            a?: unknown;
+        };
+        ProV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            /** @default  */
+            rr: string;
+            q?: {
+                [key: string]: unknown;
+            };
+        };
+        BarV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            a?: unknown;
+        };
+        XipV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            q?: {
+                [key: string]: unknown;
+            };
+            a?: unknown;
+        };
+        ExnV2: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default  */
+            x: string;
+            /** @default  */
+            p: string;
+            /** @default  */
+            dt: string;
+            /** @default  */
+            r: string;
+            q?: {
+                [key: string]: unknown;
+            };
+            a?: unknown;
         };
         StateEERecord: {
             /** @default 0 */
@@ -544,34 +863,6 @@ export interface components {
             role: string;
             eid: string;
         };
-        RpyV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            a?: unknown;
-        };
-        RpyV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            a?: unknown;
-        };
         Rpy: components["schemas"]["RpyV1"] | components["schemas"]["RpyV2"];
         Challenge: {
             words: string[];
@@ -637,6 +928,13 @@ export interface components {
         GroupMember: {
             signing: components["schemas"]["AidRecord"][];
             rotation: components["schemas"]["AidRecord"][];
+        };
+        KeyEventRecord: {
+            ked: components["schemas"]["IcpV1"] | components["schemas"]["RotV1"] | components["schemas"]["IxnV1"] | components["schemas"]["DipV1"] | components["schemas"]["DrtV1"] | components["schemas"]["RctV1"] | components["schemas"]["QryV1"] | components["schemas"]["RpyV1"] | components["schemas"]["ProV1"] | components["schemas"]["BarV1"] | components["schemas"]["ExnV1"] | components["schemas"]["VcpV1"] | components["schemas"]["VrtV1"] | components["schemas"]["IssV1"] | components["schemas"]["RevV1"] | components["schemas"]["BisV1"] | components["schemas"]["BrvV1"] | components["schemas"]["IcpV2"] | components["schemas"]["RotV2"] | components["schemas"]["IxnV2"] | components["schemas"]["DipV2"] | components["schemas"]["DrtV2"] | components["schemas"]["RctV2"] | components["schemas"]["QryV2"] | components["schemas"]["RpyV2"] | components["schemas"]["ProV2"] | components["schemas"]["BarV2"] | components["schemas"]["XipV2"] | components["schemas"]["ExnV2"];
+            atc: string;
+        };
+        AgentConfig: {
+            iurls?: string[];
         };
     };
     responses: never;
