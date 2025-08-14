@@ -1,4 +1,5 @@
-import signify, { EventResult, SignifyClient } from 'signify-ts';
+import signify, { EventResult, SealSourceTriple, SignifyClient } from 'signify-ts';
+import { afterAll, assert, beforeAll, describe, expect, test } from 'vitest';
 import {
     assertOperations,
     getOrCreateClients,
@@ -6,7 +7,6 @@ import {
     getOrCreateIdentifier,
     waitOperation,
 } from './utils/test-util.ts';
-import { afterAll, assert, beforeAll, describe, expect, test } from 'vitest';
 
 let client1: SignifyClient, client2: SignifyClient;
 let name1_id: string, name1_oobi: string;
@@ -49,7 +49,7 @@ describe('singlesig-ixn', () => {
         // ixn
         const result: EventResult = await client1
             .identifiers()
-            .interact('name1', {});
+            .interact('name1', {} as SealSourceTriple);
         await waitOperation(client1, await result.op());
 
         // local keystate after ixn

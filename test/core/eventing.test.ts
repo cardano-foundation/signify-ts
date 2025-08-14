@@ -146,10 +146,10 @@ describe('key event function', () => {
         );
         assert.equal(serder0.sad['d'], serder0.sad['i']);
         assert.equal(serder0.sad['s'], '0');
-        assert.equal(serder0.sad['kt'], 1);
-        assert.equal(serder0.sad['nt'], 1);
+        assert.equal(serder0.sad['kt'], '1');
+        assert.equal(serder0.sad['nt'], '1');
         assert.deepStrictEqual(serder0.sad['n'], nxt1);
-        assert.equal(serder0.sad['bt'], 0);
+        assert.equal(serder0.sad['bt'], '0');
         assert.equal(
             serder0.raw,
             '{"v":"KERI10JSON000125_","t":"icp","d":"EIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5u' +

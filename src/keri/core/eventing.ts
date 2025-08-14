@@ -87,10 +87,9 @@ export interface ReplyEventSAD extends BaseSAD {
     a: EndRoleAddAttributes;
 }
 
-export type Seal<T extends SealSourceTriple & Record<string, unknown> = SealSourceTriple> = [
-    'SealEvent',
-    T,
-];
+export type Seal<
+    T extends SealSourceTriple & Record<string, unknown> = SealSourceTriple,
+> = ['SealEvent', T];
 
 export function rotate({
     pre = undefined,
@@ -415,10 +414,7 @@ export function incept({
         s: sner.numh,
         kt: intive && tholder.num != undefined ? tholder.num : tholder.sith,
         k: keys,
-        nt:
-            intive && tholder.num != undefined && ntholder.num
-                ? ntholder.num
-                : ntholder.sith,
+        nt: intive && tholder.num != undefined ? ntholder.num! : ntholder.sith,
         n: ndigs,
         bt: intive ? toader.num : toader.numh,
         b: wits,
@@ -490,7 +486,7 @@ export function messagize(
                 atc = concat(atc, new TextEncoder().encode(seal[1].i));
                 atc = concat(
                     atc,
-                    new Seqner({ sn: parseInt(seal[1].s) }).qb64b
+                    new Seqner({ sn: parseInt(String(seal[1].s)) }).qb64b
                 );
                 atc = concat(atc, new TextEncoder().encode(seal[1].d));
             } else if (seal[0] == 'SealLast') {

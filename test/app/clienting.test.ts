@@ -25,6 +25,7 @@ import {
 import { Tier } from '../../src/keri/core/salter.ts';
 import libsodium from 'libsodium-wrappers-sumo';
 import { createMockFetch } from './test-utils.ts';
+import { InceptEventSAD } from 'signify-ts';
 
 const fetchMock = createMockFetch();
 
@@ -87,9 +88,9 @@ describe('SignifyClient', () => {
             client.agent!.said,
             'EEXekkGu9IAzav6pZVJhkLnjtjM5v3AcyA-pdKUcaGei'
         );
-        assert(client.agent!.state.s, '0');
+        assert(client.agent!.state!.s, '0');
         assert(
-            client.agent!.state.d,
+            client.agent!.state!.d,
             'EEXekkGu9IAzav6pZVJhkLnjtjM5v3AcyA-pdKUcaGei'
         );
 
@@ -97,15 +98,15 @@ describe('SignifyClient', () => {
         assert.equal(client.controller.serder.sad.s, '1');
         assert.equal(client.controller.serder.sad.t, 'ixn');
         assert.equal(
-            (client.controller.serder.sad.a as Record<string, unknown>[])[0].i,
+            ((client.controller.serder.sad as InceptEventSAD).a as Record<string, unknown>[])[0].i,
             'EEXekkGu9IAzav6pZVJhkLnjtjM5v3AcyA-pdKUcaGei'
         );
         assert.equal(
-            (client.controller.serder.sad.a as Record<string, unknown>[])[0].d,
+            ((client.controller.serder.sad as InceptEventSAD).a as Record<string, unknown>[])[0].d,
             'EEXekkGu9IAzav6pZVJhkLnjtjM5v3AcyA-pdKUcaGei'
         );
         assert.equal(
-            (client.controller.serder.sad.a as Record<string, unknown>[])[0].s,
+            ((client.controller.serder.sad as InceptEventSAD).a as Record<string, unknown>[])[0].s,
             '0'
         );
 
