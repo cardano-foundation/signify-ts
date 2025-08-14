@@ -1,4 +1,26 @@
 import libsodium from 'libsodium-wrappers-sumo';
+import { randomUUID } from 'node:crypto';
+import { assert, describe, expect, it, Mocked, vitest } from 'vitest';
+import {
+    IdentifierManager,
+    IdentifierManagerFactory,
+    IdentifierManagerParams,
+    Prefixer,
+    RandyIdentifierManager,
+} from '../../src/index.ts';
+import { Cigar } from '../../src/keri/core/cigar.ts';
+import { Cipher } from '../../src/keri/core/cipher.ts';
+import { b } from '../../src/keri/core/core.ts';
+import { Decrypter } from '../../src/keri/core/decrypter.ts';
+import { Diger } from '../../src/keri/core/diger.ts';
+import { Encrypter } from '../../src/keri/core/encrypter.ts';
+import {
+    ExternHabState,
+    HabState,
+    KeyState,
+    RandyHabState,
+    RandyKeyState,
+} from '../../src/keri/core/keyState.ts';
 import {
     Algos,
     Creatory,
@@ -7,34 +29,12 @@ import {
     riKey,
     SaltyCreator,
 } from '../../src/keri/core/manager.ts';
-import { assert, describe, it, expect, vitest, Mocked } from 'vitest';
 import { MtrDex } from '../../src/keri/core/matter.ts';
 import { Salter } from '../../src/keri/core/salter.ts';
-import { Tier } from '../../src/types/keria-api-schema.ts';
-import { Signer } from '../../src/keri/core/signer.ts';
-import { Encrypter } from '../../src/keri/core/encrypter.ts';
-import { Decrypter } from '../../src/keri/core/decrypter.ts';
-import { Cipher } from '../../src/keri/core/cipher.ts';
-import { Verfer } from '../../src/keri/core/verfer.ts';
-import { Diger } from '../../src/keri/core/diger.ts';
 import { Siger } from '../../src/keri/core/siger.ts';
-import { b } from '../../src/keri/core/core.ts';
-import { Cigar } from '../../src/keri/core/cigar.ts';
-import {
-    IdentifierManager,
-    IdentifierManagerParams,
-    IdentifierManagerFactory,
-    Prefixer,
-    RandyIdentifierManager,
-} from '../../src/index.ts';
-import {
-    RandyKeyState,
-    KeyState,
-    HabState,
-    RandyHabState,
-    ExternHabState,
-} from '../../src/keri/core/keyState.ts';
-import { randomUUID } from 'node:crypto';
+import { Signer } from '../../src/keri/core/signer.ts';
+import { Verfer } from '../../src/keri/core/verfer.ts';
+import { Tier } from '../../src/types/keria-api-schema.ts';
 
 describe('RandyCreator', () => {
     it('should create sets of random signers', async () => {

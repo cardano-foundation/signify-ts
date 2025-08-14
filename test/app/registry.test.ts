@@ -90,7 +90,7 @@ describe('registry', () => {
             di: '',
         };
 
-        const hab = {
+        const hab = ({
             prefix: 'hab prefix',
             state: keystate,
             name: 'a name',
@@ -101,7 +101,7 @@ describe('registry', () => {
                 prxs: [],
                 nxts: [],
             },
-        } as unknown as HabState;
+        } as unknown) as HabState;
 
         when(mockedIdentifiers.get('a name')).thenResolve(hab);
         when(mockedClient.identifiers()).thenReturn(

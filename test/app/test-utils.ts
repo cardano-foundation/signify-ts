@@ -12,12 +12,12 @@ import {
     Vrsn_1_0,
     incept,
 } from '../../src/index.ts';
-import { Tier } from '../../src/types/keria-api-schema.ts';
 import {
     EstablishmentState,
     HabState,
     KeyState,
 } from '../../src/keri/core/keyState.ts';
+import { Tier } from '../../src/types/keria-api-schema.ts';
 
 const boot_url = 'http://127.0.0.1:3903';
 
