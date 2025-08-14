@@ -573,7 +573,30 @@ export interface components {
             signing: components['schemas']['AidRecord'][];
             rotation: components['schemas']['AidRecord'][];
         };
-        Icp: {
+        IcpV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default 0 */
+            kt: string;
+            k?: string[];
+            /** @default 0 */
+            nt: string;
+            n?: string[];
+            /** @default 0 */
+            bt: string;
+            b?: string[];
+            c?: string[];
+            a?: unknown;
+        };
+        IcpV2: {
             /** @default  */
             v: string;
             /** @default  */
@@ -647,7 +670,32 @@ export interface components {
             c?: string[];
             a?: unknown;
         };
-        Dip: {
+        DipV1: {
+            /** @default  */
+            v: string;
+            /** @default  */
+            t: string;
+            /** @default  */
+            d: string;
+            /** @default  */
+            i: string;
+            /** @default 0 */
+            s: string;
+            /** @default 0 */
+            kt: string;
+            k?: string[];
+            /** @default 0 */
+            nt: string;
+            n?: string[];
+            /** @default 0 */
+            bt: string;
+            b?: string[];
+            c?: string[];
+            a?: unknown;
+            /** @default  */
+            di: string;
+        };
+        DipV2: {
             /** @default  */
             v: string;
             /** @default  */
@@ -723,7 +771,7 @@ export interface components {
             c?: string[];
             a?: unknown;
         };
-        Vcp: {
+        VcpV1: {
             /** @default  */
             v: string;
             /** @default  */
@@ -743,7 +791,7 @@ export interface components {
             /** @default  */
             n: string;
         };
-        Vrt: {
+        VrtV1: {
             /** @default  */
             v: string;
             /** @default  */
@@ -801,7 +849,7 @@ export interface components {
         };
         Controller: {
             state: components["schemas"]["KeyStateRecord"];
-            ee: components["schemas"]["Icp"] | components["schemas"]["RotV1"] | components["schemas"]["RotV2"] | components["schemas"]["Dip"] | components["schemas"]["DrtV1"] | components["schemas"]["DrtV2"] | components["schemas"]["Vcp"] | components["schemas"]["Vrt"];
+            ee: components["schemas"]["IcpV1"] | components["schemas"]["IcpV2"] | components["schemas"]["RotV1"] | components["schemas"]["RotV2"] | components["schemas"]["DipV1"] | components["schemas"]["DipV2"] | components["schemas"]["DrtV1"] | components["schemas"]["DrtV2"] | components["schemas"]["VcpV1"] | components["schemas"]["VrtV1"];
         };
         AgentResourceResult: {
             agent: components["schemas"]["KeyStateRecord"];
@@ -833,6 +881,16 @@ export interface components {
             prxs: string[];
             nxts: string[];
         };
+        HabState: {
+            name: string;
+            prefix: string;
+            icp_dt: string;
+            state: components["schemas"]["KeyStateRecord"];
+            /** @default null */
+            transferable: boolean | null;
+            /** @default null */
+            windexes: string[] | null;
+        };
         GroupKeyState: {
             mhab: components["schemas"]["Identifier"];
             keys: string[];
@@ -853,11 +911,15 @@ export interface components {
             transferable: boolean | null;
             /** @default null */
             windexes: string[] | null;
-            salty?: components["schemas"]["SaltyState"];
-            randy?: components["schemas"]["RandyKeyState"];
-            group?: components["schemas"]["GroupKeyState"];
-            extern?: components["schemas"]["ExternState"];
-        };
+        } & ({
+            salty: components["schemas"]["SaltyState"];
+        } | {
+            randy: components["schemas"]["RandyKeyState"];
+        } | {
+            group: components["schemas"]["GroupKeyState"];
+        } | {
+            extern: components["schemas"]["ExternState"];
+        });
         /**
          * @description Tier of key material
          * @enum {string}
@@ -904,13 +966,9 @@ export interface components {
         Rpy: components["schemas"]["RpyV1"] | components["schemas"]["RpyV2"];
         Challenge: {
             words: string[];
-        };
-        Contact: {
-            id: string;
-            alias: string;
-            oobi: string;
-        } & {
-            [key: string]: unknown;
+            dt?: string;
+            said?: string;
+            authenticated?: boolean;
         };
     };
     responses: never;
