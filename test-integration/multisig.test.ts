@@ -37,12 +37,12 @@ test('multisig', async function run() {
     ]);
 
     // Create four identifiers, one for each client
-    let [aid1, aid2, aid3, aid4] = await Promise.all([
+    let [aid1, aid2, aid3] = await Promise.all([
         createAID(client1, 'member1', WITNESS_AIDS),
         createAID(client2, 'member2', WITNESS_AIDS),
         createAID(client3, 'member3', WITNESS_AIDS),
-        createAID(client4, 'holder', WITNESS_AIDS),
     ]);
+    const aid4 = await createAID(client4, 'holder', WITNESS_AIDS);
 
     // Exchange OOBIs
     console.log('Resolving OOBIs');

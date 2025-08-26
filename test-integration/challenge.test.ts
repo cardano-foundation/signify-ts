@@ -1,5 +1,5 @@
 import { assert, test } from 'vitest';
-import signify, { Serder, SerderSAD } from 'signify-ts';
+import signify, { InceptEventSAD, Serder, SerderSAD } from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import {
     assertOperations,
@@ -59,7 +59,7 @@ test('challenge', async () => {
             'BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX',
         ],
     });
-    const { response: aid1 } = await waitOperation(
+    const { response: aid1 } = await waitOperation<InceptEventSAD>(
         client1,
         await icpResult1.op()
     );
@@ -67,7 +67,7 @@ test('challenge', async () => {
         .identifiers()
         .addEndRole('alice', 'agent', client1!.agent!.pre);
     await waitOperation(client1, await rpyResult1.op());
-    console.log("Alice's AID:", aid1.i);
+    console.log("Alice's AID:", aid1?.i);
 
     const icpResult2 = await client2.identifiers().create('bob', {
         toad: 3,
@@ -77,7 +77,7 @@ test('challenge', async () => {
             'BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX',
         ],
     });
-    const { response: aid2 } = await waitOperation(
+    const { response: aid2 } = await waitOperation<InceptEventSAD>(
         client2,
         await icpResult2.op()
     );
@@ -103,13 +103,13 @@ test('challenge', async () => {
     assert.strictEqual(bobContact.challenges.length, 0);
 
     // Bob responds to Alice challenge
-    await client2.challenges().respond('bob', aid1.i, challenge1_small.words);
+    await client2.challenges().respond('bob', aid1!.i, challenge1_small.words);
     console.log('Bob responded to Alice challenge with signed words');
 
     // Alice verifies Bob's response
     const verifyOperation = await waitOperation(
         client1,
-        await client1.challenges().verify(aid2.i, challenge1_small.words)
+        await client1.challenges().verify(aid2!.i, challenge1_small.words)
     );
     console.log('Alice verified challenge response');
 
@@ -119,7 +119,7 @@ test('challenge', async () => {
     };
     const exn = new Serder(verifyResponse.exn as SerderSAD);
 
-    await client1.challenges().responded(aid2.i, exn.sad.d!);
+    await client1.challenges().responded(aid2!.i, exn.sad.d!);
     console.log('Alice marked challenge response as accepted');
 
     // Check Bob's challenge in conctats

@@ -22,7 +22,7 @@ export class Notifications {
      * @param {number} [end=24] End index of list of notifications, defaults to 24
      * @returns {Promise<any>} A promise to the list of notifications
      */
-    async list(start: number = 0, end: number = 24): Promise<any> {
+    async list(start: number = 0, end: number = 24) {
         const extraHeaders = new Headers();
         extraHeaders.append('Range', `notes=${start}-${end}`);
 

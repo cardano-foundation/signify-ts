@@ -16,7 +16,7 @@ import {
     serializeACDCAttachment,
     serializeIssExnAttachment,
 } from '../core/utils.ts';
-import { vdr } from '../core/vdring.ts';
+import { vdr, VDRInceptSAD } from '../core/vdring.ts';
 import { SignifyClient } from './clienting.ts';
 import { Operation } from './coring.ts';
 import { TraitDex } from './habery.ts';
@@ -645,7 +645,7 @@ export class Registries {
         hab: HabState,
         name: string,
         registryName: string,
-        vcp: vdr.VDRInceptSAD,
+        vcp: VDRInceptSAD,
         ixn: InteractEventSAD,
         sigs: SignResult
     ) {

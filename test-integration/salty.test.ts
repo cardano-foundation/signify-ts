@@ -1,5 +1,5 @@
+import signify, { InceptEventSAD } from 'signify-ts';
 import { assert, test } from 'vitest';
-import signify from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import { assertOperations, waitOperation } from './utils/test-util.ts';
 
@@ -28,10 +28,10 @@ test('salty', async () => {
     let icpResult = await client1
         .identifiers()
         .create('aid1', { bran: '0123456789abcdefghijk' });
-    let op = await waitOperation(client1, await icpResult.op());
+    let op = await waitOperation<InceptEventSAD>(client1, await icpResult.op());
 
     const aid1 = op['response'];
-    const icp = new signify.Serder(aid1);
+    const icp = new signify.Serder(aid1!);
     assert.equal(icp.pre, 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK');
     assert.equal(icp.verfers.length, 1);
     assert.equal(
@@ -63,7 +63,7 @@ test('salty', async () => {
     });
     op = await waitOperation(client1, await icpResult.op());
     const aid2 = op['response'];
-    const icp2 = new signify.Serder(aid2);
+    const icp2 = new signify.Serder(aid2!);
     assert.equal(icp2.pre, 'EP10ooRj0DJF0HWZePEYMLPl-arMV-MAoTKK-o3DXbgX');
     assert.equal(icp2.verfers.length, 3);
     assert.equal(
@@ -120,9 +120,9 @@ test('salty', async () => {
     assert.equal(aid.name, 'aid3');
 
     icpResult = await client1.identifiers().rotate('aid1');
-    op = await waitOperation(client1, await icpResult.op());
+    op = await waitOperation<InceptEventSAD>(client1, await icpResult.op());
     let ked = op['response'];
-    const rot = new signify.Serder(ked);
+    const rot = new signify.Serder(ked!);
     assert.equal(rot.sad['d'], 'EBQABdRgaxJONrSLcgrdtbASflkvLxJkiDO0H-XmuhGg');
     assert.equal(rot.sad['s'], '1');
     assert.equal(rot.verfers.length, 1);
@@ -136,13 +136,13 @@ test('salty', async () => {
         'EJMovBlrBuD6BVeUsGSxLjczbLEbZU9YnTSud9K4nVzk'
     );
 
-    icpResult = await client1.identifiers().interact('aid1', [icp.pre]);
+    icpResult = await client1.identifiers().interact('aid1', [icp.pre] as never);
     op = await waitOperation(client1, await icpResult.op());
     ked = op['response'];
-    const ixn = new signify.Serder(ked);
+    const ixn = new signify.Serder(ked!);
     assert.equal(ixn.sad['d'], 'ENsmRAg_oM7Hl1S-GTRMA7s4y760lQMjzl0aqOQ2iTce');
     assert.equal(ixn.sad['s'], '2');
-    assert.deepEqual([...ixn.sad['a']], [icp.pre]);
+    assert.deepEqual([...ixn.sad['a'] as string[]], [icp.pre]);
 
     aid = await client1.identifiers().get('aid1');
     const state = aid['state'];

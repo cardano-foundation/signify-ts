@@ -3,10 +3,12 @@ import signify, {
     Algos,
     CreateIdentiferArgs,
     CredentialData,
+    CredentialResult,
     Embeds,
     ExternHabState,
     GroupHabState,
     HabState,
+    Operation,
     RandyHabState,
     SaltyHabState,
     Seal,
@@ -99,7 +101,7 @@ export async function addEndRoleMultisig(
 ) {
     if (!isInitiator) await waitAndMarkNotification(client, '/multisig/rpy');
 
-    const opList: any[] = [];
+    const opList: Operation<unknown>[] = [];
     const members = await client.identifiers().members(multisigAID.name);
     const signings = members['signing'];
 
@@ -363,7 +365,7 @@ export async function grantMultisig(
     otherMembersAIDs: HabState[],
     multisigAID: HabState,
     recipientAID: HabState,
-    credential: any,
+    credential: CredentialResult,
     timestamp: string,
     isInitiator: boolean = false
 ) {

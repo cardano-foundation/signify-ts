@@ -50,8 +50,9 @@ export interface components {
             ri?: string;
             a?: components["schemas"]["ACDCAttributes"];
             u?: string;
-            e?: unknown[];
+            e?: Record<string, components["schemas"]["ACDC"]>;
             r?: unknown[];
+            n?: string;
         };
         IssEvt: {
             v: string;

@@ -11,7 +11,6 @@ import { resolveEnvironment } from './utils/resolve-env.ts';
 
 let client1: SignifyClient, client2: SignifyClient;
 let name1_id: string, name1_oobi: string;
-let contact1_id: string;
 
 beforeAll(async () => {
     [client1, client2] = await getOrCreateClients(2);
@@ -20,7 +19,7 @@ beforeAll(async () => {
     [name1_id, name1_oobi] = await getOrCreateIdentifier(client1, 'name1');
 });
 beforeAll(async () => {
-    contact1_id = await getOrCreateContact(client2, 'contact1', name1_oobi);
+    await getOrCreateContact(client2, 'contact1', name1_oobi);
 });
 afterAll(async () => {
     await assertOperations(client1, client2);

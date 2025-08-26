@@ -93,7 +93,12 @@ export async function getEndRoles(
     client: SignifyClient,
     alias: string,
     role?: string
-): Promise<any> {
+): Promise<
+    {
+        role: string;
+        eid: string;
+    }[]
+> {
     const path =
         role !== undefined
             ? `/identifiers/${alias}/endroles/${role}`

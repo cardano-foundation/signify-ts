@@ -117,7 +117,7 @@ export class Saider<T extends BaseSAD = BaseSAD> extends Matter {
             if (prefixed && sad[label] != this.qb64) {
                 return false;
             }
-        } catch (e) {
+        } catch {
             return false;
         }
 
