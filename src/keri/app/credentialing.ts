@@ -8,7 +8,7 @@ import {
     versify,
     Vrsn_1_0,
 } from '../core/core.ts';
-import { interact, InteractEventData, messagize } from '../core/eventing.ts';
+import { interact, SealSourceTriple, messagize } from '../core/eventing.ts';
 import { HabState } from '../core/keyState.ts';
 import { BaseSAD, Saider } from '../core/saider.ts';
 import { Serder } from '../core/serder.ts';
@@ -457,7 +457,7 @@ export class Credentials {
         const sn = parseInt(state.s, 16);
         const dig = state.d;
 
-        const data: InteractEventData[] = [
+        const data: SealSourceTriple[] = [
             {
                 i: rev.i,
                 s: rev.s,

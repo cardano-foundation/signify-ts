@@ -14,7 +14,7 @@ import {
     serializeIssExnAttachment,
     Serials,
     versify,
-    InteractEventData,
+    SealSourceTriple,
 } from '../../src/index.ts';
 import { createMockFetch, mockCredential } from './test-utils.ts';
 
@@ -170,7 +170,7 @@ describe('Ipex', () => {
         const anc = interact({
             pre: mockCredential.sad.i,
             sn: 1,
-            data: [{}] as InteractEventData[],
+            data: [{}] as SealSourceTriple[],
             dig: mockCredential.sad.d,
             version: undefined,
             kind: undefined,
@@ -338,7 +338,7 @@ describe('Ipex', () => {
             const anc = interact({
                 pre: mockCredential.sad.i,
                 sn: 1,
-                data: [{}] as InteractEventData[],
+                data: [{}] as SealSourceTriple[],
                 dig: mockCredential.sad.d,
                 version: undefined,
                 kind: undefined,

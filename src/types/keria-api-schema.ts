@@ -514,13 +514,13 @@ export interface components {
             /** @default 0 */
             s: string;
             /** @default 0 */
-            kt: string;
+            kt: number | string | string[] | string[][];
             k?: string[];
             /** @default 0 */
-            nt: string;
+            nt: number | string | string[] | string[][];
             n?: string[];
             /** @default 0 */
-            bt: string;
+            bt: number | string;
             b?: string[];
             c?: string[];
             a?: unknown;

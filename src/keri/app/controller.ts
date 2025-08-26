@@ -230,10 +230,10 @@ export class Controller {
         const seqner = new Seqner({ sn: _agent.sn });
         const anchor = { i: _agent.pre, s: seqner.snh, d: _agent.said! };
         const sn =
-            new CesrNumber({}, undefined, String(this.serder.sad['s'])).num + 1;
+            new CesrNumber({}, undefined, this.serder.sad['s']).num + 1;
         this.serder = interact({
             pre: this.serder.pre,
-            dig: this.serder.sad['d']!,
+            dig: this.serder.sad['d'],
             sn: sn,
             data: [anchor],
             version: Vrsn_1_0,

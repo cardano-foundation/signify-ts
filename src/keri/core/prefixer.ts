@@ -15,7 +15,7 @@ export interface PrefixerSAD extends Omit<BaseSAD, "d"> {
     k?: string[];
     n?: string | string[];
     b?: string[];
-    a?: Record<string, unknown>[];
+    a?: unknown;
     i?: string;
 }
 
@@ -35,7 +35,7 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
                 }
 
                 if (code == undefined) {
-                    super({ qb64: String(ked['i']), code: code });
+                    super({ qb64: ked['i'], code: code });
                     code = this.code;
                 }
 

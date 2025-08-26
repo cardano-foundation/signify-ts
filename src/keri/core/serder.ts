@@ -70,7 +70,7 @@ export class Serder<T extends SerderSAD = SerderSAD> {
     }
 
     get sner(): CesrNumber {
-        return new CesrNumber({}, String(this.sad['s']));
+        return new CesrNumber({}, this.sad['s']);
     }
 
     get sn(): number {

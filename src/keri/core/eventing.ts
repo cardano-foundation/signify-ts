@@ -66,31 +66,20 @@ export interface RotateEventSAD extends BaseSAD, Record<string, unknown> {
     a: Record<string, unknown>[];
 }
 
-export interface InceptEventSAD extends BaseSAD, Record<string, unknown> {
-    v: string;
-    t: string;
-    d: string;
-    i: string;
-    s: string;
-    kt: number | string | string[] | string[][];
-    k: string[];
-    nt?: number | string | string[] | string[][];
-    n?: string[];
-    bt: number | string;
-    b: string[];
-    c: string[];
-    a: Record<string, unknown>[];
-}
+export type DelegateInceptEventSAD =
+    | components['schemas']['DipV1']
+    | components['schemas']['DipV2'];
 
-export type InteractEventData = components['schemas']['Seal'];
+export type InceptEventSAD =
+    | components['schemas']['IcpV1']
+    | components['schemas']['IcpV2']
+    | DelegateInceptEventSAD;
 
-export interface InteractEventSAD extends BaseSAD {
-    i: string;
-    t: string;
-    p: string;
-    a: InteractEventData[];
-}
+export type SealSourceTriple = components['schemas']['Seal'];
 
+export type InteractEventSAD =
+    | components['schemas']['IxnV1']
+    | components['schemas']['IxnV2'];
 export interface ReplyEventSAD extends BaseSAD {
     t: string;
     dt: string;
@@ -98,9 +87,10 @@ export interface ReplyEventSAD extends BaseSAD {
     a: EndRoleAddAttributes;
 }
 
-export type Seal<
-    T extends components['schemas']['Seal'] = components['schemas']['Seal'],
-> = ['SealEvent', T];
+export type Seal<T extends SealSourceTriple & Record<string, unknown> = SealSourceTriple> = [
+    'SealEvent',
+    T,
+];
 
 export function rotate({
     pre = undefined,
@@ -261,7 +251,7 @@ export function rotate({
         v: vs,
         t: _ilk,
         d: '',
-        i: String(pre),
+        i: pre || '',
         s: sner.numh,
         p: dig,
         kt:
@@ -425,7 +415,10 @@ export function incept({
         s: sner.numh,
         kt: intive && tholder.num != undefined ? tholder.num : tholder.sith,
         k: keys,
-        nt: intive && tholder.num != undefined ? ntholder.num : ntholder.sith,
+        nt:
+            intive && tholder.num != undefined && ntholder.num
+                ? ntholder.num
+                : ntholder.sith,
         n: ndigs,
         bt: intive ? toader.num : toader.numh,
         b: wits,
@@ -434,7 +427,7 @@ export function incept({
     };
 
     if (delpre != undefined) {
-        sad['di'] = delpre;
+        (sad as DelegateInceptEventSAD)['di'] = delpre;
         if (code == undefined) {
             code = MtrDex.Blake3_256;
         }
@@ -600,7 +593,7 @@ export function interact(args: InteractArgs): Serder<InteractEventSAD> {
         throw new Error(`Invalid sn = 0x${sner.numh} for ixn.`);
     }
 
-    data = data == undefined ? new Array<InteractEventData>() : data;
+    data = data == undefined ? new Array<SealSourceTriple>() : data;
 
     let sad: InteractEventSAD = {
         v: vs,
