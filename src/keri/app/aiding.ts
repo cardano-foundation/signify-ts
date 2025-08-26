@@ -1,9 +1,17 @@
 import { components } from '../../types/keria-api-schema.ts';
 import { b, Ilks, Serials, Vrsn_1_0 } from '../core/core.ts';
-import { incept, interact, reply, EndRoleAddAttributes, rotate } from '../core/eventing.ts';
+import {
+    EndRoleAddAttributes,
+    incept,
+    interact,
+    InteractEventSAD,
+    reply,
+    rotate,
+    SealSourceTriple,
+} from '../core/eventing.ts';
 import { parseRangeHeaders } from '../core/httping.ts';
-import { IdentifierManagerFactory } from '../core/keeping.ts';
-import { HabState } from '../core/keyState.ts';
+import { IdentifierManagerFactory, SignResult } from '../core/keeping.ts';
+import { HabState, KeyState } from '../core/keyState.ts';
 import { Algos } from '../core/manager.ts';
 import { MtrDex } from '../core/matter.ts';
 import { Tier } from '../core/salter.ts';
@@ -20,13 +28,13 @@ export interface CreateIdentiferArgs {
     proxy?: string;
     delpre?: string;
     dcode?: string;
-    data?: any;
+    data?: Record<string, unknown>[];
     algo?: Algos;
     pre?: string;
-    states?: any[];
-    rstates?: any[];
-    prxs?: any[];
-    nxts?: any[];
+    states?: KeyState[];
+    rstates?: KeyState[];
+    prxs?: string[];
+    nxts?: string[];
     mhab?: HabState;
     keys?: string[];
     ndigs?: string[];
@@ -35,7 +43,7 @@ export interface CreateIdentiferArgs {
     ncount?: number;
     tier?: Tier;
     extern_type?: string;
-    extern?: any;
+    extern?: Record<string, unknown>;
 }
 
 /** Arguments required to rotate an identfier */
@@ -49,8 +57,8 @@ export interface RotateIdentifierArgs {
     ncode?: string;
     ncount?: number;
     ncodes?: string[];
-    states?: any[];
-    rstates?: any[];
+    states?: KeyState[];
+    rstates?: KeyState[];
 }
 
 /**
@@ -95,7 +103,15 @@ export class Identifier {
      * @param {number} [end=24] End index of list of notifications, defaults to 24
      * @returns {Promise<any>} A promise to the list of managed identifiers
      */
-    async list(start: number = 0, end: number = 24): Promise<any> {
+    async list(
+        start: number = 0,
+        end: number = 24
+    ): Promise<{
+        start: number;
+        end: number;
+        total: number;
+        aids: any;
+    }> {
         const extraHeaders = new Headers();
         extraHeaders.append('Range', `aids=${start}-${end}`);
 
@@ -252,7 +268,7 @@ export class Identifier {
         }
 
         const sigs = await keeper!.sign(b(serder.raw));
-        const jsondata: any = {
+        const jsondata: Record<string, unknown> = {
             name: name,
             icp: serder.sad,
             sigs: sigs,
@@ -280,7 +296,10 @@ export class Identifier {
      * @param {any} [data] Option data to be anchored in the interaction event
      * @returns {Promise<EventResult>} A promise to the interaction event result
      */
-    async interact(name: string, data?: any): Promise<EventResult> {
+    async interact(
+        name: string,
+        data?: SealSourceTriple[] | SealSourceTriple
+    ): Promise<EventResult> {
         const { serder, sigs, jsondata } = await this.createInteract(
             name,
             data
@@ -296,8 +315,12 @@ export class Identifier {
 
     async createInteract(
         name: string,
-        data?: any
-    ): Promise<{ serder: any; sigs: any; jsondata: any }> {
+        data?: SealSourceTriple[] | SealSourceTriple
+    ): Promise<{
+        serder: Serder<InteractEventSAD>;
+        sigs: SignResult;
+        jsondata: Record<string, unknown>;
+    }> {
         const hab = await this.get(name);
         const pre: string = hab.prefix;
 
@@ -305,7 +328,7 @@ export class Identifier {
         const sn = parseInt(state.s, 16);
         const dig = state.d;
 
-        data = Array.isArray(data) ? data : [data];
+        data = Array.isArray(data) ? data : ([data] as SealSourceTriple[]);
 
         const serder = interact({
             pre: pre,
@@ -318,7 +341,7 @@ export class Identifier {
         const keeper = this.client!.manager!.get(hab);
         const sigs = await keeper.sign(b(serder.raw));
 
-        const jsondata: any = {
+        const jsondata: Record<string, unknown> = {
             ixn: serder.sad,
             sigs: sigs,
         };
@@ -402,7 +425,7 @@ export class Identifier {
 
         const sigs = await keeper.sign(b(serder.raw));
 
-        const jsondata: any = {
+        const jsondata: Record<string, unknown> = {
             rot: serder.sad,
             sigs: sigs,
             smids:

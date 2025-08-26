@@ -1,8 +1,9 @@
-import { SignifyClient } from './clienting.ts';
 import libsodium from 'libsodium-wrappers-sumo';
-import { Salter } from '../core/salter.ts';
-import { Matter, MtrDex } from '../core/matter.ts';
 import { components } from '../../types/keria-api-schema.ts';
+import { SealSourceTriple } from '../core/eventing.ts';
+import { Matter, MtrDex } from '../core/matter.ts';
+import { Salter } from '../core/salter.ts';
+import { SignifyClient } from './clienting.ts';
 
 type OperationBase = components['schemas']['OperationBase'];
 type OOBI = components['schemas']['OOBI'];
@@ -56,7 +57,7 @@ export class Oobis {
      */
     async resolve(oobi: string, alias?: string): Promise<Operation<any>> {
         const path = `/oobis`;
-        const data: any = {
+        const data: Record<string, string> = {
             url: oobi,
         };
         if (alias !== undefined) {
@@ -72,7 +73,7 @@ export type Operation<T = unknown> = OperationBase & {
     response?: T;
     metadata?: {
         depends?: Operation;
-        [property: string]: any;
+        [property: string]: unknown;
     };
 };
 
@@ -261,12 +262,12 @@ export class KeyStates {
      * @async
      * @param {string} pre Identifier prefix
      * @param {number} [sn] Optional sequence number
-     * @param {any} [anchor] Optional anchor
+     * @param {string | SealSourceTriple} [anchor] Optional anchor
      * @returns {Promise<Operation<any>>} A promise to the long-running operation
      */
-    async query(pre: string, sn?: string, anchor?: any): Promise<Operation<any>> {
+    async query(pre: string, sn?: string, anchor?: string | SealSourceTriple): Promise<Operation<any>> {
         const path = `/queries`;
-        const data: any = {
+        const data: Record<string, unknown> = {
             pre: pre,
         };
         if (sn !== undefined) {

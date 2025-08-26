@@ -3,6 +3,7 @@ import signify, {
     Algos,
     CreateIdentiferArgs,
     CredentialData,
+    Embeds,
     ExternHabState,
     GroupHabState,
     HabState,
@@ -13,7 +14,7 @@ import signify, {
     Siger,
     SignifyClient,
     d,
-    messagize,
+    messagize
 } from 'signify-ts';
 import { getStates, waitAndMarkNotification } from './test-util.ts';
 
@@ -66,7 +67,7 @@ export async function acceptMultisigIncept(
 
     const ims = d(messagize(serder, sigers));
     const atc = ims.substring(serder.size);
-    const embeds = {
+    const embeds: Embeds = {
         icp: [serder, atc],
     };
 
@@ -128,7 +129,7 @@ export async function addEndRoleMultisig(
             signify.messagize(rpy, sigers, seal, undefined, undefined, false)
         );
         const atc = roleims.substring(rpy.size);
-        const roleembeds = {
+        const roleembeds: Embeds = {
             rpy: [rpy, atc],
         };
         const recp = otherMembersAIDs.map((aid) => aid.prefix);
@@ -183,7 +184,7 @@ export async function admitMultisig(
     const ims = signify.d(signify.messagize(admit, sigers, seal));
     let atc = ims.substring(admit.size);
     atc += end;
-    const gembeds = {
+    const gembeds: Embeds = {
         exn: [admit, atc],
     };
     const recp = otherMembersAIDs.map((aid) => aid.prefix);
@@ -219,7 +220,7 @@ export async function createAIDMultisig(
     const sigers = sigs.map((sig) => new signify.Siger({ qb64: sig }));
     const ims = signify.d(signify.messagize(serder, sigers));
     const atc = ims.substring(serder.size);
-    const embeds = {
+    const embeds: Embeds = {
         icp: [serder, atc],
     };
     const smids = kargs.states?.map((state) => state['i']);
@@ -264,7 +265,7 @@ export async function createRegistryMultisig(
     const sigers = sigs.map((sig) => new signify.Siger({ qb64: sig }));
     const ims = signify.d(signify.messagize(anc, sigers));
     const atc = ims.substring(anc.size);
-    const regbeds = {
+    const regbeds: Embeds = {
         vcp: [serder, ''],
         anc: [anc, atc],
     };
@@ -327,7 +328,7 @@ export async function delegateMultisig(
     const sigers = sigs.map((sig) => new signify.Siger({ qb64: sig }));
     const ims = signify.d(signify.messagize(serder, sigers));
     const atc = ims.substring(serder.size);
-    const xembeds = {
+    const xembeds: Embeds = {
         ixn: [serder, atc],
     };
     const smids = [aid.prefix, ...otherMembersAIDs.map((aid) => aid.prefix)];
@@ -390,7 +391,7 @@ export async function grantMultisig(
     const gims = signify.d(signify.messagize(grant, sigers, seal));
     let atc = gims.substring(grant.size);
     atc += end;
-    const gembeds = {
+    const gembeds: Embeds = {
         exn: [grant, atc],
     };
     const recp = otherMembersAIDs.map((aid) => aid.prefix);
@@ -429,7 +430,7 @@ export async function issueCredentialMultisig(
     const sigers = sigs.map((sig: string) => new signify.Siger({ qb64: sig }));
     const ims = signify.d(signify.messagize(credResult.anc, sigers));
     const atc = ims.substring(credResult.anc.size);
-    const embeds = {
+    const embeds: Embeds = {
         acdc: [credResult.acdc, ''],
         iss: [credResult.iss, ''],
         anc: [credResult.anc, atc],
@@ -480,7 +481,7 @@ export async function startMultisigIncept(
     const sigers = sigs.map((sig) => new Siger({ qb64: sig }));
     const ims = d(messagize(serder, sigers));
     const atc = ims.substring(serder.size);
-    const embeds = {
+    const embeds: Embeds = {
         icp: [serder, atc],
     };
 
