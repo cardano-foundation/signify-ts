@@ -192,6 +192,14 @@ export class Challenges {
             said: said,
         };
         const res = await this.client.fetch(path, method, data);
-        return await res.json() as Operation<any>;
+        // Check for empty response
+        if (res.status === 204 || res.headers.get('content-length') === '0') {
+            return {} as Operation<any>;
+        }
+        const text = await res.text();
+        if (!text) {
+            return {} as Operation<any>;
+        }
+        return JSON.parse(text) as Operation<any>;
     }
 }
