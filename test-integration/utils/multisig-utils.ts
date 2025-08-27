@@ -110,7 +110,7 @@ export async function addEndRoleMultisig(
         const endRoleResult = await client
             .identifiers()
             .addEndRole(multisigAID.name, 'agent', eid, timestamp);
-        const op = await endRoleResult.op();
+        const op = await endRoleResult.op<Operation<unknown>>();
         opList.push(op);
 
         const rpy = endRoleResult.serder;

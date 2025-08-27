@@ -10,6 +10,10 @@ import {
 } from './utils/test-util.ts';
 import { assert, beforeAll, describe, test } from 'vitest';
 
+interface CreateMultisigOP {
+    k: string[];
+}
+
 describe('multisig-join', () => {
     const nameMember1 = 'member1';
     const nameMember2 = 'member2';
@@ -113,14 +117,14 @@ describe('multisig-join', () => {
         const createMultisig2 = await icpResult2.op();
 
         const [createResult1, createResult2] = await Promise.all([
-            waitOperation(client1, createMultisig1),
-            waitOperation(client2, createMultisig2),
+            waitOperation<CreateMultisigOP>(client1, createMultisig1),
+            waitOperation<CreateMultisigOP>(client2, createMultisig2),
         ]);
 
-        assert.equal(createResult1.response.k[0], aid1.state.k[0]);
-        assert.equal(createResult1.response.k[1], aid2.state.k[0]);
-        assert.equal(createResult2.response.k[0], aid1.state.k[0]);
-        assert.equal(createResult2.response.k[1], aid2.state.k[0]);
+        assert.equal(createResult1.response?.k[0], aid1.state.k[0]);
+        assert.equal(createResult1.response?.k[1], aid2.state.k[0]);
+        assert.equal(createResult2.response?.k[0], aid1.state.k[0]);
+        assert.equal(createResult2.response?.k[1], aid2.state.k[0]);
 
         const members1 = await client1.identifiers().members(nameMultisig);
         const members2 = await client2.identifiers().members(nameMultisig);

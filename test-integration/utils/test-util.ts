@@ -510,7 +510,7 @@ export async function waitForNotifications(
  * Poll for operation to become completed.
  * Removes completed operation
  */
-export async function waitOperation<T = any>(
+export async function waitOperation<T = unknown>(
     client: SignifyClient,
     op: Operation<T> | string,
     signal?: AbortSignal
