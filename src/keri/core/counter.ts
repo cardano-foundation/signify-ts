@@ -142,6 +142,7 @@ export class Counter {
         } else if (qb64 != undefined) {
             this._exfil(qb64);
         } else if (qb2 != undefined) {
+            /* empty */
         } else {
             throw new Error(
                 `Improper initialization need either (code and count) or qb64b or qb64 or qb2.`

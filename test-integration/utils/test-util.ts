@@ -1,18 +1,20 @@
+import assert from 'assert';
 import signify, {
     CreateIdentiferArgs,
+    CredentialResult,
+    CredentialSubject,
     EventResult,
+    HabState,
     Operation,
     randomPasscode,
     ready,
     Salter,
     SignifyClient,
     Tier,
-    HabState,
 } from 'signify-ts';
-import { RetryOptions, retry } from './retry.ts';
-import assert from 'assert';
-import { resolveEnvironment } from './resolve-env.ts';
 import { expect } from 'vitest';
+import { resolveEnvironment } from './resolve-env.ts';
+import { retry, RetryOptions } from './retry.ts';
 
 export interface Aid {
     name: string;
@@ -111,7 +113,12 @@ export async function getEndRoles(
     client: SignifyClient,
     alias: string,
     role?: string
-): Promise<any> {
+): Promise<
+    {
+        role: string;
+        eid: string;
+    }[]
+> {
     const path =
         role !== undefined
             ? `/identifiers/${alias}/endroles/${role}`
@@ -260,7 +267,7 @@ export async function getOrCreateIdentifier(
     name: string,
     kargs: CreateIdentiferArgs | undefined = undefined
 ): Promise<[string, string]> {
-    let id: any = undefined;
+    let id: string;
     try {
         const identfier = await client.identifiers().get(name);
         // console.log("identifiers.get", identfier);
@@ -279,7 +286,7 @@ export async function getOrCreateIdentifier(
         // console.log("identifiers.create", op);
         id = op.response.i;
     }
-    const eid = client.agent?.pre!;
+    const eid = String(client.agent?.pre);
     if (!(await hasEndRole(client, name, 'agent', eid))) {
         const result: EventResult = await client
             .identifiers()
@@ -300,20 +307,20 @@ export async function getOrIssueCredential(
     issuerAid: Aid,
     recipientAid: Aid,
     issuerRegistry: { regk: string },
-    credData: any,
+    credData: CredentialSubject,
     schema: string,
-    rules?: any,
-    source?: any,
+    rules?: Record<string, unknown>,
+    source?: Record<string, unknown>,
     privacy = false
-): Promise<any> {
+) {
     const credentialList = await issuerClient.credentials().list();
 
     if (credentialList.length > 0) {
         const credential = credentialList.find(
-            (cred: any) =>
+            (cred) =>
                 cred.sad.s === schema &&
                 cred.sad.i === issuerAid.prefix &&
-                cred.sad.a.i === recipientAid.prefix
+                cred.sad.a?.i === recipientAid.prefix
         );
         if (credential) return credential;
     }
@@ -384,7 +391,7 @@ export async function warnNotifications(
     expect(count).toBeGreaterThan(0); // replace warnNotifications with assertNotifications
 }
 
-async function deleteOperations<T = any>(
+async function deleteOperations<T = unknown>(
     client: SignifyClient,
     op: Operation<T>
 ) {
@@ -398,13 +405,13 @@ async function deleteOperations<T = any>(
 export async function getReceivedCredential(
     client: SignifyClient,
     credId: string
-): Promise<any> {
+) {
     const credentialList = await client.credentials().list({
         filter: {
             '-d': credId,
         },
     });
-    let credential: any;
+    let credential:  CredentialResult | undefined;
     if (credentialList.length > 0) {
         assert.equal(credentialList.length, 1);
         credential = credentialList[0];
@@ -503,7 +510,7 @@ export async function waitForNotifications(
  * Poll for operation to become completed.
  * Removes completed operation
  */
-export async function waitOperation<T = any>(
+export async function waitOperation<T = unknown>(
     client: SignifyClient,
     op: Operation<T> | string,
     signal?: AbortSignal

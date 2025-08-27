@@ -545,7 +545,7 @@ export class EventResult {
         return this._sigs;
     }
 
-    async op(): Promise<any> {
-        return await this.response.json();
+    async op<TResult = any>(): Promise<TResult> {
+        return await this.response.json() as TResult;
     }
 }

@@ -1,12 +1,25 @@
-import { mnemonicToSeedSync, generateMnemonic } from 'bip39';
+import { generateMnemonic, mnemonicToSeedSync } from 'bip39';
 import {
+    Algos,
     Diger,
-    Signer,
-    MtrDex,
     IdentifierManager,
     IdentifierManagerResult,
-    Algos,
+    MtrDex,
+    Signer,
 } from 'signify-ts';
+
+interface KArgs {
+    icount: number;
+    ncount: number;
+    dcode: string | undefined;
+    pidx: number;
+    kidx: number;
+    transferable: boolean;
+    stem: string;
+    extern?: {
+        mnemonics: string;
+    };
+}
 
 export class BIP39Shim implements IdentifierManager {
     private icount: number;
@@ -20,7 +33,7 @@ export class BIP39Shim implements IdentifierManager {
     algo: Algos = Algos.extern;
     signers: Signer[] = [];
 
-    constructor(pidx: number, kargs: any) {
+    constructor(pidx: number, kargs: Partial<KArgs>) {
         this.icount = kargs.icount ?? 1;
         this.ncount = kargs.ncount ?? 1;
         this.pidx = pidx;

@@ -33,7 +33,7 @@ export class Groups {
      * Send multisig exn request  messages to other group members
      * @async
      * @param {string} [name] human readable name of group AID
-     * @param {Dict<any>} [exn] exn message to send to other members
+     * @param {Record<string, unknown>} [exn] exn message to send to other members
      * @param {string[]} [sigs] signature of the participant over the exn
      * @param {string} [atc] additional attachments from embedded events in exn
      * @returns {Promise<any>} A promise to the list of replay messages

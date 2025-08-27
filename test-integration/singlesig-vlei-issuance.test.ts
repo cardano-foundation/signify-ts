@@ -1,6 +1,7 @@
+import { CredentialResult, Saider, Serder, SignifyClient } from 'signify-ts';
 import { assert, test } from 'vitest';
-import { Saider, Serder, SignifyClient } from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
+import { retry } from './utils/retry.ts';
 import {
     Aid,
     assertOperations,
@@ -15,7 +16,6 @@ import {
     waitOperation,
     warnNotifications,
 } from './utils/test-util.ts';
-import { retry } from './utils/retry.ts';
 
 const { vleiServerUrl } = resolveEnvironment();
 
@@ -196,7 +196,7 @@ test('singlesig-vlei-issuance', async function run() {
     assert.equal(qviCredHolder.sad.d, qviCred.sad.d);
     assert.equal(qviCredHolder.sad.s, QVI_SCHEMA_SAID);
     assert.equal(qviCredHolder.sad.i, gleifAid.prefix);
-    assert.equal(qviCredHolder.sad.a.i, qviAid.prefix);
+    assert.equal(qviCredHolder.sad.a?.i, qviAid.prefix);
     assert.equal(qviCredHolder.status.s, '0');
     assert(qviCredHolder.atc !== undefined);
 
@@ -236,8 +236,8 @@ test('singlesig-vlei-issuance', async function run() {
     assert.equal(leCredHolder.sad.d, leCred.sad.d);
     assert.equal(leCredHolder.sad.s, LE_SCHEMA_SAID);
     assert.equal(leCredHolder.sad.i, qviAid.prefix);
-    assert.equal(leCredHolder.sad.a.i, leAid.prefix);
-    assert.equal(leCredHolder.sad.e.qvi.n, qviCred.sad.d);
+    assert.equal(leCredHolder.sad.a?.i, leAid.prefix);
+    assert.equal(leCredHolder.sad.e?.qvi.n, qviCred.sad.d);
     assert.equal(leCredHolder.status.s, '0');
     assert(leCredHolder.atc !== undefined);
 
@@ -278,8 +278,8 @@ test('singlesig-vlei-issuance', async function run() {
     assert.equal(ecrCredHolder.sad.d, ecrCred.sad.d);
     assert.equal(ecrCredHolder.sad.s, ECR_SCHEMA_SAID);
     assert.equal(ecrCredHolder.sad.i, leAid.prefix);
-    assert.equal(ecrCredHolder.sad.a.i, roleAid.prefix);
-    assert.equal(ecrCredHolder.sad.e.le.n, leCred.sad.d);
+    assert.equal(ecrCredHolder.sad.a?.i, roleAid.prefix);
+    assert.equal(ecrCredHolder.sad.e?.le.n, leCred.sad.d);
     assert.equal(ecrCredHolder.status.s, '0');
     assert(ecrCredHolder.atc !== undefined);
 
@@ -326,9 +326,9 @@ test('singlesig-vlei-issuance', async function run() {
     assert.equal(ecrAuthCredHolder.sad.d, ecrAuthCred.sad.d);
     assert.equal(ecrAuthCredHolder.sad.s, ECR_AUTH_SCHEMA_SAID);
     assert.equal(ecrAuthCredHolder.sad.i, leAid.prefix);
-    assert.equal(ecrAuthCredHolder.sad.a.i, qviAid.prefix);
-    assert.equal(ecrAuthCredHolder.sad.a.AID, roleAid.prefix);
-    assert.equal(ecrAuthCredHolder.sad.e.le.n, leCred.sad.d);
+    assert.equal(ecrAuthCredHolder.sad.a?.i, qviAid.prefix);
+    assert.equal(ecrAuthCredHolder.sad.a?.AID, roleAid.prefix);
+    assert.equal(ecrAuthCredHolder.sad.e?.le.n, leCred.sad.d);
     assert.equal(ecrAuthCredHolder.status.s, '0');
     assert(ecrAuthCredHolder.atc !== undefined);
 
@@ -376,7 +376,7 @@ test('singlesig-vlei-issuance', async function run() {
     assert.equal(ecrCredHolder2.sad.d, ecrCred2.sad.d);
     assert.equal(ecrCredHolder2.sad.s, ECR_SCHEMA_SAID);
     assert.equal(ecrCredHolder2.sad.i, qviAid.prefix);
-    assert.equal(ecrCredHolder2.sad.e.auth.n, ecrAuthCred.sad.d);
+    assert.equal(ecrCredHolder2.sad.e?.auth.n, ecrAuthCred.sad.d);
     assert.equal(ecrCredHolder2.status.s, '0');
     assert(ecrCredHolder2.atc !== undefined);
 
@@ -423,9 +423,9 @@ test('singlesig-vlei-issuance', async function run() {
     assert.equal(oorAuthCredHolder.sad.d, oorAuthCred.sad.d);
     assert.equal(oorAuthCredHolder.sad.s, OOR_AUTH_SCHEMA_SAID);
     assert.equal(oorAuthCredHolder.sad.i, leAid.prefix);
-    assert.equal(oorAuthCredHolder.sad.a.i, qviAid.prefix);
-    assert.equal(oorAuthCredHolder.sad.a.AID, roleAid.prefix);
-    assert.equal(oorAuthCredHolder.sad.e.le.n, leCred.sad.d);
+    assert.equal(oorAuthCredHolder.sad.a?.i, qviAid.prefix);
+    assert.equal(oorAuthCredHolder.sad.a?.AID, roleAid.prefix);
+    assert.equal(oorAuthCredHolder.sad.e?.le.n, leCred.sad.d);
     assert.equal(oorAuthCredHolder.status.s, '0');
     assert(oorAuthCredHolder.atc !== undefined);
 
@@ -466,7 +466,7 @@ test('singlesig-vlei-issuance', async function run() {
     assert.equal(oorCredHolder.sad.d, oorCred.sad.d);
     assert.equal(oorCredHolder.sad.s, OOR_SCHEMA_SAID);
     assert.equal(oorCredHolder.sad.i, qviAid.prefix);
-    assert.equal(oorCredHolder.sad.e.auth.n, oorAuthCred.sad.d);
+    assert.equal(oorCredHolder.sad.e?.auth.n, oorAuthCred.sad.d);
     assert.equal(oorCredHolder.status.s, '0');
     assert(oorCredHolder.atc !== undefined);
 
@@ -496,22 +496,22 @@ async function sendGrantMessage(
     senderClient: SignifyClient,
     senderAid: Aid,
     recipientAid: Aid,
-    credential: any
+    credential: CredentialResult
 ) {
     const [grant, gsigs, gend] = await senderClient.ipex().grant({
         senderName: senderAid.name,
         acdc: new Serder(credential.sad),
         anc: new Serder(credential.anc),
         iss: new Serder(credential.iss),
-        ancAttachment: credential.ancAttachment,
+        ancAttachment: String((credential as Record<string, unknown>).ancAttachment),
         recipient: recipientAid.prefix,
         datetime: createTimestamp(),
     });
 
-    let op = await senderClient
+    const op = await senderClient
         .ipex()
         .submitGrant(senderAid.name, grant, gsigs, gend, [recipientAid.prefix]);
-    op = await waitOperation(senderClient, op);
+    await waitOperation(senderClient, op);
 }
 
 async function sendAdmitMessage(
@@ -534,10 +534,10 @@ async function sendAdmitMessage(
         datetime: createTimestamp(),
     });
 
-    let op = await senderClient
+    const op = await senderClient
         .ipex()
         .submitAdmit(senderAid.name, admit, sigs, aend, [recipientAid.prefix]);
-    op = await waitOperation(senderClient, op);
+    await waitOperation(senderClient, op);
 
     await markAndRemoveNotification(senderClient, grantNotification);
 }

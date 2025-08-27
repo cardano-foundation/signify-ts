@@ -207,7 +207,7 @@ export class IdentifierManagerFactory {
      */
     get(aid: HabState): IdentifierManager {
         let algo: Algos | undefined;
-        let kargs: any;
+        let kargs;
 
         if (Algos.salty in aid) {
             algo = Algos.salty;
@@ -267,7 +267,7 @@ export class IdentifierManagerFactory {
                 kargs = kargs as GroupKeyState;
                 return new GroupIdentifierManager(
                     this,
-                    kargs.mhab,
+                    kargs.mhab as never,
                     undefined,
                     undefined,
                     kargs.keys,

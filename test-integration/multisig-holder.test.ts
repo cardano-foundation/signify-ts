@@ -21,12 +21,6 @@ import {
 } from './utils/multisig-utils.ts';
 
 const { vleiServerUrl } = resolveEnvironment();
-const WITNESS_AIDS = [
-    'BBilc4-L3tFUnfM_wJr4S4OJanAv_VmF_dJNN6vkf2Ha',
-    'BLskRTInXnMxWaGqcpSyMgo0nYbalW99cGZESrz3zapM',
-    'BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX',
-];
-
 const SCHEMA_SAID = 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao';
 const SCHEMA_OOBI = `${vleiServerUrl}/oobi/${SCHEMA_SAID}`;
 
@@ -42,10 +36,10 @@ test('multisig', async function run() {
     ]);
 
     // Create three identifiers, one for each client
-    let [aid1, aid2, _aid3] = await Promise.all([
-        createAID(client1, 'member1', WITNESS_AIDS),
-        createAID(client2, 'member2', WITNESS_AIDS),
-        createAID(client3, 'issuer', WITNESS_AIDS),
+    let [aid1, aid2] = await Promise.all([
+        createAID(client1, 'member1'),
+        createAID(client2, 'member2'),
+        createAID(client3, 'issuer'),
     ]);
 
     await createRegistry(client3, 'issuer', 'issuer-reg');
@@ -440,7 +434,7 @@ test('multisig', async function run() {
     await warnNotifications(client1, client2, client3);
 }, 360000);
 
-async function createAID(client: SignifyClient, name: string, wits: string[]) {
+async function createAID(client: SignifyClient, name: string) {
     await getOrCreateIdentifier(client, name);
     const aid = await client.identifiers().get(name);
     console.log(name, 'AID:', aid.prefix);
@@ -489,10 +483,10 @@ async function issueCredential(
             iss: result.iss,
         });
 
-        let op = await client
+        const op = await client
             .ipex()
             .submitGrant(name, grant, gsigs, end, [data.a.i]);
-        op = await waitOperation(client, op);
+        await waitOperation(client, op);
     }
 
     console.log('Grant message sent');
@@ -533,7 +527,7 @@ async function multisigAdmitCredential(
         'SealEvent',
         { i: gHab['prefix'], s: mstate['ee']['s'], d: mstate['ee']['d'] },
     ];
-    const sigers = sigs.map((sig: any) => new signify.Siger({ qb64: sig }));
+    const sigers = sigs.map((sig: string) => new signify.Siger({ qb64: sig }));
     const ims = signify.d(signify.messagize(admit, sigers, seal));
     let atc = ims.substring(admit.size);
     atc += end;

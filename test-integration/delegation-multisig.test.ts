@@ -304,8 +304,8 @@ test('delegation-multisig', async () => {
         .keyStates()
         .query(adelegatorGroupName.prefix, '1');
 
-    const kstor1 = await waitOperation(delegator1Client, queryOp1);
-    const kstor2 = await waitOperation(delegator2Client, queryOp2);
+    await waitOperation(delegator1Client, queryOp1);
+    await waitOperation(delegator2Client, queryOp2);
 
     // QARs query the GEDA's key state
     const ksteetor1 = await delegatee1Client
@@ -314,11 +314,11 @@ test('delegation-multisig', async () => {
     const ksteetor2 = await delegatee2Client
         .keyStates()
         .query(adelegatorGroupName.prefix, '1');
-    const teeTor1 = await waitOperation(delegatee1Client, ksteetor1);
-    const teeTor2 = await waitOperation(delegatee2Client, ksteetor2);
+    await waitOperation(delegatee1Client, ksteetor1);
+    await waitOperation(delegatee2Client, ksteetor2);
 
-    const teeDone1 = await waitOperation(delegatee1Client, opDelegatee1);
-    const teeDone2 = await waitOperation(delegatee2Client, opDelegatee2);
+    await waitOperation(delegatee1Client, opDelegatee1);
+    await waitOperation(delegatee2Client, opDelegatee2);
     console.log('Delegated multisig created!');
 
     const agtee = await delegatee1Client.identifiers().get(delegateeGroupName);

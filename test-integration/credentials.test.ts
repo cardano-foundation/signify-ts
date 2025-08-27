@@ -1,6 +1,9 @@
-import { assert, beforeAll, afterAll, test, expect } from 'vitest';
+import { randomUUID } from 'node:crypto';
 import { Ilks, Saider, Serder, SignifyClient } from 'signify-ts';
+import { afterAll, assert, beforeAll, expect, test } from 'vitest';
 import { resolveEnvironment } from './utils/resolve-env.ts';
+import { retry } from './utils/retry.ts';
+import { step } from './utils/test-step.ts';
 import {
     assertNotifications,
     assertOperations,
@@ -12,10 +15,6 @@ import {
     waitForNotifications,
     waitOperation,
 } from './utils/test-util.ts';
-import { retry } from './utils/retry.ts';
-import { randomUUID } from 'node:crypto';
-import { step } from './utils/test-step.ts';
-import { CredentialResult } from '../src/keri/app/credentialing.ts';
 const { vleiServerUrl } = resolveEnvironment();
 
 const QVI_SCHEMA_SAID = 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao';
@@ -318,7 +317,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
     });
 
     await step('verifier IPEX apply', async () => {
-        const [apply, sigs, _] = await verifierClient.ipex().apply({
+        const [apply, sigs] = await verifierClient.ipex().apply({
             senderName: verifierAid.name,
             schemaSaid: QVI_SCHEMA_SAID,
             attributes: { LEI: '5493001KJTIIGC8Y1R17' },
@@ -344,7 +343,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
         const apply = await holderClient.exchanges().get(holderApplyNote.a.d);
         applySaid = apply.exn.d;
 
-        const filter: { [x: string]: any } = { '-s': apply.exn.a.s };
+        const filter: { [x: string]: unknown } = { '-s': apply.exn.a.s };
         for (const key in apply.exn.a.a) {
             filter[`-a-${key}`] = apply.exn.a.a[key];
         }
@@ -389,7 +388,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
 
         await markAndRemoveNotification(verifierClient, verifierOfferNote);
 
-        const [agree, sigs, _] = await verifierClient.ipex().agree({
+        const [agree, sigs] = await verifierClient.ipex().agree({
             senderName: verifierAid.name,
             recipient: holderAid.prefix,
             offerSaid: offerSaid,

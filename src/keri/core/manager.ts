@@ -424,7 +424,8 @@ export class Manager {
     private readonly _ks: KeyStore;
 
     constructor(args: ManagerArgs) {
-        let { ks, seed, aeid, pidx, algo, salter, tier } = args;
+        let { aeid, pidx, algo, tier } = args;
+        const { ks, seed, salter } = args;
         this._ks = ks == undefined ? new Keeper() : ks;
         this._seed = seed;
         this._encrypter = undefined;
@@ -591,16 +592,18 @@ export class Manager {
     incept(args: ManagerInceptArgs): [Array<Verfer>, Array<Diger>] {
         let {
             icodes = undefined,
+            ncodes = undefined,
+            algo = undefined,
+            salt = undefined,
+            tier = undefined,
+        } = args;
+        const {
             icount = 1,
             icode = MtrDex.Ed25519_Seed,
-            ncodes = undefined,
             ncount = 1,
             ncode = MtrDex.Ed25519_Seed,
             dcode = MtrDex.Blake3_256,
-            algo = undefined,
-            salt = undefined,
             stem = undefined,
-            tier = undefined,
             rooted = true,
             transferable = true,
             temp = false,
@@ -844,9 +847,9 @@ export class Manager {
     }
 
     rotate(args: RotateArgs): [Array<Verfer>, Array<Diger>] {
-        let {
+        let { ncodes = undefined } = args;
+        const {
             pre,
-            ncodes = undefined,
             ncount = 1,
             ncode = MtrDex.Ed25519_Seed,
             dcode = MtrDex.Blake3_256,
@@ -1222,7 +1225,11 @@ class Keeper implements KeyStore {
         const out = new Array<[string, Signer]>();
         this._pris.forEach(function (val, pubKey) {
             const verfer = new Verfer({ qb64: pubKey });
-            const signer = decrypter.decrypt(val, null, verfer.transferable) as Signer;
+            const signer = decrypter.decrypt(
+                val,
+                null,
+                verfer.transferable
+            ) as Signer;
             out.push([pubKey, signer]);
         });
         return out;

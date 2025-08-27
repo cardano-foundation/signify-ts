@@ -10,7 +10,6 @@ import {
 
 let delegator: SignifyClient, delegate: SignifyClient;
 let name1_id: string, name1_oobi: string;
-let contact1_id: string;
 
 beforeAll(async () => {
     [delegator, delegate] = await getOrCreateClients(2);
@@ -19,7 +18,7 @@ beforeAll(async () => {
     [name1_id, name1_oobi] = await getOrCreateIdentifier(delegator, 'name1');
 });
 beforeAll(async () => {
-    contact1_id = await getOrCreateContact(delegate, 'contact1', name1_oobi);
+    await getOrCreateContact(delegate, 'contact1', name1_oobi);
 });
 afterAll(async () => {
     await assertOperations(delegator, delegate);

@@ -131,7 +131,7 @@ export class Bexter extends Matter {
                 ws = 1;
             }
         } else {
-            ws = (sizage?.ls! + 1) % 4;
+            ws = ((sizage?.ls || 0) + 1) % 4;
         }
 
         return bext.substring(ws);
