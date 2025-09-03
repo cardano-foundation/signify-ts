@@ -333,6 +333,10 @@ export interface components {
             state: components['schemas']['CredentialState'];
         };
         IcpV1: {
+            s: string;
+            kt: string | string[] | string[][];
+            nt: string | string[] | string[][];
+            bt: string;
             /** @default  */
             v: string;
             /** @default  */
@@ -341,19 +345,17 @@ export interface components {
             d: string;
             /** @default  */
             i: string;
-            /** @default 0 */
-            s: string;
-            kt?: string | string[];
             k?: string[];
-            nt?: string | string[];
             n?: string[];
-            /** @default 0 */
-            bt: string;
             b?: string[];
             c?: string[];
             a?: unknown;
         };
         IcpV2: {
+            s: string;
+            kt: string | string[] | string[][];
+            nt: string | string[] | string[][];
+            bt: string;
             /** @default  */
             v: string;
             /** @default  */
@@ -362,19 +364,17 @@ export interface components {
             d: string;
             /** @default  */
             i: string;
-            /** @default 0 */
-            s: string;
-            kt?: string | string[];
             k?: string[];
-            nt?: string | string[];
             n?: string[];
-            /** @default 0 */
-            bt: string;
             b?: string[];
             c?: string[];
             a?: unknown;
         };
         RotV1: {
+            s: string;
+            kt: string | string[] | string[][];
+            nt: string | string[] | string[][];
+            bt: string;
             /** @default  */
             v: string;
             /** @default  */
@@ -383,21 +383,19 @@ export interface components {
             d: string;
             /** @default  */
             i: string;
-            /** @default 0 */
-            s: string;
             /** @default  */
             p: string;
-            kt?: string | string[];
             k?: string[];
-            nt?: string | string[];
             n?: string[];
-            /** @default 0 */
-            bt: string;
             br?: string[];
             ba?: string[];
             a?: unknown;
         };
         RotV2: {
+            s: string;
+            kt: string | string[] | string[][];
+            nt: string | string[] | string[][];
+            bt: string;
             /** @default  */
             v: string;
             /** @default  */
@@ -406,22 +404,20 @@ export interface components {
             d: string;
             /** @default  */
             i: string;
-            /** @default 0 */
-            s: string;
             /** @default  */
             p: string;
-            kt?: string | string[];
             k?: string[];
-            nt?: string | string[];
             n?: string[];
-            /** @default 0 */
-            bt: string;
             br?: string[];
             ba?: string[];
             c?: string[];
             a?: unknown;
         };
         DipV1: {
+            s: string;
+            kt: string | string[] | string[][];
+            nt: string | string[] | string[][];
+            bt: string;
             /** @default  */
             v: string;
             /** @default  */
@@ -430,14 +426,8 @@ export interface components {
             d: string;
             /** @default  */
             i: string;
-            /** @default 0 */
-            s: string;
-            kt?: string | string[];
             k?: string[];
-            nt?: string | string[];
             n?: string[];
-            /** @default 0 */
-            bt: string;
             b?: string[];
             c?: string[];
             a?: unknown;
@@ -445,6 +435,10 @@ export interface components {
             di: string;
         };
         DipV2: {
+            s: string;
+            kt: string | string[] | string[][];
+            nt: string | string[] | string[][];
+            bt: string;
             /** @default  */
             v: string;
             /** @default  */
@@ -453,14 +447,8 @@ export interface components {
             d: string;
             /** @default  */
             i: string;
-            /** @default 0 */
-            s: string;
-            kt?: string | string[];
             k?: string[];
-            nt?: string | string[];
             n?: string[];
-            /** @default 0 */
-            bt: string;
             b?: string[];
             c?: string[];
             a?: unknown;
@@ -468,6 +456,10 @@ export interface components {
             di: string;
         };
         DrtV1: {
+            s: string;
+            kt: string | string[] | string[][];
+            nt: string | string[] | string[][];
+            bt: string;
             /** @default  */
             v: string;
             /** @default  */
@@ -476,21 +468,19 @@ export interface components {
             d: string;
             /** @default  */
             i: string;
-            /** @default 0 */
-            s: string;
             /** @default  */
             p: string;
-            kt?: string | string[];
             k?: string[];
-            nt?: string | string[];
             n?: string[];
-            /** @default 0 */
-            bt: string;
             br?: string[];
             ba?: string[];
             a?: unknown;
         };
         DrtV2: {
+            s: string;
+            kt: string | string[] | string[][];
+            nt: string | string[] | string[][];
+            bt: string;
             /** @default  */
             v: string;
             /** @default  */
@@ -499,22 +489,18 @@ export interface components {
             d: string;
             /** @default  */
             i: string;
-            /** @default 0 */
-            s: string;
             /** @default  */
             p: string;
-            kt?: string | string[];
             k?: string[];
-            nt?: string | string[];
             n?: string[];
-            /** @default 0 */
-            bt: string;
             br?: string[];
             ba?: string[];
             c?: string[];
             a?: unknown;
         };
         VcpV1: {
+            s: string;
+            bt: string;
             /** @default  */
             v: string;
             /** @default  */
@@ -525,16 +511,14 @@ export interface components {
             i: string;
             /** @default  */
             ii: string;
-            /** @default 0 */
-            s: string;
             c?: string[];
-            /** @default 0 */
-            bt: string;
             b?: string[];
             /** @default  */
             n: string;
         };
         VrtV1: {
+            s: string;
+            bt: string;
             /** @default  */
             v: string;
             /** @default  */
@@ -545,10 +529,6 @@ export interface components {
             i: string;
             /** @default  */
             p: string;
-            /** @default 0 */
-            s: string;
-            /** @default 0 */
-            bt: string;
             br?: string[];
             ba?: string[];
         };
