@@ -7,6 +7,13 @@ import { Counter, CtrDex } from '../core/counter';
 import { Saider } from '../core/saider';
 import { HabState } from '../core/state';
 
+interface ListExnsArgs {
+    filter?: object;
+    sort?: object[];
+    skip?: number;
+    limit?: number;
+}
+
 /**
  * Exchanges
  */
@@ -141,6 +148,21 @@ export class Exchanges {
         const path = `/exchanges/${said}`;
         const method = 'GET';
         const res = await this.client.fetch(path, method, null);
+        return await res.json();
+    }
+
+    async list(args: ListExnsArgs = {}): Promise<any> {
+        const path = `/exchanges/query`;
+        const method = 'POST';
+
+        const data = {
+            filter: args.filter ?? {},
+            sort: args.sort ?? [],
+            skip: args.skip ?? 0,
+            limit: args.limit ?? 25,
+        };
+
+        const res = await this.client.fetch(path, method, data);
         return await res.json();
     }
 }
