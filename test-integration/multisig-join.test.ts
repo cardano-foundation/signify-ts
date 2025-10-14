@@ -133,7 +133,9 @@ describe('multisig-join', () => {
 
         const agentEnds2 = members2.signing[1].ends.agent;
         if (!agentEnds2) {
-            throw new Error('members2.signing[1].ends.agent is null or undefined');
+            throw new Error(
+                'members2.signing[1].ends.agent is null or undefined'
+            );
         }
         const eid2 = Object.keys(agentEnds2)[0];
 
@@ -366,7 +368,9 @@ describe('multisig-join', () => {
         const members = await client3.identifiers().members(nameMultisig);
         const agentEnds = members.signing[2].ends.agent;
         if (!agentEnds) {
-            throw new Error('members.signing[2].ends.agent is null or undefined');
+            throw new Error(
+                'members.signing[2].ends.agent is null or undefined'
+            );
         }
         const eid = Object.keys(agentEnds)[0];
         const endRoleOperation = await client3

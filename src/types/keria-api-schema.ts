@@ -235,6 +235,29 @@ export interface components {
             c: string[];
             a: unknown;
         };
+        VCP_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            ii: string;
+            s: string;
+            c: string[];
+            bt: string;
+            b: string[];
+            n: string;
+        };
+        VRT_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            p: string;
+            s: string;
+            bt: string;
+            br: string[];
+            ba: string[];
+        };
         RPY_V_1: {
             v: string;
             t: string;
@@ -332,157 +355,6 @@ export interface components {
             pre: string;
             state: components['schemas']['CredentialState'];
         };
-        IcpV1: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            s: string;
-            kt: string | string[] | string[][];
-            k: string[];
-            nt: string | string[] | string[][];
-            n: string[];
-            bt: string;
-            b: string[];
-            c: string[];
-            a: unknown;
-        };
-        IcpV2: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            s: string;
-            kt: string | string[] | string[][];
-            k: string[];
-            nt: string | string[] | string[][];
-            n: string[];
-            bt: string;
-            b: string[];
-            c: string[];
-            a: unknown;
-        };
-        RotV1: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            s: string;
-            p: string;
-            kt: string | string[] | string[][];
-            k: string[];
-            nt: string | string[] | string[][];
-            n: string[];
-            bt: string;
-            br: string[];
-            ba: string[];
-            a: unknown;
-        };
-        RotV2: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            s: string;
-            p: string;
-            kt: string | string[] | string[][];
-            k: string[];
-            nt: string | string[] | string[][];
-            n: string[];
-            bt: string;
-            br: string[];
-            ba: string[];
-            c: string[];
-            a: unknown;
-        };
-        DipV1: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            s: string;
-            kt: string | string[] | string[][];
-            k: string[];
-            nt: string | string[] | string[][];
-            n: string[];
-            bt: string;
-            b: string[];
-            c: string[];
-            a: unknown;
-            di: string;
-        };
-        DipV2: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            s: string;
-            kt: string | string[] | string[][];
-            k: string[];
-            nt: string | string[] | string[][];
-            n: string[];
-            bt: string;
-            b: string[];
-            c: string[];
-            a: unknown;
-            di: string;
-        };
-        DrtV1: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            s: string;
-            p: string;
-            kt: string | string[] | string[][];
-            k: string[];
-            nt: string | string[] | string[][];
-            n: string[];
-            bt: string;
-            br: string[];
-            ba: string[];
-            a: unknown;
-        };
-        DrtV2: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            s: string;
-            p: string;
-            kt: string | string[] | string[][];
-            k: string[];
-            nt: string | string[] | string[][];
-            n: string[];
-            bt: string;
-            br: string[];
-            ba: string[];
-            c: string[];
-            a: unknown;
-        };
-        VcpV1: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            ii: string;
-            s: string;
-            c: string[];
-            bt: string;
-            b: string[];
-            n: string;
-        };
-        VrtV1: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            p: string;
-            s: string;
-            bt: string;
-            br: string[];
-            ba: string[];
-        };
         StateEERecord: {
             /** @default 0 */
             s: string;
@@ -531,7 +403,9 @@ export interface components {
                 | components['schemas']['DIP_V_1']
                 | components['schemas']['DIP_V_2']
                 | components['schemas']['DRT_V_1']
-                | components['schemas']['DRT_V_2'];
+                | components['schemas']['DRT_V_2']
+                | components['schemas']['VCP_V_1']
+                | components['schemas']['VRT_V_1'];
         };
         AgentResourceResult: {
             agent: components['schemas']['KeyStateRecord'];
@@ -675,9 +549,9 @@ export interface components {
         };
         Contact: {
             id: string;
-            alias?: string;
-            oobi?: string;
-            ends?: components['schemas']['MemberEnds'];
+            alias: string;
+            oobi: string;
+            end?: components['schemas']['MemberEnds'];
             challenges?: components['schemas']['Challenge'][];
             wellKnowns?: components['schemas']['WellKnown'][];
         } & {
