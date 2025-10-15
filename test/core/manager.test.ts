@@ -30,6 +30,8 @@ import {
     RandyKeyState,
     KeyState,
     HabState,
+    RandyHabState,
+    ExternHabState,
 } from '../../src/keri/core/keyState.ts';
 import { randomUUID } from 'node:crypto';
 

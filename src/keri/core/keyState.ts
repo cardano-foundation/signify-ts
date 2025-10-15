@@ -45,4 +45,3 @@ export type HabState =
     | RandyHabState
     | GroupHabState
     | ExternHabState;
-

@@ -1,37 +1,4 @@
-// AUTO-GENERATED: Only components and enums retained from OpenAPI schema
-
-export enum IssEvtT {
-    iss = "iss",
-    bis = "bis"
-}
-
-export enum CredentialStateIssOrRevEt {
-    iss = "iss",
-    rev = "rev"
-}
-
-export enum CredentialStateBisOrBrvEt {
-    bis = "bis",
-    brv = "brv"
-}
-
-export enum Tier {
-    low = "low",
-    med = "med",
-    high = "high"
-}
-
-export enum OOBIRole {
-    controller = "controller",
-    witness = "witness",
-    registrar = "registrar",
-    watcher = "watcher",
-    judge = "judge",
-    juror = "juror",
-    peer = "peer",
-    mailbox = "mailbox",
-    agent = "agent"
-}
+// AUTO-GENERATED: Only components retained from OpenAPI schema
 
 export interface components {
     schemas: {
@@ -284,6 +251,169 @@ export interface components {
             dt: string;
             r: string;
             a: unknown;
+        };
+        RCT_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            s: string;
+        };
+        RCT_V_2: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            s: string;
+        };
+        QRY_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            dt: string;
+            r: string;
+            rr: string;
+            q: {
+                [key: string]: unknown;
+            };
+        };
+        QRY_V_2: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            dt: string;
+            r: string;
+            rr: string;
+            q: {
+                [key: string]: unknown;
+            };
+        };
+        PRO_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            dt: string;
+            r: string;
+            rr: string;
+            q: {
+                [key: string]: unknown;
+            };
+        };
+        PRO_V_2: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            dt: string;
+            r: string;
+            rr: string;
+            q: {
+                [key: string]: unknown;
+            };
+        };
+        BAR_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            dt: string;
+            r: string;
+            a: unknown;
+        };
+        BAR_V_2: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            dt: string;
+            r: string;
+            a: unknown;
+        };
+        XIP_V_2: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            dt: string;
+            r: string;
+            q: {
+                [key: string]: unknown;
+            };
+            a: unknown;
+        };
+        EXN_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            rp: string;
+            p: string;
+            dt: string;
+            r: string;
+            q: {
+                [key: string]: unknown;
+            };
+            a: unknown;
+            e: {
+                [key: string]: unknown;
+            };
+        };
+        EXN_V_2: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            x: string;
+            p: string;
+            dt: string;
+            r: string;
+            q: {
+                [key: string]: unknown;
+            };
+            a: unknown;
+        };
+        ISS_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            s: string;
+            ri: string;
+            dt: string;
+        };
+        REV_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            s: string;
+            ri: string;
+            p: string;
+            dt: string;
+        };
+        BIS_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            ii: string;
+            s: string;
+            ra: {
+                [key: string]: unknown;
+            };
+            dt: string;
+        };
+        BRV_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            s: string;
+            p: string;
+            ra: {
+                [key: string]: unknown;
+            };
+            dt: string;
         };
         Credential: {
             sad:
@@ -573,693 +703,41 @@ export interface components {
             signing: components['schemas']['AidRecord'][];
             rotation: components['schemas']['AidRecord'][];
         };
-        IcpV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            b?: string[];
-            c?: string[];
-            a?: unknown;
+        KeyEventRecord: {
+            ked:
+                | components['schemas']['ICP_V_1']
+                | components['schemas']['ROT_V_1']
+                | components['schemas']['IXN_V_1']
+                | components['schemas']['DIP_V_1']
+                | components['schemas']['DRT_V_1']
+                | components['schemas']['RCT_V_1']
+                | components['schemas']['QRY_V_1']
+                | components['schemas']['RPY_V_1']
+                | components['schemas']['PRO_V_1']
+                | components['schemas']['BAR_V_1']
+                | components['schemas']['EXN_V_1']
+                | components['schemas']['VCP_V_1']
+                | components['schemas']['VRT_V_1']
+                | components['schemas']['ISS_V_1']
+                | components['schemas']['REV_V_1']
+                | components['schemas']['BIS_V_1']
+                | components['schemas']['BRV_V_1']
+                | components['schemas']['ICP_V_2']
+                | components['schemas']['ROT_V_2']
+                | components['schemas']['IXN_V_2']
+                | components['schemas']['DIP_V_2']
+                | components['schemas']['DRT_V_2']
+                | components['schemas']['RCT_V_2']
+                | components['schemas']['QRY_V_2']
+                | components['schemas']['RPY_V_2']
+                | components['schemas']['PRO_V_2']
+                | components['schemas']['BAR_V_2']
+                | components['schemas']['XIP_V_2']
+                | components['schemas']['EXN_V_2'];
+            atc: string;
         };
-        RotV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            p: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            br?: string[];
-            ba?: string[];
-            a?: unknown;
-        };
-        DipV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            b?: string[];
-            c?: string[];
-            a?: unknown;
-            /** @default  */
-            di: string;
-        };
-        DrtV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            p: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            br?: string[];
-            ba?: string[];
-            a?: unknown;
-        };
-        VcpV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            ii: string;
-            /** @default 0 */
-            s: string;
-            c?: string[];
-            /** @default 0 */
-            bt: string;
-            b?: string[];
-            /** @default  */
-            n: string;
-        };
-        VrtV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            p: string;
-            /** @default 0 */
-            s: string;
-            /** @default 0 */
-            bt: string;
-            br?: string[];
-            ba?: string[];
-        };
-        IxnV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            p: string;
-            a?: unknown;
-        };
-        RctV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-        };
-        QryV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            /** @default  */
-            rr: string;
-            q?: {
-                [key: string]: unknown;
-            };
-        };
-        RpyV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            a?: unknown;
-        };
-        ProV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            /** @default  */
-            rr: string;
-            q?: {
-                [key: string]: unknown;
-            };
-        };
-        BarV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            a?: unknown;
-        };
-        ExnV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            rp: string;
-            /** @default  */
-            p: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            q?: {
-                [key: string]: unknown;
-            };
-            a?: unknown;
-            e?: {
-                [key: string]: unknown;
-            };
-        };
-        IssV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            ri: string;
-            /** @default  */
-            dt: string;
-        };
-        RevV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            ri: string;
-            /** @default  */
-            p: string;
-            /** @default  */
-            dt: string;
-        };
-        BisV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            ii: string;
-            /** @default 0 */
-            s: string;
-            ra?: {
-                [key: string]: unknown;
-            };
-            /** @default  */
-            dt: string;
-        };
-        BrvV1: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            p: string;
-            ra?: {
-                [key: string]: unknown;
-            };
-            /** @default  */
-            dt: string;
-        };
-        IcpV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            b?: string[];
-            c?: string[];
-            a?: unknown;
-        };
-        RotV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            p: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            br?: string[];
-            ba?: string[];
-            c?: string[];
-            a?: unknown;
-        };
-        DipV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            b?: string[];
-            c?: string[];
-            a?: unknown;
-            /** @default  */
-            di: string;
-        };
-        DrtV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            p: string;
-            /** @default 0 */
-            kt: string;
-            k?: string[];
-            /** @default 0 */
-            nt: string;
-            n?: string[];
-            /** @default 0 */
-            bt: string;
-            br?: string[];
-            ba?: string[];
-            c?: string[];
-            a?: unknown;
-        };
-        IxnV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            p: string;
-            a?: unknown;
-        };
-        RctV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-        };
-        QryV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            /** @default  */
-            rr: string;
-            q?: {
-                [key: string]: unknown;
-            };
-        };
-        RpyV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            a?: unknown;
-        };
-        ProV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            /** @default  */
-            rr: string;
-            q?: {
-                [key: string]: unknown;
-            };
-        };
-        BarV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            a?: unknown;
-        };
-        XipV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            q?: {
-                [key: string]: unknown;
-            };
-            a?: unknown;
-        };
-        ExnV2: {
-            /** @default  */
-            v: string;
-            /** @default  */
-            t: string;
-            /** @default  */
-            d: string;
-            /** @default  */
-            i: string;
-            /** @default  */
-            x: string;
-            /** @default  */
-            p: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            r: string;
-            q?: {
-                [key: string]: unknown;
-            };
-            a?: unknown;
-        };
-        StateEERecord: {
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            d: string;
-            br?: unknown[];
-            ba?: unknown[];
-        };
-        KeyStateRecord: {
-            vn?: number[];
-            /** @default  */
-            i: string;
-            /** @default 0 */
-            s: string;
-            /** @default  */
-            p: string;
-            /** @default  */
-            d: string;
-            /** @default 0 */
-            f: string;
-            /** @default  */
-            dt: string;
-            /** @default  */
-            et: string;
-            /** @default 0 */
-            kt: string;
-            k: string[];
-            /** @default 0 */
-            nt: string;
-            n: string[];
-            /** @default 0 */
-            bt: string;
-            b: string[];
-            c: string[];
-            ee: components["schemas"]["StateEERecord"];
-            /** @default  */
-            di: string;
-        };
-        Controller: {
-            state: components["schemas"]["KeyStateRecord"];
-            ee: components["schemas"]["IcpV1"] | components["schemas"]["IcpV2"] | components["schemas"]["RotV1"] | components["schemas"]["RotV2"] | components["schemas"]["DipV1"] | components["schemas"]["DipV2"] | components["schemas"]["DrtV1"] | components["schemas"]["DrtV2"] | components["schemas"]["VcpV1"] | components["schemas"]["VrtV1"];
-        };
-        AgentResourceResult: {
-            agent: components["schemas"]["KeyStateRecord"];
-            controller: components["schemas"]["Controller"];
-            pidx: number;
-            /** @default null */
-            ridx: number | null;
-            /** @default null */
-            sxlt: string | null;
-        };
-        SaltyState: {
-            tier: components["schemas"]["Tier"];
-            /** @default  */
-            sxlt: string;
-            /** @default 0 */
-            pidx: number;
-            /** @default 0 */
-            kidx: number;
-            /** @default  */
-            stem: string;
-            /** @default  */
-            dcode: string;
-            icodes: string[];
-            ncodes: string[];
-            /** @default false */
-            transferable: boolean;
-        };
-        RandyKeyState: {
-            prxs: string[];
-            nxts: string[];
-        };
-        HabState: {
-            name: string;
-            prefix: string;
-            icp_dt: string;
-            state: components["schemas"]["KeyStateRecord"];
-            /** @default null */
-            transferable: boolean | null;
-            /** @default null */
-            windexes: string[] | null;
-        };
-        GroupKeyState: {
-            mhab: components["schemas"]["Identifier"];
-            keys: string[];
-            ndigs: string[];
-        };
-        ExternState: {
-            extern_type: string;
-            pidx: number;
-        } & {
-            [key: string]: unknown;
-        };
-        Identifier: {
-            name: string;
-            prefix: string;
-            icp_dt: string;
-            state: components["schemas"]["KeyStateRecord"];
-            /** @default null */
-            transferable: boolean | null;
-            /** @default null */
-            windexes: string[] | null;
-        } & ({
-            salty: components["schemas"]["SaltyState"];
-        } | {
-            randy: components["schemas"]["RandyKeyState"];
-        } | {
-            group: components["schemas"]["GroupKeyState"];
-        } | {
-            extern: components["schemas"]["ExternState"];
-        });
-        /**
-         * @description Tier of key material
-         * @enum {string}
-         */
-        Tier: Tier;
-        OOBI: {
-            /** @enum {string} */
-            role: OOBIRole;
-            oobis: string[];
-        };
-        EndRole: {
-            cid: string;
-            role: string;
-            eid: string;
-        };
-        Rpy: components["schemas"]["RpyV1"] | components["schemas"]["RpyV2"];
-        Challenge: {
-            words: string[];
-            dt?: string;
-            said?: string;
-            authenticated?: boolean;
+        AgentConfig: {
+            iurls?: string[];
         };
     };
     responses: never;

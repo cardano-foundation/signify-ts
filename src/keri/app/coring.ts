@@ -267,7 +267,11 @@ export class KeyStates {
      * @param {any} [anchor] Optional anchor
      * @returns {Promise<Operation<any>>} A promise to the long-running operation
      */
-    async query(pre: string, sn?: string, anchor?: any): Promise<Operation<any>> {
+    async query(
+        pre: string,
+        sn?: string,
+        anchor?: any
+    ): Promise<Operation<any>> {
         const path = `/queries`;
         const data: any = {
             pre: pre,

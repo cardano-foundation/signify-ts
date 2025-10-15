@@ -25,7 +25,6 @@ afterAll(async () => {
     await assertOperations(client1, client2);
 });
 
-
 describe('singlesig-ixn', () => {
     test('step1', async () => {
         assert.equal(name1_id, contact1_id);

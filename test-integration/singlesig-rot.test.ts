@@ -1,5 +1,9 @@
 import { afterAll, assert, beforeAll, describe, expect, test } from 'vitest';
-import signify, { EventResult, RotateIdentifierArgs, SignifyClient } from 'signify-ts';
+import signify, {
+    EventResult,
+    RotateIdentifierArgs,
+    SignifyClient,
+} from 'signify-ts';
 import {
     assertOperations,
     getOrCreateClients,
