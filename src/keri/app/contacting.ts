@@ -183,9 +183,9 @@ export class Challenges {
      * Mark challenge response as signed and accepted
      * @param source Prefix of the identifier that was challenged
      * @param said qb64 AID of exn message representing the signed response
-     * @returns {Promise<Operation<any>>} A promise to the result
+     * @returns {Promise<Operation<unknown>>} A promise to the result
      */
-    async responded(source: string, said: string): Promise<Operation<any>> {
+    async responded(source: string, said: string): Promise<Operation<unknown>> {
         const path = `/challenges_verify/${source}`;
         const method = 'PUT';
         const data = {
@@ -194,12 +194,12 @@ export class Challenges {
         const res = await this.client.fetch(path, method, data);
         // Check for empty response
         if (res.status === 204 || res.headers.get('content-length') === '0') {
-            return {} as Operation<any>;
+            return {} as Operation<unknown>;
         }
         const text = await res.text();
         if (!text) {
-            return {} as Operation<any>;
+            return {} as Operation<unknown>;
         }
-        return JSON.parse(text) as Operation<any>;
+        return JSON.parse(text) as Operation<unknown>;
     }
 }

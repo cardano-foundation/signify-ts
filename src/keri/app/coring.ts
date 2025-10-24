@@ -37,7 +37,7 @@ export class Oobis {
      * Get the OOBI(s) for a managed indentifier for a given role
      * @param {string} name Name or alias of the identifier
      * @param {string} role Authorized role
-     * @returns {Promise<any>} A promise to the OOBI(s)
+     * @returns {Promise<OOBI>} A promise to the OOBI(s)
      */
     async get(name: string, role: string = 'agent'): Promise<OOBI> {
         const path = `/identifiers/${name}/oobis?role=${role}`;
@@ -51,9 +51,9 @@ export class Oobis {
      * @async
      * @param {string} oobi The OOBI to be resolver
      * @param {string} [alias] Optional name or alias to link the OOBI resolution to a contact
-     * @returns {Promise<Operation<any>>} A promise to the long-running operation
+     * @returns {Promise<Operation<unknown>>} A promise to the long-running operation
      */
-    async resolve(oobi: string, alias?: string): Promise<Operation<any>> {
+    async resolve(oobi: string, alias?: string): Promise<Operation<unknown>> {
         const path = `/oobis`;
         const data: any = {
             url: oobi,
@@ -122,7 +122,7 @@ export class Operations {
      * @param {string} type Select operations by type
      * @returns {Promise<Operation[]>} A list of operations
      */
-    async list(type?: string): Promise<Operation<any>[]> {
+    async list(type?: string): Promise<Operation<unknown>[]> {
         const params = new URLSearchParams();
         if (type !== undefined) {
             params.append('type', type);
@@ -265,13 +265,13 @@ export class KeyStates {
      * @param {string} pre Identifier prefix
      * @param {number} [sn] Optional sequence number
      * @param {any} [anchor] Optional anchor
-     * @returns {Promise<Operation<any>>} A promise to the long-running operation
+     * @returns {Promise<Operation<unknown>>} A promise to the long-running operation
      */
     async query(
         pre: string,
         sn?: string,
         anchor?: any
-    ): Promise<Operation<any>> {
+    ): Promise<Operation<unknown>> {
         const path = `/queries`;
         const data: any = {
             pre: pre,

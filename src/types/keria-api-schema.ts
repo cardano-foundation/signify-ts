@@ -329,18 +329,6 @@ export interface components {
             r: string;
             a: unknown;
         };
-        XIP_V_2: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            dt: string;
-            r: string;
-            q: {
-                [key: string]: unknown;
-            };
-            a: unknown;
-        };
         EXN_V_1: {
             v: string;
             t: string;
@@ -414,6 +402,41 @@ export interface components {
                 [key: string]: unknown;
             };
             dt: string;
+        };
+        XIP_V_2: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            dt: string;
+            r: string;
+            q: {
+                [key: string]: unknown;
+            };
+            a: unknown;
+        };
+        VCP_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            ii: string;
+            s: string;
+            c: string[];
+            bt: string;
+            b: string[];
+            n: string;
+        };
+        VRT_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            p: string;
+            s: string;
+            bt: string;
+            br: string[];
+            ba: string[];
         };
         Credential: {
             sad:
