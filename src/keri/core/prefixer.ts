@@ -15,7 +15,7 @@ export interface PrefixerSAD extends Omit<BaseSAD, "d"> {
     k?: string[];
     n?: string | string[];
     b?: string[];
-    a?: Record<string, unknown>[];
+    a?: unknown;
     i?: string;
 }
 
@@ -185,7 +185,7 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
                 // must be empty
                 return false;
             }
-        } catch (e) {
+        } catch {
             return false;
         }
 
@@ -206,7 +206,7 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
             if (prefixed && sad['i'] != pre) {
                 return false;
             }
-        } catch (e) {
+        } catch {
             return false;
         }
 

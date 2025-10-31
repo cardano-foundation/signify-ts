@@ -49,39 +49,19 @@ export interface EndRoleAddAttributes extends Record<string, unknown> {
     eid?: string;
 }
 
-export interface RotateEventSAD extends BaseSAD, Record<string, unknown> {
-    v: string;
-    t: string;
-    d: string;
-    i: string;
-    s: string;
-    p?: string;
-    kt: string | string[] | string[][];
-    k: string[];
-    nt: string | string[] | string[][];
-    n: string[];
-    bt: number | string;
-    br?: string[];
-    ba?: string[];
-    a: Record<string, unknown>[];
-}
+export type RotateEventSAD = (
+    | components['schemas']['ROT_V_1']
+    | components['schemas']['ROT_V_2']
+) &
+    Record<string, unknown> &
+    BaseSAD;
 
-export interface InceptEventSAD extends BaseSAD, Record<string, unknown> {
-    v: string;
-    t: string;
-    d: string;
-    i: string;
-    s: string;
-    kt: number | string | string[] | string[][];
-    k: string[];
-    nt?: number | string | string[] | string[][];
-    n?: string[];
-    bt: number | string;
-    b: string[];
-    c: string[];
-    a: Record<string, unknown>[];
-}
-
+export type InceptEventSAD = (
+    | components['schemas']['ICP_V_1']
+    | components['schemas']['ICP_V_2']
+) &
+    Record<string, unknown> &
+    BaseSAD;
 export type InteractEventData = components['schemas']['Seal'];
 
 export interface InteractEventSAD extends BaseSAD {
@@ -263,7 +243,7 @@ export function rotate({
         d: '',
         i: String(pre),
         s: sner.numh,
-        p: dig,
+        p: dig!,
         kt:
             tholder.num &&
             intive &&
@@ -282,10 +262,10 @@ export function rotate({
         n: _ndigs,
         bt:
             _toad && intive && _toad !== undefined && _toad <= MaxIntThold
-                ? _toad
+                ? String(_toad)
                 : _toad.toString(16),
-        br: cuts,
-        ba: adds,
+        br: cuts!,
+        ba: adds!,
         a: data != undefined ? (data as Record<string, unknown>[]) : [],
     };
     const [, sad] = Saider.saidify(_sad);
@@ -423,11 +403,17 @@ export function incept({
         d: '',
         i: '',
         s: sner.numh,
-        kt: intive && tholder.num != undefined ? tholder.num : tholder.sith,
+        kt:
+            intive && tholder.num != undefined
+                ? String(tholder.num)
+                : tholder.sith,
         k: keys,
-        nt: intive && tholder.num != undefined ? ntholder.num : ntholder.sith,
+        nt:
+            intive && tholder.num != undefined
+                ? String(ntholder.num!)
+                : ntholder.sith,
         n: ndigs,
-        bt: intive ? toader.num : toader.numh,
+        bt: intive ? String(toader.num) : toader.numh,
         b: wits,
         c: cnfg,
         a: data as Record<string, unknown>[],

@@ -208,7 +208,7 @@ export class IdentifierManagerFactory {
      */
     get(aid: HabState): IdentifierManager {
         let algo: Algos | undefined;
-        let kargs: any;
+        let kargs: unknown;
 
         if (Algos.salty in aid) {
             algo = Algos.salty;
@@ -234,20 +234,20 @@ export class IdentifierManagerFactory {
                 kargs = kargs as SaltyKeyState;
                 return new SaltyIdentifierManager(
                     this.salter,
-                    kargs.pidx,
-                    kargs.kidx,
-                    kargs.tier,
-                    kargs.transferable,
-                    kargs.stem,
+                    (kargs as SaltyKeyState).pidx,
+                    (kargs as SaltyKeyState).kidx,
+                    (kargs as SaltyKeyState).tier,
+                    (kargs as SaltyKeyState).transferable,
+                    (kargs as SaltyKeyState).stem,
                     undefined,
                     undefined,
-                    kargs.icodes,
+                    (kargs as SaltyKeyState).icodes,
                     undefined,
                     undefined,
-                    kargs.ncodes,
-                    kargs.dcode,
+                    (kargs as SaltyKeyState).ncodes,
+                    (kargs as SaltyKeyState).dcode,
                     undefined,
-                    kargs.sxlt
+                    (kargs as SaltyKeyState).sxlt
                 );
             case Algos.randy:
                 kargs = kargs as RandyKeyState;
@@ -261,24 +261,27 @@ export class IdentifierManagerFactory {
                     undefined,
                     [],
                     undefined,
-                    kargs.prxs,
-                    kargs.nxts
+                    (kargs as RandyKeyState).prxs,
+                    (kargs as RandyKeyState).nxts
                 );
             case Algos.group:
                 kargs = kargs as GroupKeyState;
                 return new GroupIdentifierManager(
                     this,
-                    kargs.mhab,
+                    (kargs as Record<string, unknown>).mhab as HabState,
                     undefined,
                     undefined,
-                    kargs.keys,
-                    kargs.ndigs
+                    (kargs as GroupKeyState).keys,
+                    (kargs as GroupKeyState).ndigs
                 );
             case Algos.extern: {
                 kargs = kargs as ExternState;
-                const typ = kargs.extern_type;
+                const typ = (kargs as ExternState).extern_type;
                 if (typ in this.modules) {
-                    const mod = new this.modules[typ](kargs.pidx, kargs);
+                    const mod = new this.modules[typ](
+                        (kargs as ExternState).pidx,
+                        kargs as ExternState
+                    );
                     return mod;
                 } else {
                     throw new Error(`unsupported external module type ${typ}`);
