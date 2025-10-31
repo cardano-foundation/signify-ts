@@ -1,10 +1,11 @@
+import { Tier } from '../../types/keria-api-schema.ts';
 import { Cigar } from './cigar.ts';
 import { b } from './core.ts';
 import { Decrypter } from './decrypter.ts';
 import { Diger } from './diger.ts';
 import { Encrypter } from './encrypter.ts';
 import { MtrDex } from './matter.ts';
-import { Salter, Tier } from './salter.ts';
+import { Salter } from './salter.ts';
 import { Siger } from './siger.ts';
 import { Signer } from './signer.ts';
 import { Verfer } from './verfer.ts';

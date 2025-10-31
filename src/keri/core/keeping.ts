@@ -1,3 +1,4 @@
+import { Tier } from '../../types/keria-api-schema.ts';
 import { Encrypter } from '../core/encrypter.ts';
 import { Cipher } from './cipher.ts';
 import { b } from './core.ts';
@@ -14,7 +15,7 @@ import {
 import { Algos, RandyCreator, SaltyCreator } from './manager.ts';
 import { MtrDex } from './matter.ts';
 import { Prefixer } from './prefixer.ts';
-import { Salter, Tier } from './salter.ts';
+import { Salter } from './salter.ts';
 import { Signer } from './signer.ts';
 
 /** External module definition */

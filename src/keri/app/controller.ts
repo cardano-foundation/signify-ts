@@ -1,3 +1,4 @@
+import { Tier } from '../../types/keria-api-schema.ts';
 import { Cipher } from '../core/cipher.ts';
 import { b, Ilks, Serials, Vrsn_1_0 } from '../core/core.ts';
 import { Decrypter } from '../core/decrypter.ts';
@@ -7,7 +8,7 @@ import { incept, InceptEventSAD, interact, InteractEventSAD, rotate } from '../c
 import { SaltyCreator } from '../core/manager.ts';
 import { MtrDex } from '../core/matter.ts';
 import { CesrNumber } from '../core/number.ts';
-import { Salter, Tier } from '../core/salter.ts';
+import { Salter } from '../core/salter.ts';
 import { Seqner } from '../core/seqner.ts';
 import { Serder } from '../core/serder.ts';
 import { Signer } from '../core/signer.ts';

@@ -1,4 +1,4 @@
-import { components } from '../../types/keria-api-schema.ts';
+import { components, Tier } from '../../types/keria-api-schema.ts';
 import { b, Ilks, Serials, Vrsn_1_0 } from '../core/core.ts';
 import { incept, interact, reply, EndRoleAddAttributes, rotate } from '../core/eventing.ts';
 import { parseRangeHeaders } from '../core/httping.ts';
@@ -6,7 +6,6 @@ import { IdentifierManagerFactory } from '../core/keeping.ts';
 import { HabState } from '../core/keyState.ts';
 import { Algos } from '../core/manager.ts';
 import { MtrDex } from '../core/matter.ts';
-import { Tier } from '../core/salter.ts';
 import { Serder } from '../core/serder.ts';
 import { Tholder } from '../core/tholder.ts';
 
