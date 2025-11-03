@@ -49,7 +49,7 @@ export interface EndRoleAddAttributes extends Record<string, unknown> {
     eid?: string;
 }
 
-export type RotateEventSAD = (
+type RotateEventSAD = (
     | components['schemas']['ROT_V_1']
     | components['schemas']['ROT_V_2']
 ) &
@@ -64,19 +64,19 @@ export type InceptEventSAD = (
     BaseSAD;
 export type InteractEventData = components['schemas']['Seal'];
 
-export interface InteractEventSAD extends BaseSAD {
-    i: string;
-    t: string;
-    p: string;
-    a: InteractEventData[];
-}
+export type InteractEventSAD = (
+    | components['schemas']['IXN_V_1']
+    | components['schemas']['IXN_V_2']
+) &
+    Record<string, unknown> &
+    BaseSAD;
 
-export interface ReplyEventSAD extends BaseSAD {
-    t: string;
-    dt: string;
-    r: '/end/role/add';
-    a: EndRoleAddAttributes;
-}
+type ReplyEventSAD = (
+    | components['schemas']['RPY_V_1']
+    | components['schemas']['RPY_V_2']
+) &
+    Record<string, unknown> &
+    BaseSAD;
 
 export type Seal<
     T extends components['schemas']['Seal'] = components['schemas']['Seal'],

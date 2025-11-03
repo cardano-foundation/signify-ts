@@ -5,12 +5,8 @@ import { b } from './core.ts';
 import { Decrypter } from './decrypter.ts';
 import { Diger } from './diger.ts';
 import {
-    ExternState,
-    GroupKeyState,
     HabState,
-    KeyState,
-    RandyKeyState,
-    SaltyKeyState,
+    KeyState
 } from './keyState.ts';
 import { Algos, RandyCreator, SaltyCreator } from './manager.ts';
 import { MtrDex } from './matter.ts';
@@ -207,88 +203,57 @@ export class IdentifierManagerFactory {
      * @returns IdentifierManager instance
      */
     get(aid: HabState): IdentifierManager {
-        let algo: Algos | undefined;
-        let kargs: unknown;
-
         if (Algos.salty in aid) {
-            algo = Algos.salty;
-            kargs = aid.salty;
+            return new SaltyIdentifierManager(
+                this.salter,
+                aid.salty.pidx,
+                aid.salty.kidx,
+                aid.salty.tier,
+                aid.salty.transferable,
+                aid.salty.stem,
+                undefined,
+                undefined,
+                aid.salty.icodes,
+                undefined,
+                undefined,
+                aid.salty.ncodes,
+                aid.salty.dcode,
+                undefined,
+                aid.salty.sxlt
+            );
         } else if (Algos.randy in aid) {
-            algo = Algos.randy;
-            kargs = aid.randy;
+            return new RandyIdentifierManager(
+                this.salter,
+                undefined,
+                undefined,
+                undefined,
+                new Prefixer({ qb64: aid['prefix'] }).transferable,
+                undefined,
+                undefined,
+                [],
+                undefined,
+                aid.randy.prxs,
+                aid.randy.nxts
+            );
         } else if (Algos.group in aid) {
-            algo = Algos.group;
-            kargs = aid.group;
+            return new GroupIdentifierManager(
+                this,
+                aid.group.mhab,
+                undefined,
+                undefined,
+                aid.group.keys,
+                aid.group.ndigs
+            );
         } else if (Algos.extern in aid) {
-            algo = Algos.extern;
-            kargs = aid.extern;
+            const typ = aid.extern.extern_type;
+            if (typ in this.modules) {
+                const mod = new this.modules[typ](aid.extern.pidx, aid.extern);
+                return mod;
+            } else {
+                throw new Error(`unsupported external module type ${typ}`);
+            }
         } else {
             throw new Error('No algo specified');
-        }
-
-        if (!kargs) {
-            throw new Error('No kargs found in HabState');
-        }
-        switch (algo) {
-            case Algos.salty:
-                kargs = kargs as SaltyKeyState;
-                return new SaltyIdentifierManager(
-                    this.salter,
-                    (kargs as SaltyKeyState).pidx,
-                    (kargs as SaltyKeyState).kidx,
-                    (kargs as SaltyKeyState).tier,
-                    (kargs as SaltyKeyState).transferable,
-                    (kargs as SaltyKeyState).stem,
-                    undefined,
-                    undefined,
-                    (kargs as SaltyKeyState).icodes,
-                    undefined,
-                    undefined,
-                    (kargs as SaltyKeyState).ncodes,
-                    (kargs as SaltyKeyState).dcode,
-                    undefined,
-                    (kargs as SaltyKeyState).sxlt
-                );
-            case Algos.randy:
-                kargs = kargs as RandyKeyState;
-                return new RandyIdentifierManager(
-                    this.salter,
-                    undefined,
-                    undefined,
-                    undefined,
-                    new Prefixer({ qb64: aid['prefix'] }).transferable,
-                    undefined,
-                    undefined,
-                    [],
-                    undefined,
-                    (kargs as RandyKeyState).prxs,
-                    (kargs as RandyKeyState).nxts
-                );
-            case Algos.group:
-                kargs = kargs as GroupKeyState;
-                return new GroupIdentifierManager(
-                    this,
-                    (kargs as Record<string, unknown>).mhab as HabState,
-                    undefined,
-                    undefined,
-                    (kargs as GroupKeyState).keys,
-                    (kargs as GroupKeyState).ndigs
-                );
-            case Algos.extern: {
-                kargs = kargs as ExternState;
-                const typ = (kargs as ExternState).extern_type;
-                if (typ in this.modules) {
-                    const mod = new this.modules[typ](
-                        (kargs as ExternState).pidx,
-                        kargs as ExternState
-                    );
-                    return mod;
-                } else {
-                    throw new Error(`unsupported external module type ${typ}`);
-                }
-            }
-            default:
-                throw new Error('Algo not allowed yet');
         }
     }
 }

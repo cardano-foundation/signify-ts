@@ -3,17 +3,13 @@ import signify, {
     Algos,
     CreateIdentiferArgs,
     CredentialData,
-    ExternHabState,
-    GroupHabState,
     HabState,
-    RandyHabState,
-    SaltyHabState,
     Seal,
     Serder,
     Siger,
     SignifyClient,
     d,
-    messagize,
+    messagize
 } from 'signify-ts';
 import { getStates, waitAndMarkNotification } from './test-util.ts';
 
@@ -90,7 +86,7 @@ export async function acceptMultisigIncept(
 export async function addEndRoleMultisig(
     client: SignifyClient,
     groupName: string,
-    aid: SaltyHabState | GroupHabState | ExternHabState | RandyHabState,
+    aid: HabState,
     otherMembersAIDs: HabState[],
     multisigAID: HabState,
     timestamp: string,

@@ -5,9 +5,8 @@ import {
     IdentifierManager,
     IdentifierManagerFactory,
     IdentifierManagerParams,
-    KArgs,
     Prefixer,
-    RandyIdentifierManager,
+    RandyIdentifierManager
 } from '../../src/index.ts';
 import { Cigar } from '../../src/keri/core/cigar.ts';
 import { Cipher } from '../../src/keri/core/cipher.ts';
@@ -16,11 +15,9 @@ import { Decrypter } from '../../src/keri/core/decrypter.ts';
 import { Diger } from '../../src/keri/core/diger.ts';
 import { Encrypter } from '../../src/keri/core/encrypter.ts';
 import {
-    ExternHabState,
     HabState,
     KeyState,
-    RandyHabState,
-    RandyKeyState,
+    RandyKeyState
 } from '../../src/keri/core/keyState.ts';
 import {
     Algos,
@@ -746,7 +743,7 @@ describe('Manager', () => {
         const keeper0 = manager.new(
             Algos.randy,
             0,
-            {} as KArgs
+            {}
         ) as RandyIdentifierManager;
         const [keys] = await keeper0.incept(false);
         const prefixes = new Prefixer({ qb64: keys[0] });
@@ -759,7 +756,7 @@ describe('Manager', () => {
             transferable: false,
             windexes: [],
             icp_dt: '2023-12-01T10:05:25.062609+00:00',
-        } as unknown as RandyHabState);
+        });
 
         assert(keeper0 instanceof RandyIdentifierManager);
         assert(keeper1 instanceof RandyIdentifierManager);
@@ -772,7 +769,7 @@ describe('Manager', () => {
         const manager = new IdentifierManagerFactory(salter, []);
 
         expect(() =>
-            manager.new(randomUUID() as Algos, 0, {} as KArgs)
+            manager.new(randomUUID() as Algos, 0, {})
         ).toThrow('Unknown algo');
         expect(() =>
             manager.get({
@@ -817,7 +814,7 @@ describe('Manager', () => {
             const keeper = manager.new(Algos.extern, 0, {
                 extern_type: 'mock',
                 param,
-            } as KArgs);
+            });
 
             assert(keeper instanceof MockModule);
             expect(keeper.params()).toMatchObject({ param });
@@ -834,7 +831,7 @@ describe('Manager', () => {
                 manager.new(Algos.extern, 0, {
                     extern_type: 'mock',
                     param,
-                } as KArgs)
+                })
             ).toThrow('unsupported external module type mock');
         });
 
@@ -860,7 +857,7 @@ describe('Manager', () => {
                 },
                 transferable: true,
                 icp_dt: '2023-12-01T10:05:25.062609+00:00',
-            } as unknown as ExternHabState);
+            });
 
             assert(keeper instanceof MockModule);
             expect(keeper.params()).toMatchObject({ param, pidx: 3 });
@@ -887,7 +884,7 @@ describe('Manager', () => {
                     },
                     transferable: true,
                     icp_dt: '2023-12-01T10:05:25.062609+00:00',
-                } as unknown as ExternHabState)
+                })
             ).toThrow('unsupported external module type mock');
         });
     });
