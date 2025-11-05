@@ -9,20 +9,18 @@ import {
 import { Diger } from './diger.ts';
 import { MtrDex } from './matter.ts';
 import { CesrNumber } from './number.ts';
-import { BaseSAD } from './saider.ts';
 import { Verfer } from './verfer.ts';
 
-export interface SerderSAD extends BaseSAD {
-    i?: string;
-    k?: string[];
-    n?: string[] | string;
+type SerderSAD = Record<string, unknown> & {
     s?: string | number;
-}
+    d?: string;
+    i?: string;
+};
 
-export class Serder<T extends SerderSAD = SerderSAD> {
+export class Serder {
     private _kind: Serials;
     private _raw: string = '';
-    private _sad: T;
+    private _sad: SerderSAD;
     private _proto: Protocols = Protocols.KERI;
     private _size: number = 0;
     private _version: Version = Vrsn_1_0;
@@ -35,7 +33,7 @@ export class Serder<T extends SerderSAD = SerderSAD> {
      * @param code derivation code for the prefix
      */
     constructor(
-        sad: T,
+        sad: SerderSAD,
         kind: Serials = Serials.JSON,
         code: string = MtrDex.Blake3_256
     ) {
@@ -49,11 +47,11 @@ export class Serder<T extends SerderSAD = SerderSAD> {
         this._size = raw.length;
     }
 
-    get sad(): T {
+    get sad(): SerderSAD {
         return this._sad;
     }
 
-    get pre(): T['i'] {
+    get pre() {
         return this._sad['i'];
     }
 
@@ -65,12 +63,12 @@ export class Serder<T extends SerderSAD = SerderSAD> {
         return this._raw;
     }
 
-    get said(): T["d"] {
+    get said() {
         return this._sad['d'];
     }
 
     get sner(): CesrNumber {
-        return new CesrNumber({}, String(this.sad['s']));
+        return new CesrNumber({}, this.sad['s']);
     }
 
     get sn(): number {
@@ -89,9 +87,9 @@ export class Serder<T extends SerderSAD = SerderSAD> {
      * @private
      */
     private _exhale(
-        sad: T,
+        sad: SerderSAD,
         kind: Serials
-    ): [string, Protocols, Serials, T, Version] {
+    ): [string, Protocols, Serials, SerderSAD, Version] {
         return sizeify(sad, kind);
     }
 
@@ -110,7 +108,12 @@ export class Serder<T extends SerderSAD = SerderSAD> {
         let keys: string[] = [];
         if ('k' in this._sad) {
             // establishment event
-            keys = this._sad['k'] || [];
+            if (
+                Array.isArray(this._sad['k']) &&
+                this._sad['k'].map((item) => typeof item === 'string')
+            ) {
+                keys = this._sad['k'] || [];
+            }
         } else {
             // non-establishment event
             keys = [];
@@ -124,10 +127,15 @@ export class Serder<T extends SerderSAD = SerderSAD> {
     }
 
     get digers(): Diger[] {
-        let keys: string[] | string = [];
+        let keys: string[] = [];
         if ('n' in this._sad) {
-            // establishment event
-            keys = this._sad['n'] || [];
+            if (
+                Array.isArray(this._sad['n']) &&
+                this._sad['n'].map((item) => typeof item === 'string')
+            ) {
+                // establishment event
+                keys = this._sad['n'] || [];
+            }
         } else {
             // non-establishment event
             keys = [];
@@ -153,15 +161,19 @@ export function dumps(sad: object, kind: Serials.JSON): string {
     }
 }
 
-export function sizeify<T extends BaseSAD = BaseSAD>(
-    ked: T,
+export function sizeify(
+    ked: SerderSAD,
     kind?: Serials
-): [string, Protocols, Serials, T, Version] {
+): [string, Protocols, Serials, SerderSAD, Version] {
     if (!('v' in ked)) {
         throw new Error('Missing or empty version string');
     }
 
-    const [proto, knd, version] = deversify(ked['v'] as string);
+    if (typeof ked['v'] !== 'string') {
+        throw new Error('Invalid version string');
+    }
+
+    const [proto, knd, version] = deversify(ked['v']);
     if (version != Vrsn_1_0) {
         throw new Error(`unsupported version ${version.toString()}`);
     }

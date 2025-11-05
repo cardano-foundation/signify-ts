@@ -4,7 +4,11 @@ import { b, Ilks, Serials, Vrsn_1_0 } from '../core/core.ts';
 import { Decrypter } from '../core/decrypter.ts';
 import { Diger } from '../core/diger.ts';
 import { Encrypter } from '../core/encrypter.ts';
-import { incept, InceptEventSAD, interact, InteractEventSAD, rotate } from '../core/eventing.ts';
+import {
+    incept,
+    interact,
+    rotate
+} from '../core/eventing.ts';
 import { SaltyCreator } from '../core/manager.ts';
 import { MtrDex } from '../core/matter.ts';
 import { CesrNumber } from '../core/number.ts';
@@ -130,7 +134,7 @@ export class Controller {
     /**
      * Either the current establishment event, inception or rotation, or the interaction event used for delegation approval.
      */
-    public serder: Serder<InteractEventSAD | InceptEventSAD>;
+    public serder: Serder;
     /**
      * Current public keys formatted in fully-qualified Base64.
      * @private
@@ -230,11 +234,10 @@ export class Controller {
     approveDelegation(_agent: Agent) {
         const seqner = new Seqner({ sn: _agent.sn });
         const anchor = { i: _agent.pre, s: seqner.snh, d: _agent.said! };
-        const sn =
-            new CesrNumber({}, undefined, String(this.serder.sad['s'])).num + 1;
+        const sn = new CesrNumber({}, undefined, this.serder.sad['s'] as string).num + 1;
         this.serder = interact({
-            pre: this.serder.pre,
-            dig: this.serder.sad['d'],
+            pre: this.serder.pre as string,
+            dig: this.serder.sad['d'] as string,
             sn: sn,
             data: [anchor],
             version: Vrsn_1_0,
@@ -244,7 +247,7 @@ export class Controller {
     }
 
     get pre(): string {
-        return this.serder.pre;
+        return this.serder.pre as string;
     }
 
     get event() {
@@ -330,7 +333,7 @@ export class Controller {
         const rot = rotate({
             pre: this.pre,
             keys: this.keys,
-            dig: this.serder.sad['d'],
+            dig: this.serder.sad['d'] as string,
             isith: ['1', '0'],
             nsith: '1',
             ndigs: this.ndigs,
@@ -392,7 +395,11 @@ export class Controller {
                 const signers = [];
                 for (const prx of prxs) {
                     const cipher = new Cipher({ qb64: prx });
-                    const dsigner = decrypter.decrypt(null, cipher, true) as Signer;
+                    const dsigner = decrypter.decrypt(
+                        null,
+                        cipher,
+                        true
+                    ) as Signer;
                     signers.push(dsigner);
                     nprxs.push(encrypter.encrypt(b(dsigner.qb64)).qb64);
                 }

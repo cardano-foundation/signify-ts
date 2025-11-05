@@ -1,75 +1,69 @@
 import { blake3 } from '@noble/hashes/blake3';
 import { Ilks } from './core.ts';
+import { DelegateInceptEventSAD, InceptEventSAD } from './eventing.ts';
 import { EmptyMaterialError } from './kering.ts';
 import { Matter, MatterArgs, MtrDex } from './matter.ts';
-import { BaseSAD } from './saider.ts';
 import { sizeify } from './serder.ts';
 import { Verfer } from './verfer.ts';
 
 const Dummy: string = '#';
 
-export interface PrefixerSAD extends Omit<BaseSAD, "d"> {
-    d?: string;
-    t?: string;
-    v: string;
-    k?: string[];
-    n?: string | string[];
-    b?: string[];
-    a?: unknown;
-    i?: string;
-}
+type PrefixerParamsSAD = DelegateInceptEventSAD | InceptEventSAD;
 
-export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
+export class Prefixer extends Matter {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     private readonly _derive: Function | undefined;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     private readonly _verify: Function | undefined;
 
-    constructor({ raw, code, qb64b, qb64, qb2 }: MatterArgs, ked?: T) {
-        try {
-            super({ raw, code, qb64b, qb64, qb2 });
-        } catch (e) {
-            if (e instanceof EmptyMaterialError) {
-                if (ked == undefined || (code == undefined && !('i' in ked))) {
+        constructor(
+            { raw, code, qb64b, qb64, qb2 }: MatterArgs,
+            ked?: PrefixerParamsSAD
+        ) {
+            try {
+                super({ raw, code, qb64b, qb64, qb2 });
+            } catch (e) {
+                if (e instanceof EmptyMaterialError) {
+                    if (ked == undefined || (code == undefined && !('i' in ked))) {
+                        throw e;
+                    }
+
+                    if (code == undefined) {
+                        super({ qb64: ked['i'], code: code });
+                        code = this.code;
+                    }
+
+                    let _derive;
+                    if (code == MtrDex.Ed25519N) {
+                        _derive = Prefixer._derive_ed25519N;
+                    } else if (code == MtrDex.Ed25519) {
+                        _derive = Prefixer._derive_ed25519;
+                    } else if (code == MtrDex.Blake3_256) {
+                        _derive = Prefixer._derive_blake3_256;
+                    } else {
+                        throw new Error(`Unsupported code = ${code} for prefixer.`);
+                    }
+
+                    [raw, code] = _derive(ked);
+                    super({ raw: raw, code: code });
+                    this._derive = _derive;
+                } else {
                     throw e;
                 }
+            }
 
-                if (code == undefined) {
-                    super({ qb64: String(ked['i']), code: code });
-                    code = this.code;
-                }
-
-                let _derive;
-                if (code == MtrDex.Ed25519N) {
-                    _derive = Prefixer._derive_ed25519N;
-                } else if (code == MtrDex.Ed25519) {
-                    _derive = Prefixer._derive_ed25519;
-                } else if (code == MtrDex.Blake3_256) {
-                    _derive = Prefixer._derive_blake3_256;
-                } else {
-                    throw new Error(`Unsupported code = ${code} for prefixer.`);
-                }
-
-                [raw, code] = _derive(ked);
-                super({ raw: raw, code: code });
-                this._derive = _derive;
+            if (this.code == MtrDex.Ed25519N) {
+                this._verify = this._verify_ed25519N;
+            } else if (this.code == MtrDex.Ed25519) {
+                this._verify = this._verify_ed25519;
+            } else if (this.code == MtrDex.Blake3_256) {
+                this._verify = this._verify_blake3_256;
             } else {
-                throw e;
+                throw new Error(`Unsupported code = ${code} for prefixer.`);
             }
         }
 
-        if (this.code == MtrDex.Ed25519N) {
-            this._verify = this._verify_ed25519N;
-        } else if (this.code == MtrDex.Ed25519) {
-            this._verify = this._verify_ed25519;
-        } else if (this.code == MtrDex.Blake3_256) {
-            this._verify = this._verify_blake3_256;
-        } else {
-            throw new Error(`Unsupported code = ${code} for prefixer.`);
-        }
-    }
-
-    derive(sad: BaseSAD): [Uint8Array, string] {
+    derive(sad: PrefixerParamsSAD): [Uint8Array, string] {
         if (sad['i'] != Ilks.icp) {
             throw new Error(
                 `Non-incepting ilk ${sad['i']} for prefix derivation`
@@ -78,7 +72,7 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
         return this._derive!(sad);
     }
 
-    verify(sad: BaseSAD, prefixed: boolean = false): boolean {
+    verify(sad: PrefixerParamsSAD, prefixed: boolean = false): boolean {
         if (sad['i'] != Ilks.icp) {
             throw new Error(
                 `Non-incepting ilk ${sad['i']} for prefix derivation`
@@ -87,12 +81,12 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
         return this._verify!(sad, this.qb64, prefixed);
     }
 
-    static _derive_ed25519N(sad: PrefixerSAD): [Uint8Array, string] {
+    static _derive_ed25519N(sad: PrefixerParamsSAD): [Uint8Array, string] {
         let verfer;
         const keys = sad['k'];
-        if (keys?.length != 1) {
+        if (keys.length != 1) {
             throw new Error(
-                `Basic derivation needs at most 1 key got ${keys?.length} keys instead`
+                `Basic derivation needs at most 1 key got ${keys.length} keys instead`
             );
         }
         try {
@@ -105,22 +99,21 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
             throw new Error(`Mismatch derivation code = ${verfer.code}`);
         }
 
-        const next = 'n' in sad && sad['n'] ? sad['n'] : [];
+        const next = 'n' in sad ? sad['n'] : [];
         if (verfer.code == MtrDex.Ed25519N && next.length > 0) {
             throw new Error(
                 `Non-empty nxt = ${next} for non-transferable code = ${verfer.code}`
             );
         }
 
-        const backers = 'b' in sad && sad['b'] ? sad['b'] : [];
+        const backers = 'b' in sad ? sad['b'] : [];
         if (verfer.code == MtrDex.Ed25519N && backers.length > 0) {
             throw new Error(
                 `Non-empty b =${backers} for non-transferable code = ${verfer.code}`
             );
         }
 
-        const anchor =
-            'a' in sad && sad['a'] && Array.isArray(sad['a']) ? sad['a'] : [];
+        const anchor = 'a' in sad && Array.isArray(sad['a']) ? sad['a'] : [];
         if (verfer.code == MtrDex.Ed25519N && anchor.length > 0) {
             throw new Error(
                 `Non-empty a = ${verfer.code} for non-transferable code = ${verfer.code}`
@@ -130,12 +123,12 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
         return [verfer.raw, verfer.code];
     }
 
-    static _derive_ed25519(sad: PrefixerSAD): [Uint8Array, string] {
+    static _derive_ed25519(sad: PrefixerParamsSAD): [Uint8Array, string] {
         let verfer;
         const keys = sad['k'];
-        if (keys?.length != 1) {
+        if (keys.length != 1) {
             throw new Error(
-                `Basic derivation needs at most 1 key got ${keys?.length} keys instead`
+                `Basic derivation needs at most 1 key got ${keys.length} keys instead`
             );
         }
 
@@ -152,23 +145,27 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
         return [verfer.raw, verfer.code];
     }
 
-    static _derive_blake3_256(sad: PrefixerSAD): [Uint8Array, string] {
+    static _derive_blake3_256(sad: PrefixerParamsSAD): [Uint8Array, string] {
         const ilk = sad['t'];
-        if (!ilk || ![Ilks.icp, Ilks.dip, Ilks.vcp, Ilks.dip].includes(ilk)) {
+        if (![Ilks.icp, Ilks.dip, Ilks.vcp, Ilks.dip].includes(ilk)) {
             throw new Error(`Invalid ilk = ${ilk} to derive pre.`);
         }
 
         sad['i'] = ''.padStart(Matter.Sizes.get(MtrDex.Blake3_256)!.fs!, Dummy);
         sad['d'] = sad['i'];
-        const [raw] = sizeify(sad as BaseSAD);
+        const [raw] = sizeify(sad);
         const dig = blake3.create({ dkLen: 32 }).update(raw).digest();
         return [dig, MtrDex.Blake3_256];
     }
 
-    _verify_ed25519N(sad: T, pre: string, prefixed: boolean = false): boolean {
+    _verify_ed25519N(
+        sad: PrefixerParamsSAD,
+        pre: string,
+        prefixed: boolean = false
+    ): boolean {
         try {
             const keys = sad['k'];
-            if (keys?.length != 1) {
+            if (keys.length != 1) {
                 return false;
             }
 
@@ -180,7 +177,7 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
                 return false;
             }
 
-            const next = 'n' in sad && sad['n'] ? sad['n'] : [];
+            const next = 'n' in sad ? sad['n'] : [];
             if (next.length > 0) {
                 // must be empty
                 return false;
@@ -192,10 +189,14 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
         return true;
     }
 
-    _verify_ed25519(sad: T, pre: string, prefixed: boolean = false): boolean {
+    _verify_ed25519(
+        sad: PrefixerParamsSAD,
+        pre: string,
+        prefixed: boolean = false
+    ): boolean {
         try {
             const keys = sad['k'];
-            if (keys?.length != 1) {
+            if (keys.length != 1) {
                 return false;
             }
 
@@ -214,7 +215,7 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
     }
 
     _verify_blake3_256(
-        sad: T,
+        sad: PrefixerParamsSAD,
         pre: string,
         prefixed: boolean = false
     ): boolean {
@@ -228,7 +229,7 @@ export class Prefixer<T extends PrefixerSAD = PrefixerSAD> extends Matter {
             if (prefixed && sad['i'] != pre) {
                 return false;
             }
-        } catch (e) {
+        } catch {
             return false;
         }
         return true;

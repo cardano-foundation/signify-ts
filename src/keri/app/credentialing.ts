@@ -10,7 +10,7 @@ import {
 } from '../core/core.ts';
 import { interact, InteractEventData, messagize } from '../core/eventing.ts';
 import { HabState } from '../core/keyState.ts';
-import { BaseSAD, Saider } from '../core/saider.ts';
+import { Saider } from '../core/saider.ts';
 import { Serder } from '../core/serder.ts';
 import { Siger } from '../core/siger.ts';
 import {
@@ -378,9 +378,9 @@ export class Credentials {
             sn: sn + 1,
             data: [
                 {
-                    i: iss.i,
-                    s: iss.s,
-                    d: iss.d,
+                    i: iss.i as string,
+                    s: iss.s as string,
+                    d: iss.d as string,
                 },
             ],
             dig: hab.state.d,
@@ -457,7 +457,7 @@ export class Credentials {
         const [, rev] = Saider.saidify(_rev);
 
         // create ixn
-        let ixn: BaseSAD;
+        let ixn;
         let sigs = [];
 
         const state = hab.state;
@@ -468,9 +468,9 @@ export class Credentials {
 
         const data: InteractEventData[] = [
             {
-                i: rev.i,
-                s: rev.s,
-                d: rev.d,
+                i: rev.i as string,
+                s: rev.s as string,
+                d: rev.d as string,
             },
         ];
 

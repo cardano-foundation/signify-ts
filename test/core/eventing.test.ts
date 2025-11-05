@@ -2,7 +2,12 @@ import libsodium from 'libsodium-wrappers-sumo';
 import { Signer } from '../../src/keri/core/signer.ts';
 import { assert, describe, it } from 'vitest';
 import { MtrDex } from '../../src/keri/core/matter.ts';
-import { incept, messagize, rotate, Seal } from '../../src/keri/core/eventing.ts';
+import {
+    incept,
+    messagize,
+    rotate,
+    Seal,
+} from '../../src/keri/core/eventing.ts';
 import { Saider } from '../../src/keri/core/saider.ts';
 import { Diger } from '../../src/keri/core/diger.ts';
 import { b, d, Ilks } from '../../src/keri/core/core.ts';
@@ -166,7 +171,7 @@ describe('key event function', () => {
             d(msg),
             '{"v":"KERI10JSON00012b_","t":"icp","d":"EAKCxMOuoRzREVHsHCkLilBrUXTvyenBiuM2QtV8BB0C","i":"EAKCxMOuoRzREVHsHCkLilBrUXTvyenBiuM2QtV8BB0C","s":"0","kt":"1","k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":"1","n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":"0","b":[],"c":[],"a":[]}-AABAAAPitVKfl6dG9dY4-7Ppg5tAANHsqEUptTfR05wLb0fbmKFt4DbZdBNjJaCDrEc7kAIqbLsCMCKf26-Onxz-DoP'
         );
-        const seal:Seal = [
+        const seal: Seal = [
             'SealEvent',
             {
                 i: 'EIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL',
@@ -193,8 +198,8 @@ describe('key event function', () => {
         function createRotation(sn: number) {
             return rotate({
                 keys: keys0,
-                pre: serder.sad.i,
-                ndigs: serder.sad.n,
+                pre: serder.sad.i!,
+                ndigs: serder.sad.n as string[],
                 sn,
                 isith: 1,
                 nsith: 1,

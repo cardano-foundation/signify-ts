@@ -10,16 +10,10 @@ export enum Ids {
     d = 'd',
 }
 
-export interface BaseSAD extends Record<string, unknown> {
-    d: string;
-    v?: string;
-    t?: string;
-}
-
-export class Saider<T extends BaseSAD = BaseSAD> extends Matter {
+export class Saider extends Matter {
     constructor(
         { raw, code, qb64b, qb64, qb2 }: MatterArgs,
-        sad?: T,
+        sad?: Record<string, unknown>,
         kind?: Serials,
         label: string = Ids.d
     ) {
@@ -57,11 +51,11 @@ export class Saider<T extends BaseSAD = BaseSAD> extends Matter {
     }
 
     private static _derive(
-        sad: BaseSAD,
+        sad: Record<string, unknown>,
         code: string,
         kind: Serials | undefined,
         label: string
-    ): [Uint8Array, BaseSAD] {
+    ): [Uint8Array, Record<string, unknown>] {
         if (!DigiDex.has(code)) {
             throw new Error(`Unsupported digest code = ${code}.`);
         }
@@ -85,17 +79,17 @@ export class Saider<T extends BaseSAD = BaseSAD> extends Matter {
     }
 
     public derive(
-        sad: BaseSAD,
+        sad: Record<string, unknown>,
         code: string,
         kind: Serials | undefined,
         label: string
-    ): [Uint8Array, BaseSAD] {
+    ): [Uint8Array, Record<string, unknown>] {
         code = code != undefined ? code : this.code;
         return Saider._derive(sad, code, kind, label);
     }
 
     public verify(
-        sad: BaseSAD,
+        sad: Record<string, unknown>,
         prefixed: boolean = false,
         versioned: boolean = false,
         kind?: Serials,
@@ -124,25 +118,32 @@ export class Saider<T extends BaseSAD = BaseSAD> extends Matter {
         return true;
     }
 
-    private static _serialze(sad: BaseSAD, kind?: Serials): string {
+    private static _serialze(
+        sad: Record<string, unknown>,
+        kind?: Serials
+    ): string {
+        if (kind) {
+            return dumps(sad, kind);
+        }
+
         let knd = Serials.JSON;
-        if ('v' in sad) {
-            [, knd] = deversify(sad['v']!);
+        if (sad['v']) {
+            if (typeof sad['v'] !== 'string') {
+                throw new Error('Invalid version string');
+            }
+
+            [, knd] = deversify(sad['v']);
         }
 
-        if (kind == undefined) {
-            kind = knd;
-        }
-
-        return dumps(sad, kind);
+        return dumps(sad, knd);
     }
 
-    public static saidify<T extends BaseSAD>(
-        sad: T,
+    public static saidify(
+        sad: Record<string, unknown>,
         code: string = MtrDex.Blake3_256,
         kind: Serials = Serials.JSON,
         label: string = Ids.d
-    ): [Saider, T] {
+    ): [Saider, Record<string, unknown>] {
         if (!(label in sad)) {
             throw new Error(`Missing id field labeled=${label} in sad.`);
         }
@@ -155,6 +156,6 @@ export class Saider<T extends BaseSAD = BaseSAD> extends Matter {
             label
         );
         derivedSad[label] = saider.qb64;
-        return [saider, derivedSad as T];
+        return [saider, derivedSad];
     }
 }

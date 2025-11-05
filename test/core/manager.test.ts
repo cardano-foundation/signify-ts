@@ -6,7 +6,7 @@ import {
     IdentifierManagerFactory,
     IdentifierManagerParams,
     Prefixer,
-    RandyIdentifierManager
+    RandyIdentifierManager,
 } from '../../src/index.ts';
 import { Cigar } from '../../src/keri/core/cigar.ts';
 import { Cipher } from '../../src/keri/core/cipher.ts';
@@ -17,7 +17,7 @@ import { Encrypter } from '../../src/keri/core/encrypter.ts';
 import {
     HabState,
     KeyState,
-    RandyKeyState
+    RandyKeyState,
 } from '../../src/keri/core/keyState.ts';
 import {
     Algos,
@@ -741,9 +741,8 @@ describe('Manager', () => {
         const manager = new IdentifierManagerFactory(salter, []);
 
         const keeper0 = manager.new(
-            Algos.randy,
-            0,
-            {}
+            { algo: Algos.randy, kargs: { transferable: false } },
+            0
         ) as RandyIdentifierManager;
         const [keys] = await keeper0.incept(false);
         const prefixes = new Prefixer({ qb64: keys[0] });
@@ -769,7 +768,7 @@ describe('Manager', () => {
         const manager = new IdentifierManagerFactory(salter, []);
 
         expect(() =>
-            manager.new(randomUUID() as Algos, 0, {})
+            manager.new({ algo: randomUUID() as Algos, kargs: {} } as never, 0)
         ).toThrow('Unknown algo');
         expect(() =>
             manager.get({
@@ -811,10 +810,16 @@ describe('Manager', () => {
             ]);
 
             const param = randomUUID();
-            const keeper = manager.new(Algos.extern, 0, {
-                extern_type: 'mock',
-                param,
-            });
+            const keeper = manager.new(
+                {
+                    algo: Algos.extern,
+                    kargs: {
+                        extern_type: 'mock',
+                        param,
+                    },
+                },
+                0
+            );
 
             assert(keeper instanceof MockModule);
             expect(keeper.params()).toMatchObject({ param });
@@ -828,10 +833,16 @@ describe('Manager', () => {
 
             const param = randomUUID();
             expect(() =>
-                manager.new(Algos.extern, 0, {
-                    extern_type: 'mock',
-                    param,
-                })
+                manager.new(
+                    {
+                        algo: Algos.extern,
+                        kargs: {
+                            extern_type: 'mock',
+                            param,
+                        },
+                    },
+                    0
+                )
             ).toThrow('unsupported external module type mock');
         });
 

@@ -1,13 +1,10 @@
-import { SignifyClient } from './clienting.ts';
 import libsodium from 'libsodium-wrappers-sumo';
-import { Salter } from '../core/salter.ts';
-import { Matter, MtrDex } from '../core/matter.ts';
 import { components } from '../../types/keria-api-schema.ts';
+import { Matter, MtrDex } from '../core/matter.ts';
+import { Salter } from '../core/salter.ts';
+import { SignifyClient } from './clienting.ts';
 
 type OOBI = components['schemas']['OOBI'];
-type KeyState = components['schemas']['KeyStateRecord'];
-type KeyEventRecord = components['schemas']['KeyEventRecord'];
-type AgentConfig = components['schemas']['AgentConfig'];
 
 export function randomPasscode(): string {
     const raw = libsodium.randombytes_buf(16);
@@ -51,9 +48,9 @@ export class Oobis {
      * @async
      * @param {string} oobi The OOBI to be resolver
      * @param {string} [alias] Optional name or alias to link the OOBI resolution to a contact
-     * @returns {Promise<Operation<unknown>>} A promise to the long-running operation
+     * @returns {Promise<any>} A promise to the long-running operation
      */
-    async resolve(oobi: string, alias?: string): Promise<Operation<unknown>> {
+    async resolve(oobi: string, alias?: string): Promise<any> {
         const path = `/oobis`;
         const data: any = {
             url: oobi,
@@ -86,6 +83,10 @@ export interface OperationsDeps {
         body: unknown,
         headers?: Headers
     ): Promise<Response>;
+}
+
+export interface AgentConfig {
+    iurls?: string[];
 }
 
 /**
@@ -122,7 +123,7 @@ export class Operations {
      * @param {string} type Select operations by type
      * @returns {Promise<Operation[]>} A list of operations
      */
-    async list(type?: string): Promise<Operation<unknown>[]> {
+    async list(type?: string): Promise<Operation<any>[]> {
         const params = new URLSearchParams();
         if (type !== undefined) {
             params.append('type', type);
@@ -207,9 +208,9 @@ export class KeyEvents {
      * Retrieve key events for an identifier
      * @async
      * @param {string} pre Identifier prefix
-     * @returns {Promise<KeyEventRecord[]>} A promise to the key events
+     * @returns {Promise<any>} A promise to the key events
      */
-    async get(pre: string): Promise<KeyEventRecord[]> {
+    async get(pre: string): Promise<any> {
         const path = `/events?pre=${pre}`;
         const data = null;
         const method = 'GET';
@@ -235,9 +236,9 @@ export class KeyStates {
      * Retriene the key state for an identifier
      * @async
      * @param {string} pre Identifier prefix
-     * @returns {Promise<KeyState[]>} A promise to the key states
+     * @returns {Promise<any>} A promise to the key states
      */
-    async get(pre: string): Promise<KeyState[]> {
+    async get(pre: string): Promise<any> {
         const path = `/states?pre=${pre}`;
         const data = null;
         const method = 'GET';
@@ -251,7 +252,7 @@ export class KeyStates {
      * @param {Array<string>} pres List of identifier prefixes
      * @returns {Promise<any>} A promise to the key states
      */
-    async list(pres: string[]): Promise<KeyState[]> {
+    async list(pres: string[]): Promise<any> {
         const path = `/states?${pres.map((pre) => `pre=${pre}`).join('&')}`;
         const data = null;
         const method = 'GET';
@@ -265,13 +266,9 @@ export class KeyStates {
      * @param {string} pre Identifier prefix
      * @param {number} [sn] Optional sequence number
      * @param {any} [anchor] Optional anchor
-     * @returns {Promise<Operation<unknown>>} A promise to the long-running operation
+     * @returns {Promise<any>} A promise to the long-running operation
      */
-    async query(
-        pre: string,
-        sn?: string,
-        anchor?: any
-    ): Promise<Operation<unknown>> {
+    async query(pre: string, sn?: string, anchor?: any): Promise<any> {
         const path = `/queries`;
         const data: any = {
             pre: pre,

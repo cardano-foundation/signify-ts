@@ -32,7 +32,7 @@ test('randy', async () => {
     let ked = op['response'];
     const ixn = new signify.Serder(ked);
     assert.equal(ixn.sad['s'], '1');
-    assert.deepEqual([...ixn.sad['a']], [icp.pre]);
+    assert.deepEqual([...(ixn.sad['a'] as string[])], [icp.pre]);
 
     aids = await client1.identifiers().list();
     assert.equal(aids.aids.length, 1);

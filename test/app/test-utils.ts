@@ -4,10 +4,17 @@ import {
     Authenticater,
     Controller,
     CreateIdentiferArgs,
+    ExternManagerParams,
+    GroupIdentifierManager,
+    GroupManagerParams,
     HEADER_SIG_TIME,
+    IdentifierManager,
     IdentifierManagerFactory,
+    IdentifierManagerParams,
     MtrDex,
+    RandyManagerParams,
     Salter,
+    SaltyManagerParams,
     Serials,
     Vrsn_1_0,
     incept,
@@ -53,7 +60,12 @@ export async function createMockIdentifierState(
     const extern_type = kargs.extern_type;
     const extern = kargs.extern;
 
-    const keeper = manager!.new(algo, 0, {
+    let keeper:
+        | GroupIdentifierManager
+        | IdentifierManager<IdentifierManagerParams>
+        | null = null;
+
+    const xargs = {
         transferable: transferable,
         isith: isith,
         nsith: nsith,
@@ -78,7 +90,35 @@ export async function createMockIdentifierState(
         tier: tier,
         extern_type: extern_type,
         extern: extern,
-    });
+    };
+
+    switch (algo) {
+        case Algos.salty:
+            keeper = manager!.new(
+                { algo, kargs: xargs as unknown as SaltyManagerParams },
+                0
+            );
+            break;
+        case Algos.randy:
+            keeper = manager!.new(
+                { algo, kargs: xargs as RandyManagerParams },
+                0
+            );
+            break;
+        case Algos.group:
+            keeper = manager!.new(
+                { algo, kargs: xargs as GroupManagerParams },
+                0
+            );
+            break;
+        case Algos.extern:
+            keeper = manager!.new(
+                { algo, kargs: xargs as ExternManagerParams },
+                0
+            );
+            break;
+    }
+
     const [keys, ndigs] = await keeper!.incept(transferable);
     const serder = incept({
         keys: keys!,

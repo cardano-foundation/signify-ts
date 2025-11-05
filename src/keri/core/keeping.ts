@@ -4,10 +4,7 @@ import { Cipher } from './cipher.ts';
 import { b } from './core.ts';
 import { Decrypter } from './decrypter.ts';
 import { Diger } from './diger.ts';
-import {
-    HabState,
-    KeyState
-} from './keyState.ts';
+import { HabState, KeyState } from './keyState.ts';
 import { Algos, RandyCreator, SaltyCreator } from './manager.ts';
 import { MtrDex } from './matter.ts';
 import { Prefixer } from './prefixer.ts';
@@ -42,16 +39,36 @@ export interface SaltyManagerParams extends IdentifierManagerParams {
     ncodes: string[] | undefined;
     dcode: string | undefined;
     sxlt: string | undefined;
+    code?: string;
+    count?: number;
+    ncode?: string;
+    ncount?: number;
+    bran?: string;
 }
 
 export interface RandyManagerParams extends IdentifierManagerParams {
     nxts?: string[];
     prxs?: string[];
     transferable: boolean;
+    code?: string;
+    count?: number;
+    icodes?: string[];
+    ncode?: string;
+    ncount?: number;
+    ncodes?: string[];
+    dcode?: string;
 }
 
 export interface GroupManagerParams extends IdentifierManagerParams {
     mhab: HabState;
+    states?: KeyState[];
+    rstates?: KeyState[];
+    keys?: string[];
+    ndigs?: string[];
+}
+
+export interface ExternManagerParams extends IdentifierManagerParams {
+    extern_type: string;
 }
 
 /**
@@ -79,32 +96,23 @@ export interface IdentifierManager<
     ): Promise<SignResult>;
 }
 
-export interface KArgs
-    extends IdentifierManagerParams,
-        Record<string, unknown> {
-    pidx?: number;
-    kidx?: number;
-    tier?: Tier;
-    stem?: string | undefined;
-    transferable?: boolean;
-    code?: string;
-    count?: number;
-    icodes?: string[];
-    ncode?: string;
-    ncount?: number;
-    ncodes?: string[];
-    dcode?: string;
-    bran?: string | undefined;
-    sxlt?: string;
-    prxs?: string[] | undefined;
-    nxts?: string[] | undefined;
-    mhab?: HabState;
-    states?: KeyState[] | undefined;
-    rstates?: KeyState[] | undefined;
-    keys?: string[];
-    ndigs?: string[];
-    extern_type?: string;
-}
+type IdentifierManagerOptions =
+    | {
+          algo: Algos.salty;
+          kargs: SaltyManagerParams;
+      }
+    | {
+          algo: Algos.randy;
+          kargs: RandyManagerParams;
+      }
+    | {
+          algo: Algos.group;
+          kargs: GroupManagerParams;
+      }
+    | {
+          algo: Algos.extern;
+          kargs: ExternManagerParams;
+      };
 
 /**
  * Creates IdentifierManager instances based on the algorithm and key indexes.
@@ -135,11 +143,12 @@ export class IdentifierManagerFactory {
      * @param pidx
      * @param kargs
      */
-    new(algo: Algos, pidx: number, kargs: KArgs) {
+    new(options: IdentifierManagerOptions, pidx: number) {
+        const { algo, kargs } = options;
         switch (algo) {
             case Algos.salty:
                 return new SaltyIdentifierManager(
-                    this.salter!,
+                    this.salter,
                     pidx,
                     kargs['kidx'],
                     kargs['tier'],
@@ -157,14 +166,14 @@ export class IdentifierManagerFactory {
                 );
             case Algos.randy:
                 return new RandyIdentifierManager(
-                    this.salter!,
+                    this.salter,
                     kargs['code'],
                     kargs['count'],
                     kargs['icodes'],
                     kargs['transferable'],
                     kargs['ncode'],
                     kargs['ncount'],
-                    kargs['ncodes']!,
+                    kargs['ncodes'] || [],
                     kargs['dcode'],
                     kargs['prxs'],
                     kargs['nxts']
@@ -179,17 +188,14 @@ export class IdentifierManagerFactory {
                     kargs['ndigs']
                 );
             case Algos.extern: {
-                const ModuleConstructor = this.modules[kargs.extern_type!];
+                const ModuleConstructor = this.modules[kargs.extern_type];
                 if (!ModuleConstructor) {
                     throw new Error(
                         `unsupported external module type ${kargs.extern_type}`
                     );
                 }
 
-                return new ModuleConstructor(
-                    pidx,
-                    kargs as IdentifierManagerParams
-                );
+                return new ModuleConstructor(pidx, kargs);
             }
             default:
                 throw new Error('Unknown algo');

@@ -192,7 +192,8 @@ export class SignifyClient {
     async fetch(
         path: string,
         method: string,
-        data: unknown | null | undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: any,
         extraHeaders?: Headers
     ): Promise<Response> {
         const headers = new Headers();

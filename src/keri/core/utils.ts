@@ -1,7 +1,7 @@
 import { Counter, CtrDex } from './counter.ts';
-import { Seqner } from './seqner.ts';
 import { Prefixer } from './prefixer.ts';
 import { Saider } from './saider.ts';
+import { Seqner } from './seqner.ts';
 import { Serder } from './serder.ts';
 
 export function pad(n: string, width = 3, z = 0) {

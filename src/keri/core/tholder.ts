@@ -5,7 +5,7 @@ import { CesrNumber } from './number.ts';
 interface Thold {
     thold?: number | Array<Array<Fraction>>;
     limen?: string;
-    sith?: number | string | string[] | (string | string[])[];
+    sith?: number | string | string[] | string[][];
 }
 
 export class Tholder {

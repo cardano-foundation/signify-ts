@@ -1,8 +1,23 @@
 import { components, Tier } from '../../types/keria-api-schema.ts';
 import { b, Ilks, Serials, Vrsn_1_0 } from '../core/core.ts';
-import { incept, interact, reply, EndRoleAddAttributes, rotate } from '../core/eventing.ts';
+import {
+    EndRoleAddAttributes,
+    incept,
+    interact,
+    reply,
+    rotate,
+} from '../core/eventing.ts';
 import { parseRangeHeaders } from '../core/httping.ts';
-import { IdentifierManagerFactory } from '../core/keeping.ts';
+import {
+    ExternManagerParams,
+    GroupIdentifierManager,
+    GroupManagerParams,
+    IdentifierManager,
+    IdentifierManagerFactory,
+    IdentifierManagerParams,
+    RandyManagerParams,
+    SaltyManagerParams,
+} from '../core/keeping.ts';
 import { HabState } from '../core/keyState.ts';
 import { Algos } from '../core/manager.ts';
 import { MtrDex } from '../core/matter.ts';
@@ -213,7 +228,38 @@ export class Identifier {
             extern: extern,
         };
 
-        const keeper = this.client.manager!.new(algo, this.client.pidx, xargs);
+        let keeper:
+            | GroupIdentifierManager
+            | IdentifierManager<IdentifierManagerParams>
+            | null = null;
+
+        switch (algo) {
+            case Algos.salty:
+                keeper = this.client.manager!.new(
+                    { algo, kargs: xargs as unknown as SaltyManagerParams },
+                    this.client.pidx
+                );
+                break;
+            case Algos.randy:
+                keeper = this.client.manager!.new(
+                    { algo, kargs: xargs as RandyManagerParams },
+                    this.client.pidx
+                );
+                break;
+            case Algos.group:
+                keeper = this.client.manager!.new(
+                    { algo, kargs: xargs as GroupManagerParams },
+                    this.client.pidx
+                );
+                break;
+            case Algos.extern:
+                keeper = this.client.manager!.new(
+                    { algo, kargs: xargs as ExternManagerParams },
+                    this.client.pidx
+                );
+                break;
+        }
+
         const [keys, ndigs] = await keeper!.incept(transferable);
         wits = wits !== undefined ? wits : [];
         let serder: Serder | undefined = undefined;

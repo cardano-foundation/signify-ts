@@ -3,7 +3,7 @@ import { incept } from '../core/eventing.ts';
 import { Algos, Manager } from '../core/manager.ts';
 import { MtrDex } from '../core/matter.ts';
 import { Salter } from '../core/salter.ts';
-import { Serder, SerderSAD } from '../core/serder.ts';
+import { Serder } from '../core/serder.ts';
 import { Verfer } from '../core/verfer.ts';
 
 export class TraitCodex {
@@ -39,16 +39,16 @@ export interface MakeHabArgs {
     data?: any;
 }
 
-export class Hab<T extends SerderSAD = SerderSAD> {
+export class Hab {
     public name: string;
-    public serder: Serder<T>;
+    public serder: Serder;
 
-    constructor(name: string, icp: Serder<T>) {
+    constructor(name: string, icp: Serder) {
         this.name = name;
         this.serder = icp;
     }
 
-    get pre(): T['i'] {
+    get pre() {
         return this.serder.sad['i'];
     }
 }

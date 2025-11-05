@@ -1,6 +1,6 @@
+import { components } from '../../types/keria-api-schema.ts';
 import { SignifyClient } from './clienting.ts';
 import { Operation } from './coring.ts';
-import { components } from '../../types/keria-api-schema.ts';
 
 export type Contact = components['schemas']['Contact'];
 
@@ -192,14 +192,6 @@ export class Challenges {
             said: said,
         };
         const res = await this.client.fetch(path, method, data);
-        // Check for empty response
-        if (res.status === 204 || res.headers.get('content-length') === '0') {
-            return {} as Operation<unknown>;
-        }
-        const text = await res.text();
-        if (!text) {
-            return {} as Operation<unknown>;
-        }
-        return JSON.parse(text) as Operation<unknown>;
+        return await res.json();
     }
 }

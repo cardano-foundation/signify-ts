@@ -14,7 +14,7 @@ import { Counter, CtrDex } from './counter.ts';
 import { MtrDex, NonTransDex } from './matter.ts';
 import { CesrNumber } from './number.ts';
 import { Prefixer } from './prefixer.ts';
-import { BaseSAD, Saider } from './saider.ts';
+import { Saider } from './saider.ts';
 import { Seqner } from './seqner.ts';
 import { Serder } from './serder.ts';
 import { Siger } from './siger.ts';
@@ -23,7 +23,7 @@ import { Tholder } from './tholder.ts';
 const MaxIntThold = 2 ** 32 - 1;
 
 export interface RotateArgs {
-    pre?: string;
+    pre: string;
     keys: Array<string>;
     dig?: string;
     ilk?: string;
@@ -43,49 +43,46 @@ export interface RotateArgs {
     intive?: boolean;
 }
 
-export interface EndRoleAddAttributes extends Record<string, unknown> {
+export interface EndRoleAddAttributes {
     cid: string;
     role: string;
     eid?: string;
 }
 
-type RotateEventSAD = (
+type RotateEventSAD =
     | components['schemas']['ROT_V_1']
-    | components['schemas']['ROT_V_2']
-) &
-    Record<string, unknown> &
-    BaseSAD;
+    | components['schemas']['ROT_V_2'];
 
-export type InceptEventSAD = (
+export type InceptEventSAD =
     | components['schemas']['ICP_V_1']
-    | components['schemas']['ICP_V_2']
-) &
-    Record<string, unknown> &
-    BaseSAD;
-export type InteractEventData = components['schemas']['Seal'];
+    | components['schemas']['ICP_V_2'];
 
-export type InteractEventSAD = (
+export type DelegateInceptEventSAD =
+    | components['schemas']['DIP_V_1']
+    | components['schemas']['DIP_V_1'];
+
+export type InteractEventData = {
+    i: string;
+    s: string;
+    d: string;
+};
+
+export type InteractEventSAD =
     | components['schemas']['IXN_V_1']
-    | components['schemas']['IXN_V_2']
-) &
-    Record<string, unknown> &
-    BaseSAD;
+    | components['schemas']['IXN_V_2'];
 
-type ReplyEventSAD = (
+type ReplyEventSAD =
     | components['schemas']['RPY_V_1']
-    | components['schemas']['RPY_V_2']
-) &
-    Record<string, unknown> &
-    BaseSAD;
+    | components['schemas']['RPY_V_2'];
 
-export type Seal<
-    T extends components['schemas']['Seal'] = components['schemas']['Seal'],
-> = ['SealEvent', T];
+export type Seal =
+    | ['SealEvent', components['schemas']['Seal']]
+    | ['SealLast', { i: string }];
 
 export function rotate({
-    pre = undefined,
+    pre,
     keys,
-    dig = undefined,
+    dig = '',
     ilk = Ilks.rot,
     sn = 1,
     isith = undefined,
@@ -241,9 +238,9 @@ export function rotate({
         v: vs,
         t: _ilk,
         d: '',
-        i: String(pre),
+        i: pre,
         s: sner.numh,
-        p: dig!,
+        p: dig,
         kt:
             tholder.num &&
             intive &&
@@ -262,11 +259,11 @@ export function rotate({
         n: _ndigs,
         bt:
             _toad && intive && _toad !== undefined && _toad <= MaxIntThold
-                ? String(_toad)
+                ? _toad
                 : _toad.toString(16),
-        br: cuts!,
-        ba: adds!,
-        a: data != undefined ? (data as Record<string, unknown>[]) : [],
+        br: cuts || [],
+        ba: adds || [],
+        a: data != undefined ? data : [],
     };
     const [, sad] = Saider.saidify(_sad);
     return new Serder(sad);
@@ -397,7 +394,7 @@ export function incept({
     cnfg = cnfg == undefined ? new Array<string>() : cnfg;
     data = data == undefined ? new Array<object>() : data;
 
-    let sad: InceptEventSAD = {
+    const sad: InceptEventSAD = {
         v: vs,
         t: ilk,
         d: '',
@@ -416,11 +413,11 @@ export function incept({
         bt: intive ? String(toader.num) : toader.numh,
         b: wits,
         c: cnfg,
-        a: data as Record<string, unknown>[],
+        a: data,
     };
 
     if (delpre != undefined) {
-        sad['di'] = delpre;
+        (sad as DelegateInceptEventSAD)['di'] = delpre;
         if (code == undefined) {
             code = MtrDex.Blake3_256;
         }
@@ -448,11 +445,11 @@ export function incept({
     sad['i'] = prefixer.qb64;
     if (prefixer.digestive) {
         sad['d'] = prefixer.qb64;
-    } else {
-        [, sad] = Saider.saidify(sad);
+        return new Serder(sad);
     }
 
-    return new Serder(sad);
+    const [, saidifySAD] = Saider.saidify(sad);
+    return new Serder(saidifySAD);
 }
 
 export function messagize(
@@ -575,7 +572,7 @@ interface InteractArgs {
     kind: Serials | undefined;
 }
 
-export function interact(args: InteractArgs): Serder<InteractEventSAD> {
+export function interact(args: InteractArgs): Serder {
     const { pre, dig, sn, version, kind } = args;
     let { data } = args;
     const vs = versify(Protocols.KERI, version, kind, 0);
@@ -588,7 +585,7 @@ export function interact(args: InteractArgs): Serder<InteractEventSAD> {
 
     data = data == undefined ? new Array<InteractEventData>() : data;
 
-    let sad: InteractEventSAD = {
+    const sad = {
         v: vs,
         t: ilk,
         d: '',
@@ -598,14 +595,14 @@ export function interact(args: InteractArgs): Serder<InteractEventSAD> {
         a: data,
     };
 
-    [, sad] = Saider.saidify(sad);
+    const [, sadifySAD] = Saider.saidify(sad);
 
-    return new Serder(sad);
+    return new Serder(sadifySAD);
 }
 
 export function reply(
-    route: '/end/role/add',
-    data: EndRoleAddAttributes | undefined,
+    route: string = '',
+    data: unknown,
     stamp: string | undefined,
     version: Version | undefined,
     kind: Serials = Serials.JSON
@@ -623,6 +620,11 @@ export function reply(
         a: data,
     };
     const [, sad] = Saider.saidify(_sad);
+
+    if (typeof sad['d'] !== 'string') {
+        throw new Error('Invalid digest');
+    }
+
     const saider = new Saider({ qb64: sad['d'] });
 
     if (!saider.verify(sad, true, true, kind, 'd'))

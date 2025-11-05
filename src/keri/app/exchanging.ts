@@ -1,11 +1,11 @@
-import { SignifyClient } from './clienting.ts';
-import { b, d, Dict, Protocols, Ilks, Serials, versify } from '../core/core.ts';
+import { b, d, Dict, Ilks, Protocols, Serials, versify } from '../core/core.ts';
+import { Counter, CtrDex } from '../core/counter.ts';
+import { HabState } from '../core/keyState.ts';
+import { Pather } from '../core/pather.ts';
+import { Saider } from '../core/saider.ts';
 import { Serder } from '../core/serder.ts';
 import { nowUTC } from '../core/utils.ts';
-import { Pather } from '../core/pather.ts';
-import { Counter, CtrDex } from '../core/counter.ts';
-import { BaseSAD, Saider } from '../core/saider.ts';
-import { HabState } from '../core/keyState.ts';
+import { SignifyClient } from './clienting.ts';
 
 /**
  * Exchanges
@@ -165,7 +165,7 @@ export function exchange(
     const q = modifiers !== undefined ? modifiers : {};
     const ems = embeds != undefined ? embeds : {};
 
-    let e = {} as BaseSAD;
+    let e: Record<string, unknown> = {};
     let end = '';
     Object.entries(ems).forEach(([key, value]) => {
         const serder = value[0];
