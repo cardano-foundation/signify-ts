@@ -2,7 +2,7 @@ import { assert, describe, it } from 'vitest';
 import libsodium from 'libsodium-wrappers-sumo';
 import { SignifyClient } from '../../src/keri/app/clienting.ts';
 import { createMockFetch } from './test-utils.ts';
-import { Tier } from '../../src/types/keria-api-schema.ts';
+import { Tier } from 'signify-ts';
 
 const fetchMock = createMockFetch();
 

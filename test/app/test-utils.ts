@@ -24,7 +24,7 @@ import {
     HabState,
     KeyState,
 } from '../../src/keri/core/keyState.ts';
-import { Tier } from '../../src/types/keria-api-schema.ts';
+import { Tier } from 'signify-ts';
 
 const boot_url = 'http://127.0.0.1:3903';
 

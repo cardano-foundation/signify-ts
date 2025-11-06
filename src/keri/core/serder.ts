@@ -112,7 +112,7 @@ export class Serder {
                 Array.isArray(this._sad['k']) &&
                 this._sad['k'].map((item) => typeof item === 'string')
             ) {
-                keys = this._sad['k'] || [];
+                keys = this._sad['k'];
             }
         } else {
             // non-establishment event
@@ -134,7 +134,7 @@ export class Serder {
                 this._sad['n'].map((item) => typeof item === 'string')
             ) {
                 // establishment event
-                keys = this._sad['n'] || [];
+                keys = this._sad['n'];
             }
         } else {
             // non-establishment event

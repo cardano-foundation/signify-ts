@@ -147,7 +147,7 @@ describe('key event function', () => {
         assert.equal(serder0.sad['t'], Ilks.icp);
         assert.equal(
             serder0.sad['d'],
-            'EAKCxMOuoRzREVHsHCkLilBrUXTvyenBiuM2QtV8BB0C'
+            'EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ'
         );
         assert.equal(serder0.sad['d'], serder0.sad['i']);
         assert.equal(serder0.sad['s'], '0');
@@ -157,19 +157,19 @@ describe('key event function', () => {
         assert.equal(serder0.sad['bt'], '0');
         assert.equal(
             serder0.raw,
-            '{"v":"KERI10JSON00012b_","t":"icp","d":"EAKCxMOuoRzREVHsHCkLilBrUXTvyenBiuM2QtV8BB0C","i":"EAKCxMOuoRzREVHsHCkLilBrUXTvyenBiuM2QtV8BB0C","s":"0","kt":"1","k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":"1","n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":"0","b":[],"c":[],"a":[]}'
+            '{"v":"KERI10JSON000127_","t":"icp","d":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","i":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","s":"0","kt":1,"k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":1,"n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":"0","b":[],"c":[],"a":[]}'
         );
 
         const siger = signer0.sign(b(serder0.raw), 0) as Siger;
         assert.equal(
             siger.qb64,
-            'AAAPitVKfl6dG9dY4-7Ppg5tAANHsqEUptTfR05wLb0fbmKFt4DbZdBNjJaCDrEc7kAIqbLsCMCKf26-Onxz-DoP'
+            'AACr5FXGv1d5_9iXKuIL2cJpDdIem8aTDxlCETvqb4iQdbgEGuVQSInhGQ-A0uWNtmjtenFC7U8yXSgH3bNuDUIB'
         );
 
         const msg = messagize(serder0, [siger]);
         assert.equal(
             d(msg),
-            '{"v":"KERI10JSON00012b_","t":"icp","d":"EAKCxMOuoRzREVHsHCkLilBrUXTvyenBiuM2QtV8BB0C","i":"EAKCxMOuoRzREVHsHCkLilBrUXTvyenBiuM2QtV8BB0C","s":"0","kt":"1","k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":"1","n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":"0","b":[],"c":[],"a":[]}-AABAAAPitVKfl6dG9dY4-7Ppg5tAANHsqEUptTfR05wLb0fbmKFt4DbZdBNjJaCDrEc7kAIqbLsCMCKf26-Onxz-DoP'
+            '{"v":"KERI10JSON000127_","t":"icp","d":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","i":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","s":"0","kt":1,"k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":1,"n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":"0","b":[],"c":[],"a":[]}-AABAACr5FXGv1d5_9iXKuIL2cJpDdIem8aTDxlCETvqb4iQdbgEGuVQSInhGQ-A0uWNtmjtenFC7U8yXSgH3bNuDUIB'
         );
         const seal: Seal = [
             'SealEvent',
@@ -182,7 +182,7 @@ describe('key event function', () => {
         const msgseal = messagize(serder0, [siger], seal);
         assert.equal(
             d(msgseal),
-            '{"v":"KERI10JSON00012b_","t":"icp","d":"EAKCxMOuoRzREVHsHCkLilBrUXTvyenBiuM2QtV8BB0C","i":"EAKCxMOuoRzREVHsHCkLilBrUXTvyenBiuM2QtV8BB0C","s":"0","kt":"1","k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":"1","n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":"0","b":[],"c":[],"a":[]}-FABEIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL0AAAAAAAAAAAAAAAAAAAAAAAEIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL-AABAAAPitVKfl6dG9dY4-7Ppg5tAANHsqEUptTfR05wLb0fbmKFt4DbZdBNjJaCDrEc7kAIqbLsCMCKf26-Onxz-DoP'
+            '{"v":"KERI10JSON000127_","t":"icp","d":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","i":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","s":"0","kt":1,"k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":1,"n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":"0","b":[],"c":[],"a":[]}-FABEIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL0AAAAAAAAAAAAAAAAAAAAAAAEIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL-AABAACr5FXGv1d5_9iXKuIL2cJpDdIem8aTDxlCETvqb4iQdbgEGuVQSInhGQ-A0uWNtmjtenFC7U8yXSgH3bNuDUIB'
         );
     });
 

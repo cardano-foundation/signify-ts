@@ -236,6 +236,7 @@ export class Controller {
         const anchor = { i: _agent.pre, s: seqner.snh, d: _agent.said! };
         const sn = new CesrNumber({}, undefined, this.serder.sad['s'] as string).num + 1;
         this.serder = interact({
+            // TODO: remove type cast once SerderKERI and SerderACDC introduced 
             pre: this.serder.pre as string,
             dig: this.serder.sad['d'] as string,
             sn: sn,
@@ -333,7 +334,7 @@ export class Controller {
         const rot = rotate({
             pre: this.pre,
             keys: this.keys,
-            dig: this.serder.sad['d'] as string,
+            dig: this.serder.sad['d'],
             isith: ['1', '0'],
             nsith: '1',
             ndigs: this.ndigs,

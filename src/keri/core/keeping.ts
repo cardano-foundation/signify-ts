@@ -173,7 +173,7 @@ export class IdentifierManagerFactory {
                     kargs['transferable'],
                     kargs['ncode'],
                     kargs['ncount'],
-                    kargs['ncodes'] || [],
+                    kargs['ncodes'],
                     kargs['dcode'],
                     kargs['prxs'],
                     kargs['nxts']
@@ -533,7 +533,7 @@ export class RandyIdentifierManager implements IdentifierManager {
         transferable = false,
         ncode = MtrDex.Ed25519_Seed,
         ncount = 1,
-        ncodes: string[],
+        ncodes?: string[],
         dcode = MtrDex.Blake3_256,
         prxs: string[] | undefined = undefined,
         nxts: string[] | undefined = undefined

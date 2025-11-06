@@ -9,7 +9,7 @@ import {
 import { SignifyClient } from '../../src/keri/app/clienting.ts';
 import { randomUUID } from 'node:crypto';
 import { createMockFetch } from './test-utils.ts';
-import { Tier } from '../../src/types/keria-api-schema.ts';
+import { Tier } from 'signify-ts';
 
 const url = 'http://127.0.0.1:3901';
 const boot_url = 'http://127.0.0.1:3903';

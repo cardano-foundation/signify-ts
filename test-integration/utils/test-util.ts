@@ -13,7 +13,7 @@ import { RetryOptions, retry } from './retry.ts';
 import assert from 'assert';
 import { resolveEnvironment } from './resolve-env.ts';
 import { expect } from 'vitest';
-import { Tier } from '../../src/types/keria-api-schema.ts';
+import { Tier } from 'signify-ts';
 
 export interface Aid {
     name: string;

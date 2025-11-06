@@ -148,7 +148,7 @@ export interface components {
             k: string[];
             nt: string | string[] | string[][];
             n: string[];
-            bt: string | number;
+            bt: string;
             br: string[];
             ba: string[];
             a: unknown;
@@ -164,7 +164,7 @@ export interface components {
             k: string[];
             nt: string | string[] | string[][];
             n: string[];
-            bt: string | number;
+            bt: string;
             br: string[];
             ba: string[];
             c: string[];

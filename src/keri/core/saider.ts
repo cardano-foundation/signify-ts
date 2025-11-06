@@ -27,7 +27,7 @@ export class Saider extends Matter {
 
                 if (code == undefined) {
                     if (sad[label] != '') {
-                        super({ qb64: String(sad[label]), code: code });
+                        super({ qb64: sad[label] as string, code: code });
                         code = this.code;
                     } else {
                         code = MtrDex.Blake3_256;

@@ -32,7 +32,7 @@ import { Salter } from '../../src/keri/core/salter.ts';
 import { Siger } from '../../src/keri/core/siger.ts';
 import { Signer } from '../../src/keri/core/signer.ts';
 import { Verfer } from '../../src/keri/core/verfer.ts';
-import { Tier } from '../../src/types/keria-api-schema.ts';
+import { Tier } from 'signify-ts';
 
 describe('RandyCreator', () => {
     it('should create sets of random signers', async () => {

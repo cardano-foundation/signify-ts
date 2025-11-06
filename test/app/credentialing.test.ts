@@ -13,10 +13,10 @@ import {
     serializeIssExnAttachment,
     Serials,
     versify,
-    InteractEventData,
+    SealSourceTriple,
 } from '../../src/index.ts';
 import { createMockFetch, mockCredential } from './test-utils.ts';
-import { Tier } from '../../src/types/keria-api-schema.ts';
+import { Tier } from 'signify-ts';
 
 const fetchMock = createMockFetch();
 
@@ -170,7 +170,7 @@ describe('Ipex', () => {
         const anc = interact({
             pre: mockCredential.sad.i,
             sn: 1,
-            data: [{}] as InteractEventData[],
+            data: [{}] as SealSourceTriple[],
             dig: mockCredential.sad.d,
             version: undefined,
             kind: undefined,
@@ -338,7 +338,7 @@ describe('Ipex', () => {
             const anc = interact({
                 pre: mockCredential.sad.i,
                 sn: 1,
-                data: [{}] as InteractEventData[],
+                data: [{}] as SealSourceTriple[],
                 dig: mockCredential.sad.d,
                 version: undefined,
                 kind: undefined,

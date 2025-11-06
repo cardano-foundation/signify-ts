@@ -153,13 +153,11 @@ export function desiginput(value: string): Array<Inputage> {
     const siginputs = new Array<Inputage>();
 
     sid.forEach((value, key) => {
-        const siginput: Inputage = {
-            name: '',
-            fields: [],
-        };
-        siginput.name = key;
         const [list, params] = value as [Item[], Parameters];
-        siginput.fields = list.map((item) => item[0]);
+        const siginput: Inputage = {
+            name: key,
+            fields: list.map((item) => item[0]),
+        };
 
         if (!params.has('created')) {
             throw new Error(

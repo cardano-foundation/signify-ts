@@ -50,18 +50,24 @@ export interface EndRoleAddAttributes {
 }
 
 type RotateEventSAD =
-    | components['schemas']['ROT_V_1']
-    | components['schemas']['ROT_V_2'];
+    | (Omit<components['schemas']['ROT_V_1'], 'bt'> & { bt: string | number })
+    | (Omit<components['schemas']['ROT_V_2'], 'bt'> & { bt: string | number });
 
 export type InceptEventSAD =
-    | components['schemas']['ICP_V_1']
-    | components['schemas']['ICP_V_2'];
+    | (Omit<components['schemas']['ICP_V_1'], 'kt' | 'nt'> & {
+          kt: number | string | string[] | string[][];
+          nt: number | string | string[] | string[][];
+      })
+    | (Omit<components['schemas']['ICP_V_2'], 'kt' | 'nt'> & {
+          kt: number | string | string[] | string[][];
+          nt: number | string | string[] | string[][];
+      });
 
 export type DelegateInceptEventSAD =
     | components['schemas']['DIP_V_1']
-    | components['schemas']['DIP_V_1'];
+    | components['schemas']['DIP_V_2'];
 
-export type InteractEventData = {
+export type SealSourceTriple = {
     i: string;
     s: string;
     d: string;
@@ -89,10 +95,10 @@ export function rotate({
     ndigs = undefined,
     nsith = undefined,
     wits = undefined,
-    cuts = undefined,
-    adds = undefined,
+    cuts = [],
+    adds = [],
     toad = undefined,
-    data = undefined,
+    data = [],
     version = undefined,
     kind = undefined,
     intive = true,
@@ -261,9 +267,9 @@ export function rotate({
             _toad && intive && _toad !== undefined && _toad <= MaxIntThold
                 ? _toad
                 : _toad.toString(16),
-        br: cuts || [],
-        ba: adds || [],
-        a: data != undefined ? data : [],
+        br: cuts,
+        ba: adds,
+        a: data,
     };
     const [, sad] = Saider.saidify(_sad);
     return new Serder(sad);
@@ -400,15 +406,9 @@ export function incept({
         d: '',
         i: '',
         s: sner.numh,
-        kt:
-            intive && tholder.num != undefined
-                ? String(tholder.num)
-                : tholder.sith,
+        kt: intive && tholder.num != undefined ? tholder.num : tholder.sith,
         k: keys,
-        nt:
-            intive && tholder.num != undefined
-                ? String(ntholder.num!)
-                : ntholder.sith,
+        nt: intive && tholder.num != undefined ? ntholder.num! : ntholder.sith,
         n: ndigs,
         bt: intive ? String(toader.num) : toader.numh,
         b: wits,
@@ -583,7 +583,7 @@ export function interact(args: InteractArgs): Serder {
         throw new Error(`Invalid sn = 0x${sner.numh} for ixn.`);
     }
 
-    data = data == undefined ? new Array<InteractEventData>() : data;
+    data = data == undefined ? new Array<SealSourceTriple>() : data;
 
     const sad = {
         v: vs,
@@ -609,7 +609,7 @@ export function reply(
 ) {
     const vs = versify(Protocols.KERI, version, kind, 0);
     if (data == undefined) {
-        data = {} as EndRoleAddAttributes;
+        data = {};
     }
     const _sad: ReplyEventSAD = {
         v: vs,
@@ -622,7 +622,7 @@ export function reply(
     const [, sad] = Saider.saidify(_sad);
 
     if (typeof sad['d'] !== 'string') {
-        throw new Error('Invalid digest');
+        throw new Error('Saidify did not set the label field d correctly');
     }
 
     const saider = new Saider({ qb64: sad['d'] });

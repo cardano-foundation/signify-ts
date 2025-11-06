@@ -7,7 +7,7 @@ import { Salter } from '../../src/keri/core/salter.ts';
 import { Siger } from '../../src/keri/core/siger.ts';
 import { Signer } from '../../src/keri/core/signer.ts';
 import { designature, Signage, signature } from '../../src/keri/end/ending.ts';
-import { Tier } from '../../src/types/keria-api-schema.ts';
+import { Tier } from 'signify-ts';
 
 function createSigner(name: string): Signer {
     const temp = true;
