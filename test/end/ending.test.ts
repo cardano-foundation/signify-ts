@@ -1,12 +1,13 @@
-import { assert, describe, it, beforeAll, beforeEach } from 'vitest';
 import libsodium from 'libsodium-wrappers-sumo';
-import { Salter, Tier } from '../../src/keri/core/salter.ts';
+import { assert, beforeAll, beforeEach, describe, it } from 'vitest';
+import { Cigar } from '../../src/keri/core/cigar.ts';
 import { b } from '../../src/keri/core/core.ts';
 import { MtrDex } from '../../src/keri/core/matter.ts';
-import { designature, Signage, signature } from '../../src/keri/end/ending.ts';
+import { Salter } from '../../src/keri/core/salter.ts';
 import { Siger } from '../../src/keri/core/siger.ts';
-import { Cigar } from '../../src/keri/core/cigar.ts';
 import { Signer } from '../../src/keri/core/signer.ts';
+import { designature, Signage, signature } from '../../src/keri/end/ending.ts';
+import { Tier } from 'signify-ts';
 
 function createSigner(name: string): Signer {
     const temp = true;

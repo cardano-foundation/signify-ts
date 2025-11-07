@@ -1,11 +1,14 @@
-import { Matter, MatterArgs, MtrDex } from './matter.ts';
+import { blake3 } from '@noble/hashes/blake3';
+import { Ilks } from './core.ts';
+import { DelegateInceptEventSAD, InceptEventSAD } from './eventing.ts';
 import { EmptyMaterialError } from './kering.ts';
-import { Dict, Ilks } from './core.ts';
+import { Matter, MatterArgs, MtrDex } from './matter.ts';
 import { sizeify } from './serder.ts';
 import { Verfer } from './verfer.ts';
-import { blake3 } from '@noble/hashes/blake3';
 
 const Dummy: string = '#';
+
+type PrefixerParamsSAD = DelegateInceptEventSAD | InceptEventSAD;
 
 export class Prefixer extends Matter {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
@@ -13,51 +16,54 @@ export class Prefixer extends Matter {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     private readonly _verify: Function | undefined;
 
-    constructor({ raw, code, qb64b, qb64, qb2 }: MatterArgs, ked?: Dict<any>) {
-        try {
-            super({ raw, code, qb64b, qb64, qb2 });
-        } catch (e) {
-            if (e instanceof EmptyMaterialError) {
-                if (ked == undefined || (code == undefined && !('i' in ked))) {
+        constructor(
+            { raw, code, qb64b, qb64, qb2 }: MatterArgs,
+            ked?: PrefixerParamsSAD
+        ) {
+            try {
+                super({ raw, code, qb64b, qb64, qb2 });
+            } catch (e) {
+                if (e instanceof EmptyMaterialError) {
+                    if (ked == undefined || (code == undefined && !('i' in ked))) {
+                        throw e;
+                    }
+
+                    if (code == undefined) {
+                        super({ qb64: ked['i'], code: code });
+                        code = this.code;
+                    }
+
+                    let _derive;
+                    if (code == MtrDex.Ed25519N) {
+                        _derive = Prefixer._derive_ed25519N;
+                    } else if (code == MtrDex.Ed25519) {
+                        _derive = Prefixer._derive_ed25519;
+                    } else if (code == MtrDex.Blake3_256) {
+                        _derive = Prefixer._derive_blake3_256;
+                    } else {
+                        throw new Error(`Unsupported code = ${code} for prefixer.`);
+                    }
+
+                    [raw, code] = _derive(ked);
+                    super({ raw: raw, code: code });
+                    this._derive = _derive;
+                } else {
                     throw e;
                 }
+            }
 
-                if (code == undefined) {
-                    super({ qb64: ked['i'], code: code });
-                    code = this.code;
-                }
-
-                let _derive;
-                if (code == MtrDex.Ed25519N) {
-                    _derive = Prefixer._derive_ed25519N;
-                } else if (code == MtrDex.Ed25519) {
-                    _derive = Prefixer._derive_ed25519;
-                } else if (code == MtrDex.Blake3_256) {
-                    _derive = Prefixer._derive_blake3_256;
-                } else {
-                    throw new Error(`Unsupported code = ${code} for prefixer.`);
-                }
-
-                [raw, code] = _derive(ked);
-                super({ raw: raw, code: code });
-                this._derive = _derive;
+            if (this.code == MtrDex.Ed25519N) {
+                this._verify = this._verify_ed25519N;
+            } else if (this.code == MtrDex.Ed25519) {
+                this._verify = this._verify_ed25519;
+            } else if (this.code == MtrDex.Blake3_256) {
+                this._verify = this._verify_blake3_256;
             } else {
-                throw e;
+                throw new Error(`Unsupported code = ${code} for prefixer.`);
             }
         }
 
-        if (this.code == MtrDex.Ed25519N) {
-            this._verify = this._verify_ed25519N;
-        } else if (this.code == MtrDex.Ed25519) {
-            this._verify = this._verify_ed25519;
-        } else if (this.code == MtrDex.Blake3_256) {
-            this._verify = this._verify_blake3_256;
-        } else {
-            throw new Error(`Unsupported code = ${code} for prefixer.`);
-        }
-    }
-
-    derive(sad: Dict<any>): [Uint8Array, string] {
+    derive(sad: PrefixerParamsSAD): [Uint8Array, string] {
         if (sad['i'] != Ilks.icp) {
             throw new Error(
                 `Non-incepting ilk ${sad['i']} for prefix derivation`
@@ -66,7 +72,7 @@ export class Prefixer extends Matter {
         return this._derive!(sad);
     }
 
-    verify(sad: Dict<any>, prefixed: boolean = false): boolean {
+    verify(sad: PrefixerParamsSAD, prefixed: boolean = false): boolean {
         if (sad['i'] != Ilks.icp) {
             throw new Error(
                 `Non-incepting ilk ${sad['i']} for prefix derivation`
@@ -75,7 +81,7 @@ export class Prefixer extends Matter {
         return this._verify!(sad, this.qb64, prefixed);
     }
 
-    static _derive_ed25519N(sad: Dict<any>): [Uint8Array, string] {
+    static _derive_ed25519N(sad: PrefixerParamsSAD): [Uint8Array, string] {
         let verfer;
         const keys = sad['k'];
         if (keys.length != 1) {
@@ -107,7 +113,7 @@ export class Prefixer extends Matter {
             );
         }
 
-        const anchor = 'a' in sad ? sad['a'] : [];
+        const anchor = 'a' in sad && Array.isArray(sad['a']) ? sad['a'] : [];
         if (verfer.code == MtrDex.Ed25519N && anchor.length > 0) {
             throw new Error(
                 `Non-empty a = ${verfer.code} for non-transferable code = ${verfer.code}`
@@ -117,7 +123,7 @@ export class Prefixer extends Matter {
         return [verfer.raw, verfer.code];
     }
 
-    static _derive_ed25519(sad: Dict<any>): [Uint8Array, string] {
+    static _derive_ed25519(sad: PrefixerParamsSAD): [Uint8Array, string] {
         let verfer;
         const keys = sad['k'];
         if (keys.length != 1) {
@@ -139,7 +145,7 @@ export class Prefixer extends Matter {
         return [verfer.raw, verfer.code];
     }
 
-    static _derive_blake3_256(sad: Dict<any>): [Uint8Array, string] {
+    static _derive_blake3_256(sad: PrefixerParamsSAD): [Uint8Array, string] {
         const ilk = sad['t'];
         if (![Ilks.icp, Ilks.dip, Ilks.vcp, Ilks.dip].includes(ilk)) {
             throw new Error(`Invalid ilk = ${ilk} to derive pre.`);
@@ -153,7 +159,7 @@ export class Prefixer extends Matter {
     }
 
     _verify_ed25519N(
-        sad: Dict<any>,
+        sad: PrefixerParamsSAD,
         pre: string,
         prefixed: boolean = false
     ): boolean {
@@ -176,7 +182,7 @@ export class Prefixer extends Matter {
                 // must be empty
                 return false;
             }
-        } catch (e) {
+        } catch {
             return false;
         }
 
@@ -184,7 +190,7 @@ export class Prefixer extends Matter {
     }
 
     _verify_ed25519(
-        sad: Dict<any>,
+        sad: PrefixerParamsSAD,
         pre: string,
         prefixed: boolean = false
     ): boolean {
@@ -201,7 +207,7 @@ export class Prefixer extends Matter {
             if (prefixed && sad['i'] != pre) {
                 return false;
             }
-        } catch (e) {
+        } catch {
             return false;
         }
 
@@ -209,7 +215,7 @@ export class Prefixer extends Matter {
     }
 
     _verify_blake3_256(
-        sad: Dict<any>,
+        sad: PrefixerParamsSAD,
         pre: string,
         prefixed: boolean = false
     ): boolean {
@@ -223,7 +229,7 @@ export class Prefixer extends Matter {
             if (prefixed && sad['i'] != pre) {
                 return false;
             }
-        } catch (e) {
+        } catch {
             return false;
         }
         return true;

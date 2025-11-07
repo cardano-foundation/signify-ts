@@ -1,16 +1,16 @@
 import {
-    serializeDictionary,
     Dictionary,
-    parseDictionary,
     Item,
     Parameters,
+    parseDictionary,
+    serializeDictionary,
 } from 'structured-headers';
-import { Signer } from './signer.ts';
-import { b } from './core.ts';
-import { Cigar } from './cigar.ts';
-import { nowUTC } from './utils.ts';
-import { Siger } from './siger.ts';
 import { encodeBase64Url } from './base64.ts';
+import { Cigar } from './cigar.ts';
+import { b } from './core.ts';
+import { Siger } from './siger.ts';
+import { Signer } from './signer.ts';
+import { nowUTC } from './utils.ts';
 
 export const HEADER_SIG_INPUT = normalize('Signature-Input');
 export const HEADER_SIG_TIME = normalize('Signify-Timestamp');
@@ -137,15 +137,15 @@ export class Unqualified {
     }
 }
 
-export class Inputage {
-    public name: any;
-    public fields: any;
-    public created: any;
-    public expires: any;
-    public nonce: any;
-    public alg: any;
-    public keyid: any;
-    public context: any;
+export interface Inputage {
+    name: string;
+    fields: Item[0][];
+    created?: Item[0];
+    expires?: Item[0];
+    nonce?: Item[0];
+    alg?: Item[0];
+    keyid?: Item[0];
+    context?: Item[0];
 }
 
 export function desiginput(value: string): Array<Inputage> {
@@ -153,12 +153,11 @@ export function desiginput(value: string): Array<Inputage> {
     const siginputs = new Array<Inputage>();
 
     sid.forEach((value, key) => {
-        const siginput = new Inputage();
-        siginput.name = key;
-        let list: Item[];
-        let params;
-        [list, params] = value as [Item[], Parameters];
-        siginput.fields = list.map((item) => item[0]);
+        const [list, params] = value as [Item[], Parameters];
+        const siginput: Inputage = {
+            name: key,
+            fields: list.map((item) => item[0]),
+        };
 
         if (!params.has('created')) {
             throw new Error(

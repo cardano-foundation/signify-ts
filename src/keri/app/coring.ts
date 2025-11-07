@@ -1,8 +1,8 @@
-import { SignifyClient } from './clienting.ts';
 import libsodium from 'libsodium-wrappers-sumo';
-import { Salter } from '../core/salter.ts';
-import { Matter, MtrDex } from '../core/matter.ts';
 import { components } from '../../types/keria-api-schema.ts';
+import { Matter, MtrDex } from '../core/matter.ts';
+import { Salter } from '../core/salter.ts';
+import { SignifyClient } from './clienting.ts';
 
 type OOBI = components['schemas']['OOBI'];
 
@@ -34,7 +34,7 @@ export class Oobis {
      * Get the OOBI(s) for a managed indentifier for a given role
      * @param {string} name Name or alias of the identifier
      * @param {string} role Authorized role
-     * @returns {Promise<any>} A promise to the OOBI(s)
+     * @returns {Promise<OOBI>} A promise to the OOBI(s)
      */
     async get(name: string, role: string = 'agent'): Promise<OOBI> {
         const path = `/identifiers/${name}/oobis?role=${role}`;

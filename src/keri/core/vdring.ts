@@ -1,12 +1,12 @@
 import { randomNonce } from '../app/coring.ts';
 import { TraitDex } from '../app/habery.ts';
 import {
-    Serials,
-    Vrsn_1_0,
-    Version,
-    Protocols,
-    versify,
     Ilks,
+    Protocols,
+    Serials,
+    versify,
+    Version,
+    Vrsn_1_0,
 } from '../core/core.ts';
 import { ample } from './eventing.ts';
 import { MtrDex } from './matter.ts';
@@ -83,7 +83,7 @@ namespace vdr {
             n: nonce,
         };
 
-        const prefixer = new Prefixer({ code }, sad);
+        const prefixer = new Prefixer({ code }, sad as any);
         sad.i = prefixer.qb64;
         sad.d = prefixer.qb64;
 

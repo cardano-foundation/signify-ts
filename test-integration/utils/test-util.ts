@@ -6,7 +6,6 @@ import signify, {
     ready,
     Salter,
     SignifyClient,
-    Tier,
     HabState,
     ExternalModule,
 } from 'signify-ts';
@@ -14,6 +13,7 @@ import { RetryOptions, retry } from './retry.ts';
 import assert from 'assert';
 import { resolveEnvironment } from './resolve-env.ts';
 import { expect } from 'vitest';
+import { Tier } from 'signify-ts';
 
 export interface Aid {
     name: string;
@@ -250,7 +250,8 @@ export async function getOrCreateContact(
     }
     let op = await client.oobis().resolve(oobi, name);
     op = await waitOperation(client, op);
-    return op.response.i;
+    const response = op.response as { i: string };
+    return response.i;
 }
 
 /**
@@ -342,7 +343,7 @@ export async function getOrIssueCredential(
     await waitOperation(issuerClient, issResult.op);
     const credential = await issuerClient
         .credentials()
-        .get(issResult.acdc.sad.d);
+        .get(issResult.acdc.sad.d!);
 
     return credential;
 }

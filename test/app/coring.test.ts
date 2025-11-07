@@ -7,9 +7,9 @@ import {
     OperationsDeps,
 } from '../../src/keri/app/coring.ts';
 import { SignifyClient } from '../../src/keri/app/clienting.ts';
-import { Tier } from '../../src/keri/core/salter.ts';
 import { randomUUID } from 'node:crypto';
 import { createMockFetch } from './test-utils.ts';
+import { Tier } from 'signify-ts';
 
 const url = 'http://127.0.0.1:3901';
 const boot_url = 'http://127.0.0.1:3903';

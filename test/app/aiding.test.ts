@@ -12,9 +12,9 @@ import {
     IdentifierDeps,
     IdentifierManagerFactory,
     randomPasscode,
-    Tier,
 } from '../../src/index.ts';
 import { createMockIdentifierState } from './test-utils.ts';
+import { Tier } from 'signify-ts';
 
 const bran = '0123456789abcdefghijk';
 

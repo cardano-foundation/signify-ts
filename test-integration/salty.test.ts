@@ -126,7 +126,7 @@ test('salty', async () => {
     const ixn = new signify.Serder(ked);
     assert.equal(ixn.sad['d'], 'ENsmRAg_oM7Hl1S-GTRMA7s4y760lQMjzl0aqOQ2iTce');
     assert.equal(ixn.sad['s'], '2');
-    assert.deepEqual([...ixn.sad['a']], [icp.pre]);
+    assert.deepEqual([...(ixn.sad['a'] as string[])], [icp.pre]);
 
     aid = await client1.identifiers().get('aid1');
     const state = aid['state'];

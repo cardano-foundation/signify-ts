@@ -1,4 +1,24 @@
 import libsodium from 'libsodium-wrappers-sumo';
+import { randomUUID } from 'node:crypto';
+import { assert, describe, expect, it, Mocked, vitest } from 'vitest';
+import {
+    IdentifierManager,
+    IdentifierManagerFactory,
+    IdentifierManagerParams,
+    Prefixer,
+    RandyIdentifierManager,
+} from '../../src/index.ts';
+import { Cigar } from '../../src/keri/core/cigar.ts';
+import { Cipher } from '../../src/keri/core/cipher.ts';
+import { b } from '../../src/keri/core/core.ts';
+import { Decrypter } from '../../src/keri/core/decrypter.ts';
+import { Diger } from '../../src/keri/core/diger.ts';
+import { Encrypter } from '../../src/keri/core/encrypter.ts';
+import {
+    HabState,
+    KeyState,
+    RandyKeyState,
+} from '../../src/keri/core/keyState.ts';
 import {
     Algos,
     Creatory,
@@ -7,31 +27,12 @@ import {
     riKey,
     SaltyCreator,
 } from '../../src/keri/core/manager.ts';
-import { assert, describe, it, expect, vitest, Mocked } from 'vitest';
 import { MtrDex } from '../../src/keri/core/matter.ts';
-import { Salter, Tier } from '../../src/keri/core/salter.ts';
-import { Signer } from '../../src/keri/core/signer.ts';
-import { Encrypter } from '../../src/keri/core/encrypter.ts';
-import { Decrypter } from '../../src/keri/core/decrypter.ts';
-import { Cipher } from '../../src/keri/core/cipher.ts';
-import { Verfer } from '../../src/keri/core/verfer.ts';
-import { Diger } from '../../src/keri/core/diger.ts';
+import { Salter } from '../../src/keri/core/salter.ts';
 import { Siger } from '../../src/keri/core/siger.ts';
-import { b } from '../../src/keri/core/core.ts';
-import { Cigar } from '../../src/keri/core/cigar.ts';
-import {
-    IdentifierManager,
-    IdentifierManagerParams,
-    IdentifierManagerFactory,
-    Prefixer,
-    RandyIdentifierManager,
-} from '../../src/index.ts';
-import {
-    RandyKeyState,
-    KeyState,
-    HabState,
-} from '../../src/keri/core/keyState.ts';
-import { randomUUID } from 'node:crypto';
+import { Signer } from '../../src/keri/core/signer.ts';
+import { Verfer } from '../../src/keri/core/verfer.ts';
+import { Tier } from 'signify-ts';
 
 describe('RandyCreator', () => {
     it('should create sets of random signers', async () => {
@@ -740,9 +741,8 @@ describe('Manager', () => {
         const manager = new IdentifierManagerFactory(salter, []);
 
         const keeper0 = manager.new(
-            Algos.randy,
-            0,
-            {}
+            { algo: Algos.randy, kargs: { transferable: false } },
+            0
         ) as RandyIdentifierManager;
         const [keys] = await keeper0.incept(false);
         const prefixes = new Prefixer({ qb64: keys[0] });
@@ -767,22 +767,19 @@ describe('Manager', () => {
 
         const manager = new IdentifierManagerFactory(salter, []);
 
-        expect(() => manager.new(randomUUID() as Algos, 0, {})).toThrow(
-            'Unknown algo'
-        );
-
-        // Just use a partial for testing purpose
-        const partialHabState: Partial<HabState> = {
-            prefix: '',
-            name: '',
-            state: keystate,
-            transferable: false,
-            windexes: [],
-            icp_dt: '2023-12-01T10:05:25.062609+00:00',
-        };
-        expect(() => manager.get(partialHabState as HabState)).toThrow(
-            'No algo specified'
-        );
+        expect(() =>
+            manager.new({ algo: randomUUID() as Algos, kargs: {} } as never, 0)
+        ).toThrow('Unknown algo');
+        expect(() =>
+            manager.get({
+                prefix: '',
+                name: '',
+                state: {} as KeyState,
+                transferable: false,
+                windexes: [],
+                icp_dt: '2023-12-01T10:05:25.062609+00:00',
+            } as unknown as HabState)
+        ).toThrow('No algo specified');
     });
 
     describe('External Module ', () => {
@@ -813,10 +810,16 @@ describe('Manager', () => {
             ]);
 
             const param = randomUUID();
-            const keeper = manager.new(Algos.extern, 0, {
-                extern_type: 'mock',
-                param,
-            });
+            const keeper = manager.new(
+                {
+                    algo: Algos.extern,
+                    kargs: {
+                        extern_type: 'mock',
+                        param,
+                    },
+                },
+                0
+            );
 
             assert(keeper instanceof MockModule);
             expect(keeper.params()).toMatchObject({ param });
@@ -830,10 +833,16 @@ describe('Manager', () => {
 
             const param = randomUUID();
             expect(() =>
-                manager.new(Algos.extern, 0, {
-                    extern_type: 'mock',
-                    param,
-                })
+                manager.new(
+                    {
+                        algo: Algos.extern,
+                        kargs: {
+                            extern_type: 'mock',
+                            param,
+                        },
+                    },
+                    0
+                )
             ).toThrow('unsupported external module type mock');
         });
 

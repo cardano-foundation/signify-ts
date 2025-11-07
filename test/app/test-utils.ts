@@ -4,12 +4,18 @@ import {
     Authenticater,
     Controller,
     CreateIdentiferArgs,
+    ExternManagerParams,
+    GroupIdentifierManager,
+    GroupManagerParams,
     HEADER_SIG_TIME,
+    IdentifierManager,
     IdentifierManagerFactory,
+    IdentifierManagerParams,
     MtrDex,
+    RandyManagerParams,
     Salter,
+    SaltyManagerParams,
     Serials,
-    Tier,
     Vrsn_1_0,
     incept,
 } from '../../src/index.ts';
@@ -18,6 +24,7 @@ import {
     HabState,
     KeyState,
 } from '../../src/keri/core/keyState.ts';
+import { Tier } from 'signify-ts';
 
 const boot_url = 'http://127.0.0.1:3903';
 
@@ -53,7 +60,12 @@ export async function createMockIdentifierState(
     const extern_type = kargs.extern_type;
     const extern = kargs.extern;
 
-    const keeper = manager!.new(algo, 0, {
+    let keeper:
+        | GroupIdentifierManager
+        | IdentifierManager<IdentifierManagerParams>
+        | null = null;
+
+    const xargs = {
         transferable: transferable,
         isith: isith,
         nsith: nsith,
@@ -78,7 +90,35 @@ export async function createMockIdentifierState(
         tier: tier,
         extern_type: extern_type,
         extern: extern,
-    });
+    };
+
+    switch (algo) {
+        case Algos.salty:
+            keeper = manager!.new(
+                { algo, kargs: xargs as unknown as SaltyManagerParams },
+                0
+            );
+            break;
+        case Algos.randy:
+            keeper = manager!.new(
+                { algo, kargs: xargs as RandyManagerParams },
+                0
+            );
+            break;
+        case Algos.group:
+            keeper = manager!.new(
+                { algo, kargs: xargs as GroupManagerParams },
+                0
+            );
+            break;
+        case Algos.extern:
+            keeper = manager!.new(
+                { algo, kargs: xargs as ExternManagerParams },
+                0
+            );
+            break;
+    }
+
     const [keys, ndigs] = await keeper!.incept(transferable);
     const serder = incept({
         keys: keys!,
@@ -114,12 +154,12 @@ export async function createMockIdentifierState(
             n: serder.sad.n,
             bt: serder.sad.bt,
             b: serder.sad.b,
-            p: serder.sad.p ?? '',
+            p: String(serder.sad.p ?? ''),
             f: '',
             dt: new Date().toISOString().replace('Z', '000+00:00'),
             et: '',
             c: [],
-            di: serder.sad.di ?? '',
+            di: String(serder.sad.di ?? ''),
         } as KeyState,
         icp_dt: '2023-12-01T10:05:25.062609+00:00',
     } as unknown as HabState;

@@ -1,22 +1,15 @@
-import { Salter } from './salter.ts';
-import { Algos, SaltyCreator, RandyCreator } from './manager.ts';
-import { MtrDex } from './matter.ts';
-import { Tier } from './salter.ts';
+import { Tier } from '../../types/keria-api-schema.ts';
 import { Encrypter } from '../core/encrypter.ts';
-import { Decrypter } from './decrypter.ts';
-import { b } from './core.ts';
 import { Cipher } from './cipher.ts';
+import { b } from './core.ts';
+import { Decrypter } from './decrypter.ts';
 import { Diger } from './diger.ts';
+import { HabState, KeyState } from './keyState.ts';
+import { Algos, RandyCreator, SaltyCreator } from './manager.ts';
+import { MtrDex } from './matter.ts';
 import { Prefixer } from './prefixer.ts';
+import { Salter } from './salter.ts';
 import { Signer } from './signer.ts';
-import {
-    ExternState,
-    GroupKeyState,
-    HabState,
-    RandyKeyState,
-    SaltyKeyState,
-    KeyState,
-} from './keyState.ts';
 
 /** External module definition */
 export interface ExternalModuleType {
@@ -46,16 +39,36 @@ export interface SaltyManagerParams extends IdentifierManagerParams {
     ncodes: string[] | undefined;
     dcode: string | undefined;
     sxlt: string | undefined;
+    code?: string;
+    count?: number;
+    ncode?: string;
+    ncount?: number;
+    bran?: string;
 }
 
 export interface RandyManagerParams extends IdentifierManagerParams {
     nxts?: string[];
     prxs?: string[];
     transferable: boolean;
+    code?: string;
+    count?: number;
+    icodes?: string[];
+    ncode?: string;
+    ncount?: number;
+    ncodes?: string[];
+    dcode?: string;
 }
 
 export interface GroupManagerParams extends IdentifierManagerParams {
     mhab: HabState;
+    states?: KeyState[];
+    rstates?: KeyState[];
+    keys?: string[];
+    ndigs?: string[];
+}
+
+export interface ExternManagerParams extends IdentifierManagerParams {
+    extern_type: string;
 }
 
 /**
@@ -82,6 +95,24 @@ export interface IdentifierManager<
         ondices?: number[]
     ): Promise<SignResult>;
 }
+
+type IdentifierManagerOptions =
+    | {
+          algo: Algos.salty;
+          kargs: SaltyManagerParams;
+      }
+    | {
+          algo: Algos.randy;
+          kargs: RandyManagerParams;
+      }
+    | {
+          algo: Algos.group;
+          kargs: GroupManagerParams;
+      }
+    | {
+          algo: Algos.extern;
+          kargs: ExternManagerParams;
+      };
 
 /**
  * Creates IdentifierManager instances based on the algorithm and key indexes.
@@ -112,11 +143,12 @@ export class IdentifierManagerFactory {
      * @param pidx
      * @param kargs
      */
-    new(algo: Algos, pidx: number, kargs: any) {
+    new(options: IdentifierManagerOptions, pidx: number) {
+        const { algo, kargs } = options;
         switch (algo) {
             case Algos.salty:
                 return new SaltyIdentifierManager(
-                    this.salter!,
+                    this.salter,
                     pidx,
                     kargs['kidx'],
                     kargs['tier'],
@@ -134,7 +166,7 @@ export class IdentifierManagerFactory {
                 );
             case Algos.randy:
                 return new RandyIdentifierManager(
-                    this.salter!,
+                    this.salter,
                     kargs['code'],
                     kargs['count'],
                     kargs['icodes'],
@@ -149,7 +181,7 @@ export class IdentifierManagerFactory {
             case Algos.group:
                 return new GroupIdentifierManager(
                     this,
-                    kargs['mhab'],
+                    kargs['mhab']!,
                     kargs['states'],
                     kargs['rstates'],
                     kargs['keys'],
@@ -501,7 +533,7 @@ export class RandyIdentifierManager implements IdentifierManager {
         transferable = false,
         ncode = MtrDex.Ed25519_Seed,
         ncount = 1,
-        ncodes: string[],
+        ncodes?: string[],
         dcode = MtrDex.Blake3_256,
         prxs: string[] | undefined = undefined,
         nxts: string[] | undefined = undefined
@@ -535,12 +567,13 @@ export class RandyIdentifierManager implements IdentifierManager {
 
         this.creator = new RandyCreator();
 
-        this.signers = this.prxs.map((prx) =>
-            this.decrypter.decrypt(
-                new Cipher({ qb64: prx }).qb64b,
-                undefined,
-                this.transferable
-            )
+        this.signers = this.prxs.map(
+            (prx) =>
+                this.decrypter.decrypt(
+                    new Cipher({ qb64: prx }).qb64b,
+                    undefined,
+                    this.transferable
+                ) as Signer
         );
     }
 
@@ -594,12 +627,13 @@ export class RandyIdentifierManager implements IdentifierManager {
         this.transferable = transferable;
         this.prxs = this.nxts;
 
-        const signers = this.nxts!.map((nxt) =>
-            this.decrypter.decrypt(
-                undefined,
-                new Cipher({ qb64: nxt }),
-                this.transferable
-            )
+        const signers = this.nxts!.map(
+            (nxt) =>
+                this.decrypter.decrypt(
+                    undefined,
+                    new Cipher({ qb64: nxt }),
+                    this.transferable
+                ) as Signer
         );
         const verfers = signers.map((signer) => signer.verfer.qb64);
         const nsigners = this.creator.create(
@@ -627,12 +661,13 @@ export class RandyIdentifierManager implements IdentifierManager {
         indices: number[] | undefined = undefined,
         ondices: number[] | undefined = undefined
     ): Promise<SignResult> {
-        const signers = this.prxs!.map((prx) =>
-            this.decrypter.decrypt(
-                new Cipher({ qb64: prx }).qb64b,
-                undefined,
-                this.transferable
-            )
+        const signers = this.prxs!.map(
+            (prx) =>
+                this.decrypter.decrypt(
+                    new Cipher({ qb64: prx }).qb64b,
+                    undefined,
+                    this.transferable
+                ) as Signer
         );
 
         if (indexed) {

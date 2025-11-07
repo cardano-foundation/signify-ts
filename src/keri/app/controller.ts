@@ -1,17 +1,23 @@
-import { SaltyCreator } from '../core/manager.ts';
-import { Salter, Tier } from '../core/salter.ts';
-import { MtrDex } from '../core/matter.ts';
-import { Diger } from '../core/diger.ts';
-import { incept, rotate, interact } from '../core/eventing.ts';
-import { Serder } from '../core/serder.ts';
-import { Tholder } from '../core/tholder.ts';
-import { Ilks, b, Serials, Vrsn_1_0 } from '../core/core.ts';
-import { Verfer } from '../core/verfer.ts';
-import { Encrypter } from '../core/encrypter.ts';
-import { Decrypter } from '../core/decrypter.ts';
+import { Tier } from '../../types/keria-api-schema.ts';
 import { Cipher } from '../core/cipher.ts';
-import { Seqner } from '../core/seqner.ts';
+import { b, Ilks, Serials, Vrsn_1_0 } from '../core/core.ts';
+import { Decrypter } from '../core/decrypter.ts';
+import { Diger } from '../core/diger.ts';
+import { Encrypter } from '../core/encrypter.ts';
+import {
+    incept,
+    interact,
+    rotate
+} from '../core/eventing.ts';
+import { SaltyCreator } from '../core/manager.ts';
+import { MtrDex } from '../core/matter.ts';
 import { CesrNumber } from '../core/number.ts';
+import { Salter } from '../core/salter.ts';
+import { Seqner } from '../core/seqner.ts';
+import { Serder } from '../core/serder.ts';
+import { Signer } from '../core/signer.ts';
+import { Tholder } from '../core/tholder.ts';
+import { Verfer } from '../core/verfer.ts';
 
 /**
  * Agent is a custodial entity that can be used in conjuntion with a local Client to establish the
@@ -227,11 +233,12 @@ export class Controller {
 
     approveDelegation(_agent: Agent) {
         const seqner = new Seqner({ sn: _agent.sn });
-        const anchor = { i: _agent.pre, s: seqner.snh, d: _agent.said };
-        const sn = new CesrNumber({}, undefined, this.serder.sad['s']).num + 1;
+        const anchor = { i: _agent.pre, s: seqner.snh, d: _agent.said! };
+        const sn = new CesrNumber({}, undefined, this.serder.sad['s'] as string).num + 1;
         this.serder = interact({
-            pre: this.serder.pre,
-            dig: this.serder.sad['d'],
+            // TODO: remove type cast once SerderKERI and SerderACDC introduced 
+            pre: this.serder.pre as string,
+            dig: this.serder.sad['d'] as string,
             sn: sn,
             data: [anchor],
             version: Vrsn_1_0,
@@ -241,7 +248,7 @@ export class Controller {
     }
 
     get pre(): string {
-        return this.serder.pre;
+        return this.serder.pre as string;
     }
 
     get event() {
@@ -265,7 +272,10 @@ export class Controller {
                 wits: [],
             });
         } else {
-            return new Serder({ sad: state.controller['ee'] });
+            return new Serder({
+                sad: state.controller['ee'],
+                d: '',
+            });
         }
     }
 
@@ -386,7 +396,11 @@ export class Controller {
                 const signers = [];
                 for (const prx of prxs) {
                     const cipher = new Cipher({ qb64: prx });
-                    const dsigner = decrypter.decrypt(null, cipher, true);
+                    const dsigner = decrypter.decrypt(
+                        null,
+                        cipher,
+                        true
+                    ) as Signer;
                     signers.push(dsigner);
                     nprxs.push(encrypter.encrypt(b(dsigner.qb64)).qb64);
                 }

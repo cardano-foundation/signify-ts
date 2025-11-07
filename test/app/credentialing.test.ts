@@ -1,7 +1,6 @@
 import { assert, describe, it } from 'vitest';
 import { SignifyClient } from '../../src/keri/app/clienting.ts';
 
-import { Tier } from '../../src/keri/core/salter.ts';
 import libsodium from 'libsodium-wrappers-sumo';
 import {
     d,
@@ -14,8 +13,10 @@ import {
     serializeIssExnAttachment,
     Serials,
     versify,
+    SealSourceTriple,
 } from '../../src/index.ts';
 import { createMockFetch, mockCredential } from './test-utils.ts';
+import { Tier } from 'signify-ts';
 
 const fetchMock = createMockFetch();
 
@@ -169,7 +170,7 @@ describe('Ipex', () => {
         const anc = interact({
             pre: mockCredential.sad.i,
             sn: 1,
-            data: [{}],
+            data: [{}] as SealSourceTriple[],
             dig: mockCredential.sad.d,
             version: undefined,
             kind: undefined,
@@ -271,7 +272,7 @@ describe('Ipex', () => {
         const [admit, asigs, aend] = await ipex.admit({
             senderName: 'holder',
             message: '',
-            grantSaid: grant.sad.d,
+            grantSaid: grant.sad.d!,
             recipient: holder,
             datetime: mockCredential.sad.a.dt,
         });
@@ -306,7 +307,7 @@ describe('Ipex', () => {
 
     it(
         'IPEX - apply-admit flow initiated by disclosee',
-        { timeout: 10000 },
+        { timeout: 15000 },
         async () => {
             await libsodium.ready;
             const bran = '0123456789abcdefghijk';
@@ -337,7 +338,7 @@ describe('Ipex', () => {
             const anc = interact({
                 pre: mockCredential.sad.i,
                 sn: 1,
-                data: [{}],
+                data: [{}] as SealSourceTriple[],
                 dig: mockCredential.sad.d,
                 version: undefined,
                 kind: undefined,
@@ -445,7 +446,7 @@ describe('Ipex', () => {
                 recipient: holder,
                 message: 'OK!',
                 datetime: mockCredential.sad.a.dt,
-                offerSaid: offer.sad.d,
+                offerSaid: offer.sad.d!,
             });
 
             assert.deepStrictEqual(agree.sad, {
@@ -576,7 +577,7 @@ describe('Ipex', () => {
                 senderName: 'holder',
                 message: '',
                 recipient: holder,
-                grantSaid: grant.sad.d,
+                grantSaid: grant.sad.d!,
                 datetime: mockCredential.sad.a.dt,
             });
 

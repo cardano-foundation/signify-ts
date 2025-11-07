@@ -1,21 +1,33 @@
-import { MtrDex } from './matter.ts';
 import {
     deversify,
-    Dict,
     Protocols,
     Serials,
     versify,
     Version,
     Vrsn_1_0,
 } from './core.ts';
-import { Verfer } from './verfer.ts';
 import { Diger } from './diger.ts';
+import {
+    DelegateInceptEventSAD,
+    InceptEventSAD,
+    InteractEventSAD,
+    ReplyEventSAD,
+    RotateEventSAD,
+} from './eventing.ts';
+import { MtrDex } from './matter.ts';
 import { CesrNumber } from './number.ts';
+import { Verfer } from './verfer.ts';
+
+export type SerderSADType = Record<string, unknown> & {
+    s?: string | number;
+    d: string;
+    i?: string;
+};
 
 export class Serder {
     private _kind: Serials;
     private _raw: string = '';
-    private _sad: Dict<any> = {};
+    protected _sad: SerderSADType;
     private _proto: Protocols = Protocols.KERI;
     private _size: number = 0;
     private _version: Version = Vrsn_1_0;
@@ -28,7 +40,7 @@ export class Serder {
      * @param code derivation code for the prefix
      */
     constructor(
-        sad: Dict<any>,
+        sad: SerderSADType,
         kind: Serials = Serials.JSON,
         code: string = MtrDex.Blake3_256
     ) {
@@ -42,11 +54,11 @@ export class Serder {
         this._size = raw.length;
     }
 
-    get sad(): Dict<any> {
+    get sad(): SerderSADType {
         return this._sad;
     }
 
-    get pre(): string {
+    get pre() {
         return this._sad['i'];
     }
 
@@ -58,7 +70,7 @@ export class Serder {
         return this._raw;
     }
 
-    get said(): string {
+    get said() {
         return this._sad['d'];
     }
 
@@ -82,9 +94,9 @@ export class Serder {
      * @private
      */
     private _exhale(
-        sad: Dict<any>,
+        sad: SerderSADType,
         kind: Serials
-    ): [string, Protocols, Serials, Dict<any>, Version] {
+    ): [string, Protocols, Serials, SerderSADType, Version] {
         return sizeify(sad, kind);
     }
 
@@ -100,10 +112,15 @@ export class Serder {
         return this._version;
     }
     get verfers(): Verfer[] {
-        let keys: any = [];
+        let keys: string[] = [];
         if ('k' in this._sad) {
             // establishment event
-            keys = this._sad['k'];
+            if (
+                Array.isArray(this._sad['k']) &&
+                this._sad['k'].map((item) => typeof item === 'string')
+            ) {
+                keys = this._sad['k'];
+            }
         } else {
             // non-establishment event
             keys = [];
@@ -117,10 +134,15 @@ export class Serder {
     }
 
     get digers(): Diger[] {
-        let keys: any = [];
+        let keys: string[] = [];
         if ('n' in this._sad) {
-            // establishment event
-            keys = this._sad['n'];
+            if (
+                Array.isArray(this._sad['n']) &&
+                this._sad['n'].map((item) => typeof item === 'string')
+            ) {
+                // establishment event
+                keys = this._sad['n'];
+            }
         } else {
             // non-establishment event
             keys = [];
@@ -146,15 +168,19 @@ export function dumps(sad: object, kind: Serials.JSON): string {
     }
 }
 
-export function sizeify(
-    ked: Dict<any>,
+export function sizeify<T extends object = Record<string, unknown>>(
+    ked: T,
     kind?: Serials
-): [string, Protocols, Serials, Dict<any>, Version] {
+): [string, Protocols, Serials, T, Version] {
     if (!('v' in ked)) {
         throw new Error('Missing or empty version string');
     }
 
-    const [proto, knd, version] = deversify(ked['v'] as string);
+    if (typeof ked['v'] !== 'string') {
+        throw new Error('Invalid version string');
+    }
+
+    const [proto, knd, version] = deversify(ked['v']);
     if (version != Vrsn_1_0) {
         throw new Error(`unsupported version ${version.toString()}`);
     }
@@ -171,4 +197,28 @@ export function sizeify(
     raw = dumps(ked, kind);
 
     return [raw, proto, kind, ked, version];
+}
+
+type KERISAD =
+    | RotateEventSAD
+    | InceptEventSAD
+    | DelegateInceptEventSAD
+    | InteractEventSAD
+    | ReplyEventSAD;
+
+export class SerderKERI<T extends KERISAD = KERISAD> extends Serder {
+    protected override _sad: T;
+
+    constructor(
+        sad: T,
+        kind: Serials = Serials.JSON,
+        code: string = MtrDex.Blake3_256
+    ) {
+        super(sad, kind, code);
+        this._sad = sad;
+    }
+
+    get sad(): T {
+        return this._sad;
+    }
 }

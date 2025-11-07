@@ -2,7 +2,12 @@ import libsodium from 'libsodium-wrappers-sumo';
 import { Signer } from '../../src/keri/core/signer.ts';
 import { assert, describe, it } from 'vitest';
 import { MtrDex } from '../../src/keri/core/matter.ts';
-import { incept, messagize, rotate } from '../../src/keri/core/eventing.ts';
+import {
+    incept,
+    messagize,
+    rotate,
+    Seal,
+} from '../../src/keri/core/eventing.ts';
 import { Saider } from '../../src/keri/core/saider.ts';
 import { Diger } from '../../src/keri/core/diger.ts';
 import { b, d, Ilks } from '../../src/keri/core/core.ts';
@@ -142,37 +147,31 @@ describe('key event function', () => {
         assert.equal(serder0.sad['t'], Ilks.icp);
         assert.equal(
             serder0.sad['d'],
-            'EIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL'
+            'EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ'
         );
         assert.equal(serder0.sad['d'], serder0.sad['i']);
         assert.equal(serder0.sad['s'], '0');
-        assert.equal(serder0.sad['kt'], 1);
-        assert.equal(serder0.sad['nt'], 1);
+        assert.equal(serder0.sad['kt'], '1');
+        assert.equal(serder0.sad['nt'], '1');
         assert.deepStrictEqual(serder0.sad['n'], nxt1);
-        assert.equal(serder0.sad['bt'], 0);
+        assert.equal(serder0.sad['bt'], '0');
         assert.equal(
             serder0.raw,
-            '{"v":"KERI10JSON000125_","t":"icp","d":"EIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5u' +
-                'k-WxvhsL","i":"EIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL","s":"0","kt":1,' +
-                '"k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":1,"n":["EIf-ENw7Pr' +
-                'M52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":0,"b":[],"c":[],"a":[]}'
+            '{"v":"KERI10JSON000127_","t":"icp","d":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","i":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","s":"0","kt":1,"k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":1,"n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":"0","b":[],"c":[],"a":[]}'
         );
 
         const siger = signer0.sign(b(serder0.raw), 0) as Siger;
         assert.equal(
             siger.qb64,
-            'AABB3MJGmBXxSEryNHw3YwZZLRl_6Ws4Me2WFq8PrQ6WlluSOpPqbwXuiG9RvNWZkqeW8A_0VRjokGMVRZ3m-c0I'
+            'AACr5FXGv1d5_9iXKuIL2cJpDdIem8aTDxlCETvqb4iQdbgEGuVQSInhGQ-A0uWNtmjtenFC7U8yXSgH3bNuDUIB'
         );
 
         const msg = messagize(serder0, [siger]);
         assert.equal(
             d(msg),
-            '{"v":"KERI10JSON000125_","t":"icp","d":"EIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL","i"' +
-                ':"EIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL","s":"0","kt":1,"k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],' +
-                '"nt":1,"n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":0,"b":[],"c":[],"a":[]}' +
-                '-AABAABB3MJGmBXxSEryNHw3YwZZLRl_6Ws4Me2WFq8PrQ6WlluSOpPqbwXuiG9RvNWZkqeW8A_0VRjokGMVRZ3m-c0I'
+            '{"v":"KERI10JSON000127_","t":"icp","d":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","i":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","s":"0","kt":1,"k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":1,"n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":"0","b":[],"c":[],"a":[]}-AABAACr5FXGv1d5_9iXKuIL2cJpDdIem8aTDxlCETvqb4iQdbgEGuVQSInhGQ-A0uWNtmjtenFC7U8yXSgH3bNuDUIB'
         );
-        const seal = [
+        const seal: Seal = [
             'SealEvent',
             {
                 i: 'EIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL',
@@ -183,11 +182,7 @@ describe('key event function', () => {
         const msgseal = messagize(serder0, [siger], seal);
         assert.equal(
             d(msgseal),
-            '{"v":"KERI10JSON000125_","t":"icp","d":"EIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL","i"' +
-                ':"EIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL","s":"0","kt":1,"k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"]' +
-                ',"nt":1,"n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":0,"b":[],"c":[],"a"' +
-                ':[]}-FABEIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL0AAAAAAAAAAAAAAAAAAAAAAAEIflL4H4134zYoRM6ls6Q086RLC_' +
-                'BhfNFh5uk-WxvhsL-AABAABB3MJGmBXxSEryNHw3YwZZLRl_6Ws4Me2WFq8PrQ6WlluSOpPqbwXuiG9RvNWZkqeW8A_0VRjokGMVRZ3m-c0I'
+            '{"v":"KERI10JSON000127_","t":"icp","d":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","i":"EBflKQj61qtpxL_tH4h7WkrKe3xpYWInUONzz8IaO4PJ","s":"0","kt":1,"k":["DFs8BBx86uytIM0D2BhsE5rrqVIT8ef8mflpNceHo4XH"],"nt":1,"n":["EIf-ENw7PrM52w4H-S7NGU2qVIfraXVIlV9hEAaMHg7W"],"bt":"0","b":[],"c":[],"a":[]}-FABEIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL0AAAAAAAAAAAAAAAAAAAAAAAEIflL4H4134zYoRM6ls6Q086RLC_BhfNFh5uk-WxvhsL-AABAACr5FXGv1d5_9iXKuIL2cJpDdIem8aTDxlCETvqb4iQdbgEGuVQSInhGQ-A0uWNtmjtenFC7U8yXSgH3bNuDUIB'
         );
     });
 
@@ -204,7 +199,7 @@ describe('key event function', () => {
             return rotate({
                 keys: keys0,
                 pre: serder.sad.i,
-                ndigs: serder.sad.n,
+                ndigs: serder.sad.n as string[],
                 sn,
                 isith: 1,
                 nsith: 1,

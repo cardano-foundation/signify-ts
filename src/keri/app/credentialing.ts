@@ -1,26 +1,26 @@
-import { SignifyClient } from './clienting.ts';
-import { interact, messagize } from '../core/eventing.ts';
-import { vdr } from '../core/vdring.ts';
 import {
     b,
     d,
     Dict,
-    Protocols,
     Ilks,
+    Protocols,
     Serials,
     versify,
     Vrsn_1_0,
 } from '../core/core.ts';
+import { interact, SealSourceTriple, messagize } from '../core/eventing.ts';
+import { HabState } from '../core/keyState.ts';
 import { Saider } from '../core/saider.ts';
 import { Serder } from '../core/serder.ts';
 import { Siger } from '../core/siger.ts';
-import { TraitDex } from './habery.ts';
 import {
     serializeACDCAttachment,
     serializeIssExnAttachment,
 } from '../core/utils.ts';
+import { vdr } from '../core/vdring.ts';
+import { SignifyClient } from './clienting.ts';
 import { Operation } from './coring.ts';
-import { HabState } from '../core/keyState.ts';
+import { TraitDex } from './habery.ts';
 
 import { components } from '../../types/keria-api-schema.ts';
 
@@ -378,9 +378,9 @@ export class Credentials {
             sn: sn + 1,
             data: [
                 {
-                    i: iss.i,
-                    s: iss.s,
-                    d: iss.d,
+                    i: iss.i as string,
+                    s: iss.s as string,
+                    d: iss.d as string,
                 },
             ],
             dig: hab.state.d,
@@ -457,24 +457,20 @@ export class Credentials {
         const [, rev] = Saider.saidify(_rev);
 
         // create ixn
-        let ixn = {};
+        let ixn;
         let sigs = [];
 
         const state = hab.state;
-        if (state.c !== undefined && state.c.includes('EO')) {
-            var estOnly = true;
-        } else {
-            var estOnly = false;
-        }
+        const estOnly = state.c !== undefined && state.c.includes('EO');
 
         const sn = parseInt(state.s, 16);
         const dig = state.d;
 
-        const data: any = [
+        const data: SealSourceTriple[] = [
             {
-                i: rev.i,
-                s: rev.s,
-                d: rev.d,
+                i: rev.i as string,
+                s: rev.s as string,
+                d: rev.d as string,
             },
         ];
 
