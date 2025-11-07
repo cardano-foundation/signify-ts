@@ -16,7 +16,7 @@ import { CesrNumber } from './number.ts';
 import { Prefixer } from './prefixer.ts';
 import { Saider } from './saider.ts';
 import { Seqner } from './seqner.ts';
-import { Serder } from './serder.ts';
+import { Serder, SerderKERI } from './serder.ts';
 import { Siger } from './siger.ts';
 import { Tholder } from './tholder.ts';
 
@@ -49,7 +49,7 @@ export interface EndRoleAddAttributes {
     eid?: string;
 }
 
-type RotateEventSAD =
+export type RotateEventSAD =
     | (Omit<components['schemas']['ROT_V_1'], 'bt'> & { bt: string | number })
     | (Omit<components['schemas']['ROT_V_2'], 'bt'> & { bt: string | number });
 
@@ -77,7 +77,7 @@ export type InteractEventSAD =
     | components['schemas']['IXN_V_1']
     | components['schemas']['IXN_V_2'];
 
-type ReplyEventSAD =
+export type ReplyEventSAD =
     | components['schemas']['RPY_V_1']
     | components['schemas']['RPY_V_2'];
 
@@ -272,7 +272,7 @@ export function rotate({
         a: data,
     };
     const [, sad] = Saider.saidify(_sad);
-    return new Serder(sad);
+    return new SerderKERI(sad);
 }
 
 export function ample(n: number, f?: number, weak = true) {
@@ -445,11 +445,11 @@ export function incept({
     sad['i'] = prefixer.qb64;
     if (prefixer.digestive) {
         sad['d'] = prefixer.qb64;
-        return new Serder(sad);
+        return new SerderKERI(sad);
     }
 
     const [, saidifySAD] = Saider.saidify(sad);
-    return new Serder(saidifySAD);
+    return new SerderKERI(saidifySAD);
 }
 
 export function messagize(
@@ -597,7 +597,7 @@ export function interact(args: InteractArgs): Serder {
 
     const [, sadifySAD] = Saider.saidify(sad);
 
-    return new Serder(sadifySAD);
+    return new SerderKERI(sadifySAD);
 }
 
 export function reply(
@@ -629,5 +629,5 @@ export function reply(
 
     if (!saider.verify(sad, true, true, kind, 'd'))
         throw new Error(`Invalid said = ${saider.qb64} for reply msg=${sad}.`);
-    return new Serder(sad);
+    return new SerderKERI(sad);
 }

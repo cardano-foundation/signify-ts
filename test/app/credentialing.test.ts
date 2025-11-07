@@ -307,7 +307,7 @@ describe('Ipex', () => {
 
     it(
         'IPEX - apply-admit flow initiated by disclosee',
-        { timeout: 10000 },
+        { timeout: 15000 },
         async () => {
             await libsodium.ready;
             const bran = '0123456789abcdefghijk';

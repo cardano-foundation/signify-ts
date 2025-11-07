@@ -51,7 +51,11 @@ describe('Prefixer', () => {
             c: cnfg, // list of config ordered mappings may be empty
         };
 
-        prefixer = new Prefixer({ code: MtrDex.Blake3_256 }, ked);
+        prefixer = new Prefixer(
+            { code: MtrDex.Blake3_256 },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ked as any
+        );
         assert.equal(
             prefixer.qb64,
             'ELEjyRTtmfyp4VpTBTkv_b6KONMS1V8-EW-aGJ5P_QMo'

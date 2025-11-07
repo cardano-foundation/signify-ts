@@ -1,4 +1,4 @@
-import { Serder } from 'signify-ts';
+import { Serder, SerderSADType } from 'signify-ts';
 import { assert, test } from 'vitest';
 import {
     assertOperations,
@@ -81,7 +81,7 @@ test('challenge', async () => {
 
     //Alice mark response as accepted
     const verifyResponse = verifyOperation.response as {
-        exn: Record<string, unknown>;
+        exn: SerderSADType;
     };
     const exn = new Serder(verifyResponse.exn);
 

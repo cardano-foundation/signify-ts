@@ -50,18 +50,23 @@ export class Saider extends Matter {
         }
     }
 
-    private static _derive(
-        sad: Record<string, unknown>,
+    private static _derive<
+        T extends Record<string, unknown> = Record<string, unknown>,
+    >(
+        sad: T,
         code: string,
         kind: Serials | undefined,
         label: string
-    ): [Uint8Array, Record<string, unknown>] {
+    ): [Uint8Array, T] {
         if (!DigiDex.has(code)) {
             throw new Error(`Unsupported digest code = ${code}.`);
         }
 
         sad = { ...sad };
-        sad[label] = ''.padStart(Matter.Sizes.get(code)!.fs!, Dummy);
+        (sad as Record<string, unknown>)[label] = ''.padStart(
+            Matter.Sizes.get(code)!.fs!,
+            Dummy
+        );
         if ('v' in sad) {
             [, , kind, sad] = sizeify(sad, kind);
         }
@@ -138,12 +143,14 @@ export class Saider extends Matter {
         return dumps(sad, knd);
     }
 
-    public static saidify(
-        sad: Record<string, unknown>,
+    public static saidify<
+        T extends Record<string, unknown> = Record<string, unknown>,
+    >(
+        sad: T,
         code: string = MtrDex.Blake3_256,
         kind: Serials = Serials.JSON,
         label: string = Ids.d
-    ): [Saider, Record<string, unknown>] {
+    ): [Saider, T] {
         if (!(label in sad)) {
             throw new Error(`Missing id field labeled=${label} in sad.`);
         }
@@ -155,7 +162,7 @@ export class Saider extends Matter {
             kind,
             label
         );
-        derivedSad[label] = saider.qb64;
+        (derivedSad as Record<string, unknown>)[label] = saider.qb64;
         return [saider, derivedSad];
     }
 }

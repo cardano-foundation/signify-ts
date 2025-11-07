@@ -198,7 +198,7 @@ describe('key event function', () => {
         function createRotation(sn: number) {
             return rotate({
                 keys: keys0,
-                pre: serder.sad.i!,
+                pre: serder.sad.i,
                 ndigs: serder.sad.n as string[],
                 sn,
                 isith: 1,

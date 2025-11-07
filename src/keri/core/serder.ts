@@ -7,20 +7,27 @@ import {
     Vrsn_1_0,
 } from './core.ts';
 import { Diger } from './diger.ts';
+import {
+    DelegateInceptEventSAD,
+    InceptEventSAD,
+    InteractEventSAD,
+    ReplyEventSAD,
+    RotateEventSAD,
+} from './eventing.ts';
 import { MtrDex } from './matter.ts';
 import { CesrNumber } from './number.ts';
 import { Verfer } from './verfer.ts';
 
-type SerderSAD = Record<string, unknown> & {
+export type SerderSADType = Record<string, unknown> & {
     s?: string | number;
-    d?: string;
+    d: string;
     i?: string;
 };
 
 export class Serder {
     private _kind: Serials;
     private _raw: string = '';
-    private _sad: SerderSAD;
+    protected _sad: SerderSADType;
     private _proto: Protocols = Protocols.KERI;
     private _size: number = 0;
     private _version: Version = Vrsn_1_0;
@@ -33,7 +40,7 @@ export class Serder {
      * @param code derivation code for the prefix
      */
     constructor(
-        sad: SerderSAD,
+        sad: SerderSADType,
         kind: Serials = Serials.JSON,
         code: string = MtrDex.Blake3_256
     ) {
@@ -47,7 +54,7 @@ export class Serder {
         this._size = raw.length;
     }
 
-    get sad(): SerderSAD {
+    get sad(): SerderSADType {
         return this._sad;
     }
 
@@ -87,9 +94,9 @@ export class Serder {
      * @private
      */
     private _exhale(
-        sad: SerderSAD,
+        sad: SerderSADType,
         kind: Serials
-    ): [string, Protocols, Serials, SerderSAD, Version] {
+    ): [string, Protocols, Serials, SerderSADType, Version] {
         return sizeify(sad, kind);
     }
 
@@ -161,10 +168,10 @@ export function dumps(sad: object, kind: Serials.JSON): string {
     }
 }
 
-export function sizeify(
-    ked: SerderSAD,
+export function sizeify<T extends object = Record<string, unknown>>(
+    ked: T,
     kind?: Serials
-): [string, Protocols, Serials, SerderSAD, Version] {
+): [string, Protocols, Serials, T, Version] {
     if (!('v' in ked)) {
         throw new Error('Missing or empty version string');
     }
@@ -190,4 +197,28 @@ export function sizeify(
     raw = dumps(ked, kind);
 
     return [raw, proto, kind, ked, version];
+}
+
+type KERISAD =
+    | RotateEventSAD
+    | InceptEventSAD
+    | DelegateInceptEventSAD
+    | InteractEventSAD
+    | ReplyEventSAD;
+
+export class SerderKERI<T extends KERISAD = KERISAD> extends Serder {
+    protected override _sad: T;
+
+    constructor(
+        sad: T,
+        kind: Serials = Serials.JSON,
+        code: string = MtrDex.Blake3_256
+    ) {
+        super(sad, kind, code);
+        this._sad = sad;
+    }
+
+    get sad(): T {
+        return this._sad;
+    }
 }
