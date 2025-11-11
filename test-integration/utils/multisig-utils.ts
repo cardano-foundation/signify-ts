@@ -1,16 +1,16 @@
+import assert from 'assert';
 import signify, {
     Algos,
     CreateIdentiferArgs,
     CredentialData,
-    Serder,
+    HabState,
+    SerderKERI,
     Siger,
     SignifyClient,
     d,
     messagize,
-    HabState,
 } from 'signify-ts';
 import { getStates, waitAndMarkNotification } from './test-util.ts';
-import assert from 'assert';
 
 export interface AcceptMultisigInceptArgs {
     groupName: string;
@@ -367,9 +367,9 @@ export async function grantMultisig(
 
     const [grant, sigs, end] = await client.ipex().grant({
         senderName: multisigAID.name,
-        acdc: new Serder(credential.sad),
-        anc: new Serder(credential.anc),
-        iss: new Serder(credential.iss),
+        acdc: new SerderKERI(credential.sad),
+        anc: new SerderKERI(credential.anc),
+        iss: new SerderKERI(credential.iss),
         recipient: recipientAID.prefix,
         datetime: timestamp,
     });

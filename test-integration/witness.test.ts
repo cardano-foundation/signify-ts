@@ -18,7 +18,7 @@ test('test witness', async () => {
     console.log('Witness OOBI resolved');
 
     // Client 1 creates AID with 1 witness
-    let icpResult1 = await client1.identifiers().create('aid1', {
+    const icpResult1 = await client1.identifiers().create('aid1', {
         toad: 1,
         wits: [WITNESS_AID],
     });
@@ -28,27 +28,27 @@ test('test witness', async () => {
     assert.equal(aid1.state.b.length, 1);
     assert.equal(aid1.state.b[0], WITNESS_AID);
 
-    icpResult1 = await client1.identifiers().rotate('aid1');
-    await waitOperation(client1, await icpResult1.op());
+    let rotateAID1Result = await client1.identifiers().rotate('aid1');
+    await waitOperation(client1, await rotateAID1Result.op());
     aid1 = await client1.identifiers().get('aid1');
     assert.equal(aid1.state.b.length, 1);
     assert.equal(aid1.state.b[0], WITNESS_AID);
 
     // Remove witness
-    icpResult1 = await client1
+    rotateAID1Result = await client1
         .identifiers()
         .rotate('aid1', { cuts: [WITNESS_AID] });
-    await waitOperation(client1, await icpResult1.op());
+    await waitOperation(client1, await rotateAID1Result.op());
     aid1 = await client1.identifiers().get('aid1');
     assert.equal(aid1.state.b.length, 0);
 
     // Add witness again
 
-    icpResult1 = await client1
+    rotateAID1Result = await client1
         .identifiers()
         .rotate('aid1', { adds: [WITNESS_AID] });
 
-    await waitOperation(client1, await icpResult1.op());
+    await waitOperation(client1, await rotateAID1Result.op());
     aid1 = await client1.identifiers().get('aid1');
     assert.equal(aid1.state.b.length, 1);
     assert.equal(aid1.state.b.length, 1);

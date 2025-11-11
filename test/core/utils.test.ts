@@ -1,7 +1,8 @@
+import { assert, describe, it } from 'vitest';
 import {
     Protocols,
     Saider,
-    Serder,
+    SerderKERI,
     Serials,
     d,
     versify,
@@ -10,7 +11,6 @@ import {
     serializeACDCAttachment,
     serializeIssExnAttachment,
 } from '../../src/keri/core/utils.ts';
-import { describe, it, assert } from 'vitest';
 
 describe(serializeIssExnAttachment.name, () => {
     it('serializes iss data', () => {
@@ -19,7 +19,7 @@ describe(serializeIssExnAttachment.name, () => {
             v: versify(Protocols.KERI, undefined, Serials.JSON, 0),
         });
 
-        const result = serializeIssExnAttachment(new Serder(data));
+        const result = serializeIssExnAttachment(new SerderKERI(data));
 
         assert.equal(
             d(result),
@@ -39,7 +39,7 @@ describe(serializeACDCAttachment.name, () => {
             },
         });
 
-        const result = serializeACDCAttachment(new Serder(data));
+        const result = serializeACDCAttachment(new SerderKERI(data));
 
         assert.equal(
             d(result),

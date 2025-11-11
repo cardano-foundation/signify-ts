@@ -4,6 +4,7 @@ import {
     Authenticater,
     Controller,
     CreateIdentiferArgs,
+    DelegateInceptEventSAD,
     HEADER_SIG_TIME,
     IdentifierManagerFactory,
     MtrDex,
@@ -119,7 +120,7 @@ export async function createMockIdentifierState(
             dt: new Date().toISOString().replace('Z', '000+00:00'),
             et: '',
             c: [],
-            di: serder.sad.di ?? '',
+            di: (serder.sad as DelegateInceptEventSAD).di ?? '',
         } as KeyState,
         icp_dt: '2023-12-01T10:05:25.062609+00:00',
     } as unknown as HabState;

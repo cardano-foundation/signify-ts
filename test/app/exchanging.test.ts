@@ -1,3 +1,4 @@
+import libsodium from 'libsodium-wrappers-sumo';
 import { assert, describe, it } from 'vitest';
 import {
     b,
@@ -7,10 +8,9 @@ import {
     Ilks,
     MtrDex,
     Salter,
-    Serder,
+    SerderKERI,
     Tier,
 } from '../../src/index.ts';
-import libsodium from 'libsodium-wrappers-sumo';
 import { SignifyClient } from '../../src/keri/app/clienting.ts';
 import { createMockFetch } from './test-utils.ts';
 
@@ -90,7 +90,7 @@ describe('exchange', () => {
             a: [],
         };
 
-        const serder = new Serder(ked0);
+        const serder = new SerderKERI(ked0);
         const siger = skp0.sign(b(serder.raw), 0);
         assert.equal(
             siger.qb64,
@@ -106,7 +106,7 @@ describe('exchange', () => {
             bt: toad.toString(16),
             b: [],
         };
-        const vcp = new Serder(ked1);
+        const vcp = new SerderKERI(ked1);
 
         const embeds = {
             icp: [serder, siger.qb64],
@@ -229,7 +229,7 @@ describe('exchange', () => {
             a: [],
         };
 
-        const serder = new Serder(ked0);
+        const serder = new SerderKERI(ked0);
 
         let lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
         await exchange.sendFromEvents('aid1', '', serder, [''], '', []);

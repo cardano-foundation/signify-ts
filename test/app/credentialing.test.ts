@@ -1,20 +1,20 @@
 import { assert, describe, it } from 'vitest';
 import { SignifyClient } from '../../src/keri/app/clienting.ts';
 
-import { Tier } from '../../src/keri/core/salter.ts';
 import libsodium from 'libsodium-wrappers-sumo';
 import {
     d,
-    Protocols,
     Ilks,
     interact,
+    Protocols,
     Saider,
-    Serder,
+    SerderKERI,
     serializeACDCAttachment,
     serializeIssExnAttachment,
     Serials,
     versify,
 } from '../../src/index.ts';
+import { Tier } from '../../src/keri/core/salter.ts';
 import { createMockFetch, mockCredential } from './test-utils.ts';
 
 const fetchMock = createMockFetch();
@@ -165,7 +165,7 @@ describe('Ipex', () => {
         };
 
         const [, iss] = Saider.saidify(_iss);
-        const iserder = new Serder(iss);
+        const iserder = new SerderKERI(iss);
         const anc = interact({
             pre: mockCredential.sad.i,
             sn: 1,
@@ -179,7 +179,7 @@ describe('Ipex', () => {
             senderName: 'multisig',
             recipient: holder,
             message: '',
-            acdc: new Serder(acdc),
+            acdc: new SerderKERI(acdc),
             iss: iserder,
             anc,
             datetime: mockCredential.sad.a.dt,
@@ -247,7 +247,7 @@ describe('Ipex', () => {
             senderName: 'multisig',
             recipient: holder,
             message: '',
-            acdc: new Serder(acdc),
+            acdc: new SerderKERI(acdc),
             acdcAttachment: d(serializeACDCAttachment(iserder)),
             iss: iserder,
             issAttachment: d(serializeIssExnAttachment(anc)),
@@ -333,7 +333,7 @@ describe('Ipex', () => {
             };
 
             const [, iss] = Saider.saidify(_iss);
-            const iserder = new Serder(iss);
+            const iserder = new SerderKERI(iss);
             const anc = interact({
                 pre: mockCredential.sad.i,
                 sn: 1,
@@ -389,7 +389,7 @@ describe('Ipex', () => {
                 senderName: 'multisig',
                 recipient: holder,
                 message: 'How about this',
-                acdc: new Serder(acdc),
+                acdc: new SerderKERI(acdc),
                 datetime: mockCredential.sad.a.dt,
                 applySaid: apply.sad.d,
             });
@@ -481,7 +481,7 @@ describe('Ipex', () => {
                 senderName: 'multisig',
                 recipient: holder,
                 message: '',
-                acdc: new Serder(acdc),
+                acdc: new SerderKERI(acdc),
                 iss: iserder,
                 anc,
                 datetime: mockCredential.sad.a.dt,
@@ -550,7 +550,7 @@ describe('Ipex', () => {
                 senderName: 'multisig',
                 recipient: holder,
                 message: '',
-                acdc: new Serder(acdc),
+                acdc: new SerderKERI(acdc),
                 acdcAttachment: d(serializeACDCAttachment(iserder)),
                 iss: iserder,
                 issAttachment: d(serializeIssExnAttachment(anc)),
@@ -626,7 +626,7 @@ describe('Ipex', () => {
             senderName: 'multisig',
             recipient: holder,
             message: 'Offering this',
-            acdc: new Serder(acdc),
+            acdc: new SerderKERI(acdc),
             datetime: mockCredential.sad.a.dt,
         });
 

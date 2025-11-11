@@ -1,17 +1,17 @@
 import { randomNonce } from '../app/coring.ts';
 import { TraitDex } from '../app/habery.ts';
 import {
-    Serials,
-    Vrsn_1_0,
-    Version,
-    Protocols,
-    versify,
     Ilks,
+    Protocols,
+    Serials,
+    versify,
+    Version,
+    Vrsn_1_0,
 } from '../core/core.ts';
 import { ample } from './eventing.ts';
 import { MtrDex } from './matter.ts';
 import { Prefixer } from './prefixer.ts';
-import { Serder } from './serder.ts';
+import { SerderKERI, SerderSAD } from './serder.ts';
 
 namespace vdr {
     export interface VDRInceptArgs {
@@ -25,6 +25,18 @@ namespace vdr {
         code?: string;
     }
 
+    export interface VDRInceptSAD extends SerderSAD {
+        v: string;
+        t: string;
+        i: string;
+        ii: string;
+        s: string;
+        c: string[];
+        bt: string;
+        b: string[];
+        n: string;
+    }
+
     export function incept({
         pre,
         toad,
@@ -34,7 +46,7 @@ namespace vdr {
         version = Vrsn_1_0,
         kind = Serials.JSON,
         code = MtrDex.Blake3_256,
-    }: VDRInceptArgs): Serder {
+    }: VDRInceptArgs) {
         const vs = versify(Protocols.KERI, version, kind, 0);
         const isn = 0;
         const ilk = Ilks.vcp;
@@ -70,7 +82,7 @@ namespace vdr {
             }
         }
 
-        const sad = {
+        const sad: VDRInceptSAD = {
             v: vs,
             t: ilk,
             d: '',
@@ -87,7 +99,7 @@ namespace vdr {
         sad.i = prefixer.qb64;
         sad.d = prefixer.qb64;
 
-        return new Serder(sad);
+        return new SerderKERI(sad);
     }
 }
 

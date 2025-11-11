@@ -1,5 +1,5 @@
 import { assert, test } from 'vitest';
-import { Saider, Serder, SignifyClient } from 'signify-ts';
+import { Saider, SerderKERI, SignifyClient } from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import {
     Aid,
@@ -500,9 +500,9 @@ async function sendGrantMessage(
 ) {
     const [grant, gsigs, gend] = await senderClient.ipex().grant({
         senderName: senderAid.name,
-        acdc: new Serder(credential.sad),
-        anc: new Serder(credential.anc),
-        iss: new Serder(credential.iss),
+        acdc: new SerderKERI(credential.sad),
+        anc: new SerderKERI(credential.anc),
+        iss: new SerderKERI(credential.iss),
         ancAttachment: credential.ancAttachment,
         recipient: recipientAid.prefix,
         datetime: createTimestamp(),

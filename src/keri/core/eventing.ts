@@ -1,29 +1,62 @@
+import { components } from '../../types/keria-api-schema.ts';
+import { Cigar } from './cigar.ts';
 import {
     b,
     concat,
-    Dict,
-    Protocols,
     Ilks,
+    Protocols,
     Serials,
     versify,
     Version,
     Vrsn_1_0,
 } from './core.ts';
-import { Tholder } from './tholder.ts';
+import { Counter, CtrDex } from './counter.ts';
+import { MtrDex, NonTransDex } from './matter.ts';
 import { CesrNumber } from './number.ts';
 import { Prefixer } from './prefixer.ts';
-import { Serder } from './serder.ts';
-import { MtrDex, NonTransDex } from './matter.ts';
 import { Saider } from './saider.ts';
-import { Siger } from './siger.ts';
-import { Cigar } from './cigar.ts';
-import { Counter, CtrDex } from './counter.ts';
 import { Seqner } from './seqner.ts';
+import { SerderKERI } from './serder.ts';
+import { Siger } from './siger.ts';
+import { Tholder } from './tholder.ts';
 
 const MaxIntThold = 2 ** 32 - 1;
 
+export type RotateEventSAD =
+    | (Omit<components['schemas']['ROT_V_1'], 'bt'> & { bt: string | number })
+    | (Omit<components['schemas']['ROT_V_2'], 'bt'> & { bt: string | number });
+
+export type InceptEventSAD =
+    | (Omit<components['schemas']['ICP_V_1'], 'kt' | 'nt' | 'bt'> & {
+          kt: number | string | string[] | string[][];
+          nt: number | string | string[] | string[][];
+          bt: string | number;
+          p?: string;
+      })
+    | (Omit<components['schemas']['ICP_V_2'], 'kt' | 'nt' | 'bt'> & {
+          kt: number | string | string[] | string[][];
+          nt: number | string | string[] | string[][];
+          bt: string | number;
+          p?: string;
+      });
+
+export type DelegateInceptEventSAD = (
+    | components['schemas']['DIP_V_1']
+    | components['schemas']['DIP_V_2']
+) & {
+    p?: string;
+};
+
+export type InteractEventSAD =
+    | components['schemas']['IXN_V_1']
+    | components['schemas']['IXN_V_2'];
+
+export type ReplyEventSAD =
+    | components['schemas']['RPY_V_1']
+    | components['schemas']['RPY_V_2'];
+
 export interface RotateArgs {
-    pre?: string;
+    pre: string;
     keys: Array<string>;
     dig?: string;
     ilk?: string;
@@ -44,23 +77,23 @@ export interface RotateArgs {
 }
 
 export function rotate({
-    pre = undefined,
+    pre,
     keys,
-    dig = undefined,
+    dig = '',
     ilk = Ilks.rot,
     sn = 1,
     isith = undefined,
     ndigs = undefined,
     nsith = undefined,
     wits = undefined,
-    cuts = undefined,
-    adds = undefined,
+    cuts = [],
+    adds = [],
     toad = undefined,
-    data = undefined,
+    data = [],
     version = undefined,
     kind = undefined,
     intive = true,
-}: RotateArgs) {
+}: RotateArgs): SerderKERI<RotateEventSAD> {
     const vs = versify(Protocols.KERI, version, kind, 0);
     const _ilk = ilk;
     if (_ilk != Ilks.rot && _ilk != Ilks.drt) {
@@ -198,7 +231,7 @@ export function rotate({
             throw new Error(`Invalid toad = ${_toad} for wit = ${wits}`);
         }
     }
-    const _sad = {
+    const _sad: RotateEventSAD = {
         v: vs,
         t: _ilk,
         d: '',
@@ -227,10 +260,10 @@ export function rotate({
                 : _toad.toString(16),
         br: cuts,
         ba: adds,
-        a: data != undefined ? data : [],
+        a: data,
     };
     const [, sad] = Saider.saidify(_sad);
-    return new Serder(sad);
+    return new SerderKERI<RotateEventSAD>(sad);
 }
 
 export function ample(n: number, f?: number, weak = true) {
@@ -298,7 +331,7 @@ export function incept({
     code,
     intive = false,
     delpre,
-}: InceptArgs) {
+}: InceptArgs): SerderKERI<InceptEventSAD | DelegateInceptEventSAD> {
     const vs = versify(Protocols.KERI, version, kind, 0);
     const ilk = delpre == undefined ? Ilks.icp : Ilks.dip;
     const sner = new CesrNumber({}, 0);
@@ -358,7 +391,7 @@ export function incept({
     cnfg = cnfg == undefined ? new Array<string>() : cnfg;
     data = data == undefined ? new Array<object>() : data;
 
-    let sad = {
+    let sad: InceptEventSAD | DelegateInceptEventSAD = {
         v: vs,
         t: ilk,
         d: '',
@@ -366,16 +399,16 @@ export function incept({
         s: sner.numh,
         kt: intive && tholder.num != undefined ? tholder.num : tholder.sith,
         k: keys,
-        nt: intive && tholder.num != undefined ? ntholder.num : ntholder.sith,
+        nt: intive && tholder.num != undefined ? ntholder.num! : ntholder.sith,
         n: ndigs,
         bt: intive ? toader.num : toader.numh,
         b: wits,
         c: cnfg,
         a: data,
-    } as Dict<any>;
+    };
 
     if (delpre != undefined) {
-        sad['di'] = delpre;
+        (sad as DelegateInceptEventSAD)['di'] = delpre;
         if (code == undefined) {
             code = MtrDex.Blake3_256;
         }
@@ -407,11 +440,11 @@ export function incept({
         [, sad] = Saider.saidify(sad);
     }
 
-    return new Serder(sad);
+    return new SerderKERI(sad);
 }
 
 export function messagize(
-    serder: Serder,
+    serder: SerderKERI,
     sigers?: Array<Siger>,
     seal?: any,
     wigers?: Array<Cigar>,
@@ -530,8 +563,9 @@ interface InteractArgs {
     kind: Serials | undefined;
 }
 
-export function interact(args: InteractArgs): Serder {
-    let { pre, dig, sn, data, version, kind } = args;
+export function interact(args: InteractArgs) {
+    let { data } = args;
+    const { pre, dig, sn, version, kind } = args;
     const vs = versify(Protocols.KERI, version, kind, 0);
     const ilk = Ilks.ixn;
     const sner = new CesrNumber({}, sn);
@@ -542,7 +576,7 @@ export function interact(args: InteractArgs): Serder {
 
     data = data == undefined ? new Array<any>() : data;
 
-    let sad = {
+    let sad: InteractEventSAD = {
         v: vs,
         t: ilk,
         d: '',
@@ -550,11 +584,11 @@ export function interact(args: InteractArgs): Serder {
         s: sner.numh,
         p: dig,
         a: data,
-    } as Dict<any>;
+    };
 
     [, sad] = Saider.saidify(sad);
 
-    return new Serder(sad);
+    return new SerderKERI(sad);
 }
 
 export function reply(
@@ -568,7 +602,7 @@ export function reply(
     if (data == undefined) {
         data = {};
     }
-    const _sad = {
+    const _sad: ReplyEventSAD = {
         v: vs,
         t: Ilks.rpy,
         d: '',
@@ -581,5 +615,5 @@ export function reply(
 
     if (!saider.verify(sad, true, true, kind, 'd'))
         throw new Error(`Invalid said = ${saider.qb64} for reply msg=${sad}.`);
-    return new Serder(sad);
+    return new SerderKERI<ReplyEventSAD>(sad);
 }

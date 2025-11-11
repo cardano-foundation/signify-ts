@@ -1,10 +1,19 @@
 import { Tier } from '../core/salter.ts';
 import { Algos } from '../core/manager.ts';
-import { incept, interact, reply, rotate } from '../core/eventing.ts';
+import {
+    incept,
+    InceptEventSAD,
+    interact,
+    InteractEventSAD,
+    reply,
+    ReplyEventSAD,
+    rotate,
+    RotateEventSAD,
+} from '../core/eventing.ts';
 import { b, Ilks, Serials, Vrsn_1_0 } from '../core/core.ts';
 import { Tholder } from '../core/tholder.ts';
 import { MtrDex } from '../core/matter.ts';
-import { Serder } from '../core/serder.ts';
+import { SerderKERI } from '../core/serder.ts';
 import { parseRangeHeaders } from '../core/httping.ts';
 import { IdentifierManagerFactory } from '../core/keeping.ts';
 import { HabState } from '../core/keyState.ts';
@@ -149,12 +158,12 @@ export class Identifier {
      * @async
      * @param {string} name Name or alias of the identifier
      * @param {CreateIdentiferArgs} [kargs] Optional parameters to create the identifier
-     * @returns {EventResult} The inception result
+     * @returns {EventResult<SerderKERI<InceptEventSAD>>} The inception result
      */
     async create(
         name: string,
         kargs: CreateIdentiferArgs = {}
-    ): Promise<EventResult> {
+    ): Promise<EventResult<SerderKERI<InceptEventSAD>>> {
         const algo = kargs.algo == undefined ? Algos.salty : kargs.algo;
 
         const transferable = kargs.transferable ?? true;
@@ -217,7 +226,7 @@ export class Identifier {
         const keeper = this.client.manager!.new(algo, this.client.pidx, xargs);
         const [keys, ndigs] = await keeper!.incept(transferable);
         wits = wits !== undefined ? wits : [];
-        let serder: Serder | undefined = undefined;
+        let serder: SerderKERI<InceptEventSAD> | undefined = undefined;
         if (delpre == undefined) {
             serder = incept({
                 keys: keys!,
@@ -278,9 +287,9 @@ export class Identifier {
      * @async
      * @param {string} name Prefix or alias of the identifier
      * @param {any} [data] Option data to be anchored in the interaction event
-     * @returns {Promise<EventResult>} A promise to the interaction event result
+     * @returns {Promise<EventResult<SerderKERI<InteractEventSAD>>>} A promise to the interaction event result
      */
-    async interact(name: string, data?: any): Promise<EventResult> {
+    async interact(name: string, data?: any) {
         const { serder, sigs, jsondata } = await this.createInteract(
             name,
             data
@@ -297,7 +306,11 @@ export class Identifier {
     async createInteract(
         name: string,
         data?: any
-    ): Promise<{ serder: any; sigs: any; jsondata: any }> {
+    ): Promise<{
+        serder: SerderKERI<InteractEventSAD>;
+        sigs: any;
+        jsondata: any;
+    }> {
         const hab = await this.get(name);
         const pre: string = hab.prefix;
 
@@ -330,12 +343,12 @@ export class Identifier {
      * Generate a rotation event in a managed identifier
      * @param {string} name Name or alias of the identifier
      * @param {RotateIdentifierArgs} [kargs] Optional parameters requiered to generate the rotation event
-     * @returns {Promise<EventResult>} A promise to the rotation event result
+     * @returns {Promise<EventResult<SerderKERI<RotateEventSAD>>>} A promise to the rotation event result
      */
     async rotate(
         name: string,
         kargs: RotateIdentifierArgs = {}
-    ): Promise<EventResult> {
+    ): Promise<EventResult<SerderKERI<RotateEventSAD>>> {
         const transferable = kargs.transferable ?? true;
         const ncode = kargs.ncode ?? MtrDex.Ed25519_Seed;
         const ncount = kargs.ncount ?? 1;
@@ -433,14 +446,14 @@ export class Identifier {
      * @param {string} role Authorized role for eid
      * @param {string} [eid] Optional qb64 of endpoint provider to be authorized
      * @param {string} [stamp=now] Optional date-time-stamp RFC-3339 profile of iso8601 datetime. Now is the default if not provided
-     * @returns {Promise<EventResult>} A promise to the result of the authorization
+     * @returns {Promise<EventResult<SerderKERI<ReplyEventSAD>>} A promise to the result of the authorization
      */
     async addEndRole(
         name: string,
         role: string,
         eid?: string,
         stamp?: string
-    ): Promise<EventResult> {
+    ): Promise<EventResult<SerderKERI<ReplyEventSAD>>> {
         const hab = await this.get(name);
         const pre = hab.prefix;
 
@@ -467,14 +480,14 @@ export class Identifier {
      * @param {string} role Authorized role for eid
      * @param {string} [eid] Optional qb64 of endpoint provider to be authorized
      * @param {string} [stamp=now] Optional date-time-stamp RFC-3339 profile of iso8601 datetime. Now is the default if not provided
-     * @returns {Serder} The reply message
+     * @returns {SerderKERI<ReplyEventSAD>} The reply message
      */
     private makeEndRole(
         pre: string,
         role: string,
         eid?: string,
         stamp?: string
-    ): Serder {
+    ) {
         const data: any = {
             cid: pre,
             role: role,
@@ -503,12 +516,12 @@ export class Identifier {
 }
 
 /** Event Result */
-export class EventResult {
-    private readonly _serder: Serder;
+export class EventResult<TSerder extends SerderKERI = SerderKERI> {
+    private readonly _serder: TSerder;
     private readonly _sigs: string[];
     private readonly response: Response;
 
-    constructor(serder: Serder, sigs: string[], response: Response) {
+    constructor(serder: TSerder, sigs: string[], response: Response) {
         this._serder = serder;
         this._sigs = sigs;
         this.response = response;

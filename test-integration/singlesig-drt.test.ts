@@ -31,7 +31,7 @@ describe('singlesig-drt', () => {
         let kargs: CreateIdentiferArgs = {
             delpre: name1_id,
         };
-        let result = await delegate.identifiers().create('delegate1', kargs);
+        const result = await delegate.identifiers().create('delegate1', kargs);
         let op = await result.op();
         let delegate1 = await delegate.identifiers().get('delegate1');
         assert.equal(op.name, `delegation.${delegate1.prefix}`);
@@ -42,8 +42,10 @@ describe('singlesig-drt', () => {
             s: '0',
             d: delegate1.prefix,
         };
-        result = await delegator.identifiers().interact('name1', seal);
-        let op1 = await result.op();
+        let interactName1Result = await delegator
+            .identifiers()
+            .interact('name1', seal);
+        let op1 = await interactName1Result.op();
 
         let op2 = await delegate.keyStates().query(name1_id, '1');
 
@@ -54,9 +56,11 @@ describe('singlesig-drt', () => {
         ]);
 
         kargs = {};
-        result = await delegate.identifiers().rotate('delegate1', kargs);
-        op = await result.op();
-        assert.equal(op.name, `delegation.${result.serder.sad.d}`);
+        const rotateDeleateResult = await delegate
+            .identifiers()
+            .rotate('delegate1', kargs);
+        op = await rotateDeleateResult.op();
+        assert.equal(op.name, `delegation.${rotateDeleateResult.serder.sad.d}`);
 
         // delegator approves delegate
         delegate1 = await delegate.identifiers().get('delegate1');
@@ -67,8 +71,10 @@ describe('singlesig-drt', () => {
             d: delegate1.state.d,
         };
 
-        result = await delegator.identifiers().interact('name1', seal);
-        op1 = await result.op();
+        interactName1Result = await delegator
+            .identifiers()
+            .interact('name1', seal);
+        op1 = await interactName1Result.op();
         op2 = await delegate.keyStates().query(name1_id, '2');
 
         await Promise.all([

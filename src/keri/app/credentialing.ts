@@ -1,30 +1,32 @@
-import { SignifyClient } from './clienting.ts';
-import { interact, messagize } from '../core/eventing.ts';
-import { vdr } from '../core/vdring.ts';
 import {
     b,
     d,
     Dict,
-    Protocols,
     Ilks,
+    Protocols,
     Serials,
     versify,
     Vrsn_1_0,
 } from '../core/core.ts';
+import { interact, InteractEventSAD, messagize } from '../core/eventing.ts';
+import { HabState } from '../core/keyState.ts';
 import { Saider } from '../core/saider.ts';
-import { Serder } from '../core/serder.ts';
+import { Serder, SerderKERI } from '../core/serder.ts';
 import { Siger } from '../core/siger.ts';
-import { TraitDex } from './habery.ts';
 import {
     serializeACDCAttachment,
     serializeIssExnAttachment,
 } from '../core/utils.ts';
+import { vdr } from '../core/vdring.ts';
+import { SignifyClient } from './clienting.ts';
 import { Operation } from './coring.ts';
-import { HabState } from '../core/keyState.ts';
+import { TraitDex } from './habery.ts';
 
 import { components } from '../../types/keria-api-schema.ts';
+import { ExchangeSAD } from './exchanging.ts';
 
 export type CredentialResult = components['schemas']['Credential'];
+export type ACDCSAD = CredentialResult['sad'];
 export type Registry = components['schemas']['Registry'];
 export type Schema = components['schemas']['Schema'];
 
@@ -92,15 +94,15 @@ export interface CredentialData {
 }
 
 export interface IssueCredentialResult {
-    acdc: Serder;
-    anc: Serder;
-    iss: Serder;
+    acdc: SerderKERI;
+    anc: SerderKERI<InteractEventSAD>;
+    iss: SerderKERI;
     op: Operation;
 }
 
 export interface RevokeCredentialResult {
-    anc: Serder;
-    rev: Serder;
+    anc: SerderKERI<InteractEventSAD>;
+    rev: SerderKERI;
     op: Operation;
 }
 
@@ -151,7 +153,7 @@ export interface IpexOfferArgs {
     /**
      * ACDC to offer
      */
-    acdc: Serder;
+    acdc: SerderKERI;
 
     /**
      * Optional qb64 SAID of apply message this offer is responding to
@@ -204,11 +206,11 @@ export interface IpexGrantArgs {
      */
     agreeSaid?: string;
     datetime?: string;
-    acdc: Serder;
+    acdc: SerderKERI;
     acdcAttachment?: string;
-    iss: Serder;
+    iss: SerderKERI;
     issAttachment?: string;
-    anc: Serder;
+    anc: SerderKERI;
     ancAttachment?: string;
 }
 
@@ -404,8 +406,8 @@ export class Credentials {
         const op = await res.json();
 
         return {
-            acdc: new Serder(acdc),
-            iss: new Serder(iss),
+            acdc: new SerderKERI(acdc),
+            iss: new SerderKERI(iss),
             anc,
             op,
         };
@@ -457,7 +459,7 @@ export class Credentials {
         const [, rev] = Saider.saidify(_rev);
 
         // create ixn
-        let ixn = {};
+        let ixn: InteractEventSAD;
         let sigs = [];
 
         const state = hab.state;
@@ -509,8 +511,8 @@ export class Credentials {
         const op = await res.json();
 
         return {
-            rev: new Serder(rev),
-            anc: new Serder(ixn),
+            rev: new SerderKERI(rev),
+            anc: new SerderKERI(ixn || {}),
             op,
         };
     }
@@ -526,14 +528,14 @@ export interface CreateRegistryArgs {
 }
 
 export class RegistryResult {
-    private readonly _regser: any;
-    private readonly _serder: Serder;
+    private readonly _regser: SerderKERI<vdr.VDRInceptSAD>;
+    private readonly _serder: SerderKERI<InteractEventSAD>;
     private readonly _sigs: string[];
     private readonly promise: Promise<Response>;
 
     constructor(
-        regser: Serder,
-        serder: Serder,
+        regser: SerderKERI<vdr.VDRInceptSAD>,
+        serder: SerderKERI<InteractEventSAD>,
         sigs: any[],
         promise: Promise<Response>
     ) {
@@ -755,7 +757,9 @@ export class Ipex {
     /**
      * Create an IPEX apply EXN message
      */
-    async apply(args: IpexApplyArgs): Promise<[Serder, string[], string]> {
+    async apply(
+        args: IpexApplyArgs
+    ): Promise<[SerderKERI<ExchangeSAD>, string[], string]> {
         const hab = await this.client.identifiers().get(args.senderName);
         const data = {
             m: args.message ?? '',
@@ -800,7 +804,9 @@ export class Ipex {
     /**
      * Create an IPEX offer EXN message
      */
-    async offer(args: IpexOfferArgs): Promise<[Serder, string[], string]> {
+    async offer(
+        args: IpexOfferArgs
+    ): Promise<[SerderKERI<ExchangeSAD>, string[], string]> {
         const hab = await this.client.identifiers().get(args.senderName);
         const data = {
             m: args.message ?? '',
@@ -845,7 +851,9 @@ export class Ipex {
     /**
      * Create an IPEX agree EXN message
      */
-    async agree(args: IpexAgreeArgs): Promise<[Serder, string[], string]> {
+    async agree(
+        args: IpexAgreeArgs
+    ): Promise<[SerderKERI<ExchangeSAD>, string[], string]> {
         const hab = await this.client.identifiers().get(args.senderName);
         const data = {
             m: args.message ?? '',
@@ -888,7 +896,9 @@ export class Ipex {
     /**
      * Create an IPEX grant EXN message
      */
-    async grant(args: IpexGrantArgs): Promise<[Serder, string[], string]> {
+    async grant(
+        args: IpexGrantArgs
+    ): Promise<[SerderKERI<ExchangeSAD>, string[], string]> {
         const hab = await this.client.identifiers().get(args.senderName);
         const data = {
             m: args.message ?? '',
@@ -957,7 +967,9 @@ export class Ipex {
     /**
      * Create an IPEX admit EXN message
      */
-    async admit(args: IpexAdmitArgs): Promise<[Serder, string[], string]> {
+    async admit(
+        args: IpexAdmitArgs
+    ): Promise<[SerderKERI<ExchangeSAD>, string[], string]> {
         const hab = await this.client.identifiers().get(args.senderName);
         const data: any = {
             m: args.message,

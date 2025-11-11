@@ -16,9 +16,9 @@ export class Delegations {
      * @async
      * @param {string} name Name or alias of the identifier
      * @param {any} [data] The anchoring interaction event
-     * @returns {Promise<EventResult>} A promise to the delegated approval result
+     * @returns {Promise<EventResult<SerderKERI<InteractEventSAD>>>} A promise to the delegated approval result
      */
-    async approve(name: string, data?: any): Promise<EventResult> {
+    async approve(name: string, data?: any) {
         const { serder, sigs, jsondata } = await this.client
             .identifiers()
             .createInteract(name, data);

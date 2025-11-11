@@ -1,5 +1,5 @@
+import { SerderKERI, SerderSAD } from 'signify-ts';
 import { assert, test } from 'vitest';
-import { Serder } from 'signify-ts';
 import {
     assertOperations,
     getOrCreateClients,
@@ -81,9 +81,9 @@ test('challenge', async () => {
 
     //Alice mark response as accepted
     const verifyResponse = verifyOperation.response as {
-        exn: Record<string, unknown>;
+        exn: SerderSAD;
     };
-    const exn = new Serder(verifyResponse.exn);
+    const exn = new SerderKERI(verifyResponse.exn);
 
     await client1.challenges().responded(aid2.i, exn.sad.d);
     console.log('Alice marked challenge response as accepted');

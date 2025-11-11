@@ -1,9 +1,10 @@
-import { assert, test } from 'vitest';
 import signify, {
-    SignifyClient,
-    Serder,
     IssueCredentialResult,
+    Serder,
+    SerderKERI,
+    SignifyClient,
 } from 'signify-ts';
+import { assert, test } from 'vitest';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import {
     assertOperations,
@@ -468,14 +469,14 @@ test('multisig', async function run() {
     };
     let eventResponse1 = await client1.identifiers().interact('multisig', data);
     op1 = await eventResponse1.op();
-    serder = eventResponse1.serder;
+    const interactSerder = eventResponse1.serder;
     sigs = eventResponse1.sigs;
     sigers = sigs.map((sig) => new signify.Siger({ qb64: sig }));
 
-    ims = signify.d(signify.messagize(serder, sigers));
-    atc = ims.substring(serder.size);
+    ims = signify.d(signify.messagize(interactSerder, sigers));
+    atc = ims.substring(interactSerder.size);
     let xembeds = {
-        ixn: [serder, atc],
+        ixn: [interactSerder, atc],
     };
 
     smids = states.map((state) => state['i']);
@@ -488,7 +489,7 @@ test('multisig', async function run() {
             'multisig',
             aid1,
             '/multisig/ixn',
-            { gid: serder.pre, smids: smids, rmids: smids },
+            { gid: interactSerder.pre, smids: smids, rmids: smids },
             xembeds,
             recp
         );
@@ -506,16 +507,18 @@ test('multisig', async function run() {
     let ixn = exn.e.ixn;
     data = ixn.a;
 
-    icpResult2 = await client2.identifiers().interact('multisig', data);
-    op2 = await icpResult2.op();
-    serder = icpResult2.serder;
-    sigs = icpResult2.sigs;
+    const interactResult = await client2
+        .identifiers()
+        .interact('multisig', data);
+    op2 = await interactResult.op();
+    const multisigInteractSerder = interactResult.serder;
+    sigs = interactResult.sigs;
     sigers = sigs.map((sig) => new signify.Siger({ qb64: sig }));
 
-    ims = signify.d(signify.messagize(serder, sigers));
-    atc = ims.substring(serder.size);
+    ims = signify.d(signify.messagize(multisigInteractSerder, sigers));
+    atc = ims.substring(multisigInteractSerder.size);
     xembeds = {
-        ixn: [serder, atc],
+        ixn: [multisigInteractSerder, atc],
     };
 
     smids = exn.a.smids;
@@ -528,7 +531,7 @@ test('multisig', async function run() {
             'multisig',
             aid2,
             '/multisig/ixn',
-            { gid: serder.pre, smids: smids, rmids: smids },
+            { gid: multisigInteractSerder.pre, smids: smids, rmids: smids },
             xembeds,
             recp
         );
@@ -544,16 +547,18 @@ test('multisig', async function run() {
     ixn = exn.e.ixn;
     data = ixn.a;
 
-    icpResult3 = await client3.identifiers().interact('multisig', data);
-    op3 = await icpResult3.op();
-    serder = icpResult3.serder;
-    sigs = icpResult3.sigs;
+    const multisigInteract2 = await client3
+        .identifiers()
+        .interact('multisig', data);
+    op3 = await multisigInteract2.op();
+    const multisigInteractSerder2 = multisigInteract2.serder;
+    sigs = multisigInteract2.sigs;
     sigers = sigs.map((sig) => new signify.Siger({ qb64: sig }));
 
-    ims = signify.d(signify.messagize(serder, sigers));
-    atc = ims.substring(serder.size);
+    ims = signify.d(signify.messagize(multisigInteractSerder2, sigers));
+    atc = ims.substring(multisigInteractSerder2.size);
     xembeds = {
-        ixn: [serder, atc],
+        ixn: [multisigInteractSerder2, atc],
     };
 
     smids = exn.a.smids;
@@ -566,7 +571,7 @@ test('multisig', async function run() {
             'multisig',
             aid3,
             '/multisig/ixn',
-            { gid: serder.pre, smids: smids, rmids: smids },
+            { gid: multisigInteractSerder2.pre, smids: smids, rmids: smids },
             xembeds,
             recp
         );
@@ -580,19 +585,19 @@ test('multisig', async function run() {
 
     // Members agree out of band to rotate keys
     console.log('Members agree out of band to rotate keys');
-    icpResult1 = await client1.identifiers().rotate('member1');
-    op1 = await icpResult1.op();
+    const rotateResult = await client1.identifiers().rotate('member1');
+    op1 = await rotateResult.op();
     op1 = await waitOperation(client1, op1);
     aid1 = await client1.identifiers().get('member1');
 
     console.log('Member1 rotated keys');
-    icpResult2 = await client2.identifiers().rotate('member2');
-    op2 = await icpResult2.op();
+    const rotateMember2Result = await client2.identifiers().rotate('member2');
+    op2 = await rotateMember2Result.op();
     op2 = await waitOperation(client2, op2);
     aid2 = await client2.identifiers().get('member2');
     console.log('Member2 rotated keys');
-    icpResult3 = await client3.identifiers().rotate('member3');
-    op3 = await icpResult3.op();
+    const rotateMember3Result = await client3.identifiers().rotate('member3');
+    op3 = await rotateMember3Result.op();
     op3 = await waitOperation(client3, op3);
     aid3 = await client3.identifiers().get('member3');
     console.log('Member3 rotated keys');
@@ -629,34 +634,36 @@ test('multisig', async function run() {
     // Multisig Rotation
 
     // Member1 initiates a rotation event
-    eventResponse1 = await client1
+    const rotateMultisigResult = await client1
         .identifiers()
         .rotate('multisig', { states: states, rstates: rstates });
-    op1 = await eventResponse1.op();
-    serder = eventResponse1.serder;
-    sigs = eventResponse1.sigs;
+    op1 = await rotateMultisigResult.op();
+    const rotateMultisigResultEventSerder = rotateMultisigResult.serder;
+    sigs = rotateMultisigResult.sigs;
     sigers = sigs.map((sig) => new signify.Siger({ qb64: sig }));
 
-    ims = signify.d(signify.messagize(serder, sigers));
-    atc = ims.substring(serder.size);
+    ims = signify.d(signify.messagize(rotateMultisigResultEventSerder, sigers));
+    atc = ims.substring(rotateMultisigResultEventSerder.size);
     let rembeds = {
-        rot: [serder, atc],
+        rot: [rotateMultisigResultEventSerder, atc],
     };
 
     smids = states.map((state) => state['i']);
     recp = [aid2State, aid3State].map((state) => state['i']);
 
-    await client1
-        .exchanges()
-        .send(
-            'member1',
-            'multisig',
-            aid1,
-            '/multisig/rot',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            rembeds,
-            recp
-        );
+    await client1.exchanges().send(
+        'member1',
+        'multisig',
+        aid1,
+        '/multisig/rot',
+        {
+            gid: rotateMultisigResultEventSerder.pre,
+            smids: smids,
+            rmids: smids,
+        },
+        rembeds,
+        recp
+    );
     console.log(
         'Member1 initiates rotation event, waiting for others to join...'
     );
@@ -669,34 +676,38 @@ test('multisig', async function run() {
     res = await client2.groups().getRequest(msgSaid);
     exn = res[0].exn;
 
-    icpResult2 = await client2
+    const rotateMultisigEvent2Result = await client2
         .identifiers()
         .rotate('multisig', { states: states, rstates: rstates });
-    op2 = await icpResult2.op();
-    serder = icpResult2.serder;
-    sigs = icpResult2.sigs;
+    op2 = await rotateMultisigEvent2Result.op();
+    const rotateMultisigEvent2ResultSerder = rotateMultisigEvent2Result.serder;
+    sigs = rotateMultisigEvent2Result.sigs;
     sigers = sigs.map((sig) => new signify.Siger({ qb64: sig }));
 
-    ims = signify.d(signify.messagize(serder, sigers));
-    atc = ims.substring(serder.size);
+    ims = signify.d(
+        signify.messagize(rotateMultisigEvent2ResultSerder, sigers)
+    );
+    atc = ims.substring(rotateMultisigEvent2ResultSerder.size);
     rembeds = {
-        rot: [serder, atc],
+        rot: [rotateMultisigEvent2ResultSerder, atc],
     };
 
     smids = exn.a.smids;
     recp = [aid1State, aid3State].map((state) => state['i']);
 
-    await client2
-        .exchanges()
-        .send(
-            'member2',
-            'multisig',
-            aid2,
-            '/multisig/ixn',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            rembeds,
-            recp
-        );
+    await client2.exchanges().send(
+        'member2',
+        'multisig',
+        aid2,
+        '/multisig/ixn',
+        {
+            gid: rotateMultisigEvent2ResultSerder.pre,
+            smids: smids,
+            rmids: smids,
+        },
+        rembeds,
+        recp
+    );
     console.log('Member2 joins rotation event, waiting for others...');
 
     // Member3 check for notifications and join the rotation event
@@ -705,18 +716,18 @@ test('multisig', async function run() {
     res = await client3.groups().getRequest(msgSaid);
     exn = res[0].exn;
 
-    icpResult3 = await client3
+    const rotateMultisig3Result = await client3
         .identifiers()
         .rotate('multisig', { states: states, rstates: rstates });
-    op3 = await icpResult3.op();
-    serder = icpResult3.serder;
-    sigs = icpResult3.sigs;
+    op3 = await rotateMultisig3Result.op();
+    const rotateMultisig3ResultSerder = rotateMultisig3Result.serder;
+    sigs = rotateMultisig3Result.sigs;
     sigers = sigs.map((sig) => new signify.Siger({ qb64: sig }));
 
-    ims = signify.d(signify.messagize(serder, sigers));
-    atc = ims.substring(serder.size);
+    ims = signify.d(signify.messagize(rotateMultisig3ResultSerder, sigers));
+    atc = ims.substring(rotateMultisig3ResultSerder.size);
     rembeds = {
-        rot: [serder, atc],
+        rot: [rotateMultisig3ResultSerder, atc],
     };
 
     smids = exn.a.smids;
@@ -757,8 +768,8 @@ test('multisig', async function run() {
         nonce: 'AHSNDV3ABI6U8OIgKaj3aky91ZpNL54I5_7-qwtC6q2s',
     });
     op1 = await vcpRes1.op();
-    serder = vcpRes1.regser;
-    const regk = serder.pre;
+    const vcpRegser = vcpRes1.regser;
+    const regk = vcpRegser.pre;
     let anc = vcpRes1.serder;
     sigs = vcpRes1.sigs;
 
@@ -767,7 +778,7 @@ test('multisig', async function run() {
     ims = signify.d(signify.messagize(anc, sigers));
     atc = ims.substring(anc.size);
     let regbeds = {
-        vcp: [serder, ''],
+        vcp: [vcpRegser, ''],
         anc: [anc, atc],
     };
 
@@ -800,7 +811,7 @@ test('multisig', async function run() {
         nonce: 'AHSNDV3ABI6U8OIgKaj3aky91ZpNL54I5_7-qwtC6q2s',
     });
     op2 = await vcpRes2.op();
-    serder = vcpRes2.regser;
+    const vcpRes2Regser = vcpRes2.regser;
     anc = vcpRes2.serder;
     sigs = vcpRes2.sigs;
 
@@ -809,7 +820,7 @@ test('multisig', async function run() {
     ims = signify.d(signify.messagize(anc, sigers));
     atc = ims.substring(anc.size);
     regbeds = {
-        vcp: [serder, ''],
+        vcp: [vcpRes2Regser, ''],
         anc: [anc, atc],
     };
 
@@ -842,7 +853,7 @@ test('multisig', async function run() {
         nonce: 'AHSNDV3ABI6U8OIgKaj3aky91ZpNL54I5_7-qwtC6q2s',
     });
     op3 = await vcpRes3.op();
-    serder = vcpRes3.regser;
+    const vcpRes3Regser = vcpRes3.regser;
     anc = vcpRes3.serder;
     sigs = vcpRes3.sigs;
 
@@ -851,7 +862,7 @@ test('multisig', async function run() {
     ims = signify.d(signify.messagize(anc, sigers));
     atc = ims.substring(anc.size);
     regbeds = {
-        vcp: [serder, ''],
+        vcp: [vcpRes3Regser, ''],
         anc: [anc, atc],
     };
 
@@ -1229,8 +1240,8 @@ async function multisigRevoke(
     client: SignifyClient,
     memberName: string,
     groupName: string,
-    rev: Serder,
-    anc: Serder
+    rev: SerderKERI,
+    anc: SerderKERI
 ) {
     const leaderHab = await client.identifiers().get(memberName);
     const groupHab = await client.identifiers().get(groupName);

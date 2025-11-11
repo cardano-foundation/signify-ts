@@ -1,6 +1,9 @@
-import { assert, beforeAll, afterAll, test, expect } from 'vitest';
-import { Ilks, Saider, Serder, SignifyClient } from 'signify-ts';
+import { randomUUID } from 'node:crypto';
+import { Ilks, Saider, SerderKERI, SignifyClient } from 'signify-ts';
+import { afterAll, assert, beforeAll, expect, test } from 'vitest';
 import { resolveEnvironment } from './utils/resolve-env.ts';
+import { retry } from './utils/retry.ts';
+import { step } from './utils/test-step.ts';
 import {
     assertNotifications,
     assertOperations,
@@ -12,10 +15,7 @@ import {
     waitForNotifications,
     waitOperation,
 } from './utils/test-util.ts';
-import { retry } from './utils/retry.ts';
-import { randomUUID } from 'node:crypto';
-import { step } from './utils/test-step.ts';
-import { CredentialResult } from '../src/keri/app/credentialing.ts';
+
 const { vleiServerUrl } = resolveEnvironment();
 
 const QVI_SCHEMA_SAID = 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao';
@@ -245,9 +245,9 @@ test('single signature credentials', { timeout: 90000 }, async () => {
 
         const [grant, gsigs, gend] = await issuerClient.ipex().grant({
             senderName: issuerAid.name,
-            acdc: new Serder(issuerCredential.sad),
-            anc: new Serder(issuerCredential.anc),
-            iss: new Serder(issuerCredential.iss),
+            acdc: new SerderKERI(issuerCredential.sad),
+            anc: new SerderKERI(issuerCredential.anc),
+            iss: new SerderKERI(issuerCredential.iss),
             ancAttachment: issuerCredential.ancatc,
             recipient: holderAid.prefix,
             datetime: dt,
@@ -357,7 +357,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
         const [offer, sigs, end] = await holderClient.ipex().offer({
             senderName: holderAid.name,
             recipient: verifierAid.prefix,
-            acdc: new Serder(matchingCreds[0].sad),
+            acdc: new SerderKERI(matchingCreds[0].sad),
             applySaid: applySaid,
             datetime: createTimestamp(),
         });
@@ -425,9 +425,9 @@ test('single signature credentials', { timeout: 90000 }, async () => {
         const [grant2, gsigs2, gend2] = await holderClient.ipex().grant({
             senderName: holderAid.name,
             recipient: verifierAid.prefix,
-            acdc: new Serder(holderCredential.sad),
-            anc: new Serder(holderCredential.anc),
-            iss: new Serder(holderCredential.iss),
+            acdc: new SerderKERI(holderCredential.sad),
+            anc: new SerderKERI(holderCredential.anc),
+            iss: new SerderKERI(holderCredential.iss),
             acdcAttachment: holderCredential.atc,
             ancAttachment: holderCredential.ancatc,
             issAttachment: holderCredential.issatc,
@@ -555,9 +555,9 @@ test('single signature credentials', { timeout: 90000 }, async () => {
 
         const [grant, gsigs, gend] = await holderClient.ipex().grant({
             senderName: holderAid.name,
-            acdc: new Serder(leCredential.sad),
-            anc: new Serder(leCredential.anc),
-            iss: new Serder(leCredential.iss),
+            acdc: new SerderKERI(leCredential.sad),
+            anc: new SerderKERI(leCredential.anc),
+            iss: new SerderKERI(leCredential.iss),
             ancAttachment: leCredential.ancatc,
             recipient: legalEntityAid.prefix,
             datetime: dt,

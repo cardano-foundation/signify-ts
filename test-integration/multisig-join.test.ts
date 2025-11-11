@@ -1,4 +1,5 @@
-import signify, { Serder, SignifyClient } from 'signify-ts';
+import signify, { SerderKERI, SignifyClient } from 'signify-ts';
+import { assert, beforeAll, describe, test } from 'vitest';
 import {
     getOrCreateClient,
     getOrCreateIdentifier,
@@ -6,7 +7,6 @@ import {
     waitForNotifications,
     waitOperation,
 } from './utils/test-util.ts';
-import { assert, beforeAll, describe, test } from 'vitest';
 
 describe('multisig-join', () => {
     const nameMember1 = 'member1';
@@ -343,7 +343,7 @@ describe('multisig-join', () => {
             .getRequest(rotationNotification3);
 
         const exn3 = response[0].exn;
-        const serder3 = new Serder(exn3.e.rot);
+        const serder3 = new SerderKERI(exn3.e.rot);
         const keeper3 = await client3.manager!.get(aid3);
         const sigs3 = keeper3.sign(signify.b(serder3.raw));
 

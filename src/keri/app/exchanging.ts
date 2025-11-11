@@ -1,11 +1,25 @@
-import { SignifyClient } from './clienting.ts';
-import { b, d, Dict, Protocols, Ilks, Serials, versify } from '../core/core.ts';
-import { Serder } from '../core/serder.ts';
-import { nowUTC } from '../core/utils.ts';
-import { Pather } from '../core/pather.ts';
+import { b, d, Dict, Ilks, Protocols, Serials, versify } from '../core/core.ts';
 import { Counter, CtrDex } from '../core/counter.ts';
-import { Saider } from '../core/saider.ts';
 import { HabState } from '../core/keyState.ts';
+import { Pather } from '../core/pather.ts';
+import { Saider } from '../core/saider.ts';
+import { Serder, SerderKERI } from '../core/serder.ts';
+import { nowUTC } from '../core/utils.ts';
+import { SignifyClient } from './clienting.ts';
+
+export type ExchangeSAD = {
+    v: string;
+    t: string;
+    d: string;
+    i: string;
+    rp: string;
+    p: string;
+    dt: string;
+    r: string;
+    q: Record<string, unknown>;
+    a: Record<string, unknown>;
+    e: Record<string, unknown>;
+};
 
 /**
  * Exchanges
@@ -41,7 +55,7 @@ export class Exchanges {
         recipient: string,
         datetime?: string,
         dig?: string
-    ): Promise<[Serder, string[], string]> {
+    ): Promise<[SerderKERI<ExchangeSAD>, string[], string]> {
         const keeper = this.client.manager!.get(sender);
         const [exn, end] = exchange(
             route,
@@ -154,7 +168,7 @@ export function exchange(
     dig?: string,
     modifiers?: Dict<any>,
     embeds?: Dict<any>
-): [Serder, Uint8Array] {
+): [SerderKERI<ExchangeSAD>, Uint8Array] {
     const vs = versify(Protocols.KERI, undefined, Serials.JSON, 0);
     const ilk = Ilks.exn;
     const dt =
@@ -202,7 +216,7 @@ export function exchange(
         ...payload,
     };
 
-    const _sad = {
+    const _sad: ExchangeSAD = {
         v: vs,
         t: ilk,
         d: '',
@@ -217,7 +231,7 @@ export function exchange(
     };
     const [, sad] = Saider.saidify(_sad);
 
-    const exn = new Serder(sad);
+    const exn = new SerderKERI(sad);
 
     return [exn, b(end)];
 }
