@@ -43,8 +43,10 @@ describe('singlesig-dip', () => {
             s: '0',
             d: delegate1.prefix,
         };
-        result = await client1.identifiers().interact('name1', seal);
-        let op1 = await result.op();
+        const interactResult = await client1
+            .identifiers()
+            .interact('name1', seal);
+        let op1 = await interactResult.op();
 
         // refresh keystate to sn=1
         let op2 = await client2.keyStates().query(name1_id, '1');
@@ -77,8 +79,10 @@ describe('singlesig-dip', () => {
             s: '0',
             d: delegate2.prefix,
         };
-        result = await client1.identifiers().interact('name1', seal);
-        op1 = await result.op();
+        const interactName1Result = await client1
+            .identifiers()
+            .interact('name1', seal);
+        op1 = await interactName1Result.op();
 
         // refresh keystate to seal event
         op2 = await client2.keyStates().query(name1_id, undefined, seal);

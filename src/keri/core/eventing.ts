@@ -31,15 +31,21 @@ export type InceptEventSAD =
           kt: number | string | string[] | string[][];
           nt: number | string | string[] | string[][];
           bt: string | number;
+          p?: string;
       })
-    | (Omit<components['schemas']['ICP_V_2'], 'kt' | 'nt'> & {
+    | (Omit<components['schemas']['ICP_V_2'], 'kt' | 'nt' | 'bt'> & {
           kt: number | string | string[] | string[][];
           nt: number | string | string[] | string[][];
+          bt: string | number;
+          p?: string;
       });
 
-export type DelegateInceptEventSAD =
+export type DelegateInceptEventSAD = (
     | components['schemas']['DIP_V_1']
-    | components['schemas']['DIP_V_2'];
+    | components['schemas']['DIP_V_2']
+) & {
+    p?: string;
+};
 
 export type InteractEventSAD =
     | components['schemas']['IXN_V_1']
