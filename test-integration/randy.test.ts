@@ -1,5 +1,5 @@
-import { assert, test } from 'vitest';
 import signify from 'signify-ts';
+import { assert, test } from 'vitest';
 import {
     assertOperations,
     getOrCreateClient,
@@ -9,13 +9,13 @@ import {
 test('randy', async () => {
     const client1 = await getOrCreateClient();
 
-    let icpResult = await client1
+    const icpResult = await client1
         .identifiers()
         .create('aid1', { algo: signify.Algos.randy });
     let op = await waitOperation(client1, await icpResult.op());
     assert.equal(op['done'], true);
     let aid = op['response'];
-    const icp = new signify.Serder(aid);
+    const icp = new signify.SerderKERI(aid);
     assert.equal(icp.verfers.length, 1);
     assert.equal(icp.digers.length, 1);
     assert.equal(icp.sad['kt'], '1');
@@ -27,10 +27,12 @@ test('randy', async () => {
     assert.equal(aid.name, 'aid1');
     assert.equal(aid.prefix, icp.pre);
 
-    icpResult = await client1.identifiers().interact('aid1', [icp.pre]);
-    op = await waitOperation(client1, await icpResult.op());
+    const interactResult = await client1
+        .identifiers()
+        .interact('aid1', [icp.pre]);
+    op = await waitOperation(client1, await interactResult.op());
     let ked = op['response'];
-    const ixn = new signify.Serder(ked);
+    const ixn = new signify.SerderKERI(ked);
     assert.equal(ixn.sad['s'], '1');
     assert.deepEqual([...ixn.sad['a']], [icp.pre]);
 
@@ -42,10 +44,10 @@ test('randy', async () => {
     let log = await events.get(aid['prefix']);
     assert.equal(log.length, 2);
 
-    icpResult = await client1.identifiers().rotate('aid1');
-    op = await waitOperation(client1, await icpResult.op());
+    const rotateResult = await client1.identifiers().rotate('aid1');
+    op = await waitOperation(client1, await rotateResult.op());
     ked = op['response'];
-    const rot = new signify.Serder(ked);
+    const rot = new signify.SerderKERI(ked);
     assert.equal(rot.sad['s'], '2');
     assert.equal(rot.verfers.length, 1);
     assert.equal(rot.digers.length, 1);

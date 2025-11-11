@@ -1,10 +1,14 @@
+import { Diger } from '../core/diger.ts';
+import {
+    DelegateInceptEventSAD,
+    incept,
+    InceptEventSAD,
+} from '../core/eventing.ts';
 import { Algos, Manager } from '../core/manager.ts';
 import { MtrDex } from '../core/matter.ts';
 import { Salter } from '../core/salter.ts';
+import { SerderKERI } from '../core/serder.ts';
 import { Verfer } from '../core/verfer.ts';
-import { Diger } from '../core/diger.ts';
-import { incept } from '../core/eventing.ts';
-import { Serder } from '../core/serder.ts';
 
 export class TraitCodex {
     EstOnly: string = 'EO'; // Only allow establishment events
@@ -41,14 +45,17 @@ export interface MakeHabArgs {
 
 export class Hab {
     public name: string;
-    public serder: Serder;
+    public serder: SerderKERI<InceptEventSAD | DelegateInceptEventSAD>;
 
-    constructor(name: string, icp: Serder) {
+    constructor(
+        name: string,
+        icp: SerderKERI<InceptEventSAD | DelegateInceptEventSAD>
+    ) {
         this.name = name;
         this.serder = icp;
     }
 
-    get pre(): string {
+    get pre() {
         return this.serder.sad['i'];
     }
 }

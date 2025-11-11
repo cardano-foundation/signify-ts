@@ -97,14 +97,17 @@ describe('SignifyClient', () => {
         assert.equal(client.controller.serder.sad.s, '1');
         assert.equal(client.controller.serder.sad.t, 'ixn');
         assert.equal(
-            client.controller.serder.sad.a[0].i,
+            (client.controller.serder.sad.a as { i: string }[])[0].i,
             'EEXekkGu9IAzav6pZVJhkLnjtjM5v3AcyA-pdKUcaGei'
         );
         assert.equal(
-            client.controller.serder.sad.a[0].d,
+            (client.controller.serder.sad.a as { d: string }[])[0].d,
             'EEXekkGu9IAzav6pZVJhkLnjtjM5v3AcyA-pdKUcaGei'
         );
-        assert.equal(client.controller.serder.sad.a[0].s, '0');
+        assert.equal(
+            (client.controller.serder.sad.a as { s: string }[])[0].s,
+            '0'
+        );
 
         const data = client.data;
         assert(data[0], url);
@@ -221,7 +224,7 @@ describe('SignifyClient', () => {
         assert.deepEqual(lastBody.rot.kt, ['1', '0']);
         assert.equal(
             lastBody.rot.d,
-            'EGFi9pCcRaLK8dPh5S7JP9Em62fBMiR1l4gW1ZazuuAO'
+            'ELobtadHilfWa-N-oA38MIoVBrutviEMyqBzNRkr7zvu'
         );
 
         const heads = new Headers();

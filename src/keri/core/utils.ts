@@ -1,9 +1,8 @@
 import { Counter, CtrDex } from './counter.ts';
-import { Seqner } from './seqner.ts';
 import { Prefixer } from './prefixer.ts';
 import { Saider } from './saider.ts';
-import { Serder } from './serder.ts';
-import { b } from './core.ts';
+import { Seqner } from './seqner.ts';
+import { SerderKERI } from './serder.ts';
 
 export function pad(n: any, width = 3, z = 0) {
     return (String(z).repeat(width) + String(n)).slice(String(n).length);
@@ -115,7 +114,7 @@ export function bytesToInt(ar: Uint8Array): number {
     return value;
 }
 
-export function serializeACDCAttachment(anc: Serder): Uint8Array {
+export function serializeACDCAttachment(anc: SerderKERI): Uint8Array {
     const prefixer = new Prefixer({ qb64: anc.pre });
     const seqner = new Seqner({ sn: anc.sn });
     const saider = new Saider({ qb64: anc.sad['d'] });
@@ -135,7 +134,7 @@ export function serializeACDCAttachment(anc: Serder): Uint8Array {
     return newCraw;
 }
 
-export function serializeIssExnAttachment(anc: Serder): Uint8Array {
+export function serializeIssExnAttachment(anc: SerderKERI): Uint8Array {
     const seqner = new Seqner({ sn: anc.sn });
     const ancSaider = new Saider({ qb64: anc.sad['d'] });
     const coupleArray = new Uint8Array(

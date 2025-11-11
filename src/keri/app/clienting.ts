@@ -168,7 +168,7 @@ export class SignifyClient {
                 'commitment to controller AID missing in agent inception event'
             );
         }
-        if (this.controller.serder.sad.s == 0) {
+        if (Number(this.controller.serder.sad.s) === 0) {
             await this.approveDelegation();
         }
         this.manager = new IdentifierManagerFactory(
