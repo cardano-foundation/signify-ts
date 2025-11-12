@@ -8,6 +8,8 @@ import signify, {
     d,
     messagize,
     HabState,
+    Dip,
+    ExnEmbeds,
 } from 'signify-ts';
 import { getStates, waitAndMarkNotification } from './test-util.ts';
 import assert from 'assert';
@@ -22,8 +24,8 @@ export interface StartMultisigInceptArgs {
     groupName: string;
     localMemberName: string;
     participants: string[];
-    isith?: number | string | string[];
-    nsith?: number | string | string[];
+    isith?: string | number | string[] | string[][];
+    nsith?: string | number | string[] | string[][];
     toad?: number;
     wits?: string[];
     delpre?: string;
@@ -37,9 +39,16 @@ export async function acceptMultisigIncept(
 
     const res = await client2.groups().getRequest(msgSaid);
     const exn = res[0].exn;
-    const icp = exn.e.icp;
-    const smids = exn.a.smids;
-    const rmids = exn.a.rmids;
+
+    if (!('e' in exn) || !exn.e || !('icp' in exn.e) || !exn.e.icp) {
+        throw new Error(
+            'exn.e.icp is missing from the group inception request'
+        );
+    }
+
+    const icp = exn.e.icp as Dip;
+    const smids = (exn.a as { smids: string[] }).smids;
+    const rmids = (exn.a as { rmids: string[] }).rmids;
     const states = await getStates(client2, smids);
     const rstates = await getStates(client2, rmids);
 
@@ -297,10 +306,20 @@ export async function delegateMultisig(
         console.log(
             `${aid.name}(${aid.prefix}) received exchange message to join the interaction event`
         );
+
         const res = await client.groups().getRequest(msgSaid);
         const exn = res[0].exn;
-        const ixn = exn.e.ixn;
-        anchor = ixn.a[0];
+        if (!('e' in exn) || !exn.e) {
+            throw new Error('exn.e is missing from the group request');
+        }
+
+        const embeds = exn.e as ExnEmbeds;
+        if (!('ixn' in embeds) || !embeds.ixn) {
+            throw new Error('ixn is missing from embeds');
+        }
+
+        const ixn = embeds.ixn;
+        anchor = (ixn.a as Array<{ i: string; s: string; d: string }>)[0];
     }
 
     // const {delResult, delOp} = await retry(async () => {

@@ -388,9 +388,22 @@ test('multisig', async function run() {
         exnRes.exn.i,
         recp
     );
-    console.log(
-        `Member1 admitted credential with SAID : ${exnRes.exn.e.acdc.d}`
-    );
+
+    const exn1 = exnRes.exn;
+    if (!('e' in exn1) || !exn1.e) {
+        throw new Error('exn1.e is missing from the exchange result');
+    }
+
+    const acdcEmbeds1 = exn1.e as { acdc: { d: string } };
+    const credentialSaid1 = acdcEmbeds1.acdc?.d;
+
+    if (credentialSaid1) {
+        console.log(
+            `Member1 admitted credential with SAID : ${credentialSaid1}`
+        );
+    } else {
+        throw new Error('Expected property "e.acdc.d" not found on exnRes.exn');
+    }
 
     const grantMsgSaid2 = await waitAndMarkNotification(
         client2,
@@ -414,9 +427,24 @@ test('multisig', async function run() {
         exnRes.exn.i,
         recp2
     );
-    console.log(
-        `Member2 admitted credential with SAID : ${exnRes.exn.e.acdc.d}`
-    );
+
+    const exn2 = exnRes.exn;
+    if (!('e' in exn2) || !exn2.e) {
+        throw new Error('exn2.e is missing from the exchange result');
+    }
+
+    const acdcEmbeds = exn2.e as { acdc: { d: string } };
+    const credentialSaid = acdcEmbeds.acdc?.d;
+
+    if (credentialSaid) {
+        console.log(
+            `Member2 admitted credential with SAID : ${credentialSaid}`
+        );
+    } else {
+        throw new Error(
+            'Expected property "e.acdc.d" not found on exnRes2.exn'
+        );
+    }
 
     await waitOperation(client1, op1);
     await waitOperation(client2, op2);
