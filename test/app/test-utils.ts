@@ -7,18 +7,16 @@ import {
     DelegateInceptEventSAD,
     HEADER_SIG_TIME,
     IdentifierManagerFactory,
+    InceptEventSAD,
     MtrDex,
     Salter,
+    SerderKERI,
     Serials,
     Tier,
     Vrsn_1_0,
     incept,
 } from '../../src/index.ts';
-import {
-    EstablishmentState,
-    HabState,
-    KeyState,
-} from '../../src/keri/core/keyState.ts';
+import { EstablishmentState, HabState } from '../../src/keri/core/keyState.ts';
 
 const boot_url = 'http://127.0.0.1:3903';
 
@@ -81,21 +79,41 @@ export async function createMockIdentifierState(
         extern: extern,
     });
     const [keys, ndigs] = await keeper!.incept(transferable);
-    const serder = incept({
-        keys: keys!,
-        isith: isith,
-        ndigs: ndigs,
-        nsith: nsith,
-        toad: toad,
-        wits: wits,
-        cnfg: [],
-        data: data,
-        version: Vrsn_1_0,
-        kind: Serials.JSON,
-        code: dcode,
-        intive: false,
-        ...(delpre ? { delpre } : {}),
-    });
+
+    let serder: SerderKERI<InceptEventSAD> | SerderKERI<DelegateInceptEventSAD>;
+
+    if (delpre) {
+        serder = incept({
+            keys: keys!,
+            isith,
+            ndigs,
+            nsith,
+            toad,
+            wits,
+            cnfg: [],
+            data,
+            version: Vrsn_1_0,
+            kind: Serials.JSON,
+            code: dcode,
+            intive: false,
+            delpre,
+        });
+    } else {
+        serder = incept({
+            keys: keys!,
+            isith,
+            ndigs,
+            nsith,
+            toad,
+            wits,
+            cnfg: [],
+            data,
+            version: Vrsn_1_0,
+            kind: Serials.JSON,
+            code: dcode,
+            intive: false,
+        });
+    }
 
     return {
         name: name,
@@ -115,13 +133,13 @@ export async function createMockIdentifierState(
             n: serder.sad.n,
             bt: serder.sad.bt,
             b: serder.sad.b,
-            p: serder.sad.p ?? '',
+            p: '',
             f: '',
             dt: new Date().toISOString().replace('Z', '000+00:00'),
             et: '',
             c: [],
             di: (serder.sad as DelegateInceptEventSAD).di ?? '',
-        } as KeyState,
+        },
         icp_dt: '2023-12-01T10:05:25.062609+00:00',
     } as unknown as HabState;
 }

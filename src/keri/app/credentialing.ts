@@ -16,6 +16,7 @@ import { Siger } from '../core/siger.ts';
 import {
     serializeACDCAttachment,
     serializeIssExnAttachment,
+    SerializeIssSAD,
 } from '../core/utils.ts';
 import { vdr } from '../core/vdring.ts';
 import { SignifyClient } from './clienting.ts';
@@ -26,9 +27,16 @@ import { components } from '../../types/keria-api-schema.ts';
 import { ExchangeSAD } from './exchanging.ts';
 
 export type CredentialResult = components['schemas']['Credential'];
-export type ACDCSAD = CredentialResult['sad'];
+export type ACDCSAD = Omit<CredentialResult['sad'], 's' | 'e' | 'r'> & {
+    s?: string;
+    e?: { [key: string]: unknown };
+    r?: { [key: string]: unknown };
+    a?: { [key: string]: unknown };
+    ri?: string;
+};
 export type Registry = components['schemas']['Registry'];
 export type Schema = components['schemas']['Schema'];
+export type IssSAD = components['schemas']['ISS_V_1'];
 
 /** Types of credentials */
 export class CredentialTypes {
@@ -94,9 +102,9 @@ export interface CredentialData {
 }
 
 export interface IssueCredentialResult {
-    acdc: SerderKERI;
+    acdc: SerderKERI<ACDCSAD>;
     anc: SerderKERI<InteractEventSAD>;
-    iss: SerderKERI;
+    iss: SerderKERI<IssSAD>;
     op: Operation;
 }
 
@@ -208,9 +216,9 @@ export interface IpexGrantArgs {
     datetime?: string;
     acdc: SerderKERI;
     acdcAttachment?: string;
-    iss: SerderKERI;
+    iss: SerderKERI<IssSAD>;
     issAttachment?: string;
-    anc: SerderKERI;
+    anc: SerderKERI<SerializeIssSAD>;
     ancAttachment?: string;
 }
 
@@ -352,27 +360,30 @@ export class Credentials {
             dt: args.a.dt ?? new Date().toISOString().replace('Z', '000+00:00'),
         });
 
-        const [, acdc] = Saider.saidify({
+        const acdcSAD: ACDCSAD = {
             v: versify(Protocols.ACDC, undefined, Serials.JSON, 0),
             d: '',
             u: args.u,
             i: args.i ?? hab.prefix,
             ri: args.ri,
-            s: args.s,
+            s: args.s || '',
             a: subject,
             e: args.e,
             r: args.r,
-        });
+        };
 
-        const [, iss] = Saider.saidify({
+        const [, acdc] = Saider.saidify(acdcSAD);
+
+        const issSAD: IssSAD = {
             v: versify(Protocols.KERI, undefined, Serials.JSON, 0),
             t: Ilks.iss,
             d: '',
             i: acdc.d,
             s: '0',
-            ri: args.ri,
+            ri: args.ri || '',
             dt: subject.dt,
-        });
+        };
+        const [, iss] = Saider.saidify(issSAD);
 
         const sn = parseInt(hab.state.s, 16);
         const anc = interact({
@@ -528,13 +539,13 @@ export interface CreateRegistryArgs {
 }
 
 export class RegistryResult {
-    private readonly _regser: SerderKERI<vdr.VDRInceptSAD>;
+    private readonly _regser: SerderKERI<vdr.VCPSAD>;
     private readonly _serder: SerderKERI<InteractEventSAD>;
     private readonly _sigs: string[];
     private readonly promise: Promise<Response>;
 
     constructor(
-        regser: SerderKERI<vdr.VDRInceptSAD>,
+        regser: SerderKERI<vdr.VCPSAD>,
         serder: SerderKERI<InteractEventSAD>,
         sigs: any[],
         promise: Promise<Response>

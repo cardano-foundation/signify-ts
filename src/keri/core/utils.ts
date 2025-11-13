@@ -1,4 +1,12 @@
+import { IssSAD } from '../app/credentialing.ts';
 import { Counter, CtrDex } from './counter.ts';
+import {
+    DelegateInceptEventSAD,
+    DelegateRotateEventSAD,
+    InceptEventSAD,
+    InteractEventSAD,
+    RotateEventSAD,
+} from './eventing.ts';
 import { Prefixer } from './prefixer.ts';
 import { Saider } from './saider.ts';
 import { Seqner } from './seqner.ts';
@@ -114,7 +122,7 @@ export function bytesToInt(ar: Uint8Array): number {
     return value;
 }
 
-export function serializeACDCAttachment(anc: SerderKERI): Uint8Array {
+export function serializeACDCAttachment(anc: SerderKERI<IssSAD>): Uint8Array {
     const prefixer = new Prefixer({ qb64: anc.pre });
     const seqner = new Seqner({ sn: anc.sn });
     const saider = new Saider({ qb64: anc.sad['d'] });
@@ -134,7 +142,16 @@ export function serializeACDCAttachment(anc: SerderKERI): Uint8Array {
     return newCraw;
 }
 
-export function serializeIssExnAttachment(anc: SerderKERI): Uint8Array {
+export type SerializeIssSAD =
+    | InceptEventSAD
+    | RotateEventSAD
+    | InteractEventSAD
+    | DelegateInceptEventSAD
+    | DelegateRotateEventSAD;
+
+export function serializeIssExnAttachment(
+    anc: SerderKERI<SerializeIssSAD>
+): Uint8Array {
     const seqner = new Seqner({ sn: anc.sn });
     const ancSaider = new Saider({ qb64: anc.sad['d'] });
     const coupleArray = new Uint8Array(

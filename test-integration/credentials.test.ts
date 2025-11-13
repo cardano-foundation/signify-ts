@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Ilks, Saider, SerderKERI, SignifyClient } from 'signify-ts';
+import { ACDCSAD, Ilks, Saider, SerderKERI, SignifyClient } from 'signify-ts';
 import { afterAll, assert, beforeAll, expect, test } from 'vitest';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import { retry } from './utils/retry.ts';
@@ -245,7 +245,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
 
         const [grant, gsigs, gend] = await issuerClient.ipex().grant({
             senderName: issuerAid.name,
-            acdc: new SerderKERI(issuerCredential.sad),
+            acdc: new SerderKERI(issuerCredential.sad as ACDCSAD),
             anc: new SerderKERI(issuerCredential.anc),
             iss: new SerderKERI(issuerCredential.iss),
             ancAttachment: issuerCredential.ancatc,
@@ -357,7 +357,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
         const [offer, sigs, end] = await holderClient.ipex().offer({
             senderName: holderAid.name,
             recipient: verifierAid.prefix,
-            acdc: new SerderKERI(matchingCreds[0].sad),
+            acdc: new SerderKERI(matchingCreds[0].sad as ACDCSAD),
             applySaid: applySaid,
             datetime: createTimestamp(),
         });
@@ -425,7 +425,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
         const [grant2, gsigs2, gend2] = await holderClient.ipex().grant({
             senderName: holderAid.name,
             recipient: verifierAid.prefix,
-            acdc: new SerderKERI(holderCredential.sad),
+            acdc: new SerderKERI(holderCredential.sad as ACDCSAD),
             anc: new SerderKERI(holderCredential.anc),
             iss: new SerderKERI(holderCredential.iss),
             acdcAttachment: holderCredential.atc,
@@ -555,7 +555,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
 
         const [grant, gsigs, gend] = await holderClient.ipex().grant({
             senderName: holderAid.name,
-            acdc: new SerderKERI(leCredential.sad),
+            acdc: new SerderKERI(leCredential.sad as ACDCSAD),
             anc: new SerderKERI(leCredential.anc),
             iss: new SerderKERI(leCredential.iss),
             ancAttachment: leCredential.ancatc,

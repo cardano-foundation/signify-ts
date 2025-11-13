@@ -252,6 +252,27 @@ export interface components {
             r: string;
             a: unknown;
         };
+        VCP_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            ii?: string;
+            s: string;
+            c?: string[];
+            bt: string;
+            b: string[];
+            n?: string;
+        };
+        ISS_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            s: string;
+            ri: string;
+            dt: string;
+        };
         Credential: {
             sad:
                 | components['schemas']['ACDC_V_1']

@@ -342,7 +342,7 @@ export async function getOrIssueCredential(
     await waitOperation(issuerClient, issResult.op);
     const credential = await issuerClient
         .credentials()
-        .get(issResult.acdc.sad.d);
+        .get(issResult.acdc.sad.d as string);
 
     return credential;
 }

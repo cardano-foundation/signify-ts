@@ -1,7 +1,7 @@
+import { ACDCSAD, IssSAD } from '../app/credentialing.ts';
 import { ExchangeSAD } from '../app/exchanging.ts';
 import {
     deversify,
-    Ilks,
     Protocols,
     Serials,
     versify,
@@ -11,6 +11,7 @@ import {
 import { Diger } from './diger.ts';
 import {
     DelegateInceptEventSAD,
+    DelegateRotateEventSAD,
     InceptEventSAD,
     InteractEventSAD,
     ReplyEventSAD,
@@ -21,34 +22,10 @@ import { CesrNumber } from './number.ts';
 import { vdr } from './vdring.ts';
 import { Verfer } from './verfer.ts';
 
-export type SerderSAD = Record<string, unknown> & {
-    s?: string;
-    d: string;
-};
-
-const IlkSaidMapping = {
-    icp: 'd',
-    rot: 'd',
-    ixn: 'd',
-    dip: 'd',
-    drt: 'd',
-    rct: 'd', // TODO: re-evaluate later
-    vrc: 'd',
-    rpy: 'd',
-    exn: 'd',
-    vcp: 'd',
-    iss: 'd',
-    rev: 'd',
-    bis: 'd',
-    brv: 'd',
-};
-
-type IlksType = typeof Ilks;
-
 export class Serder {
     private _kind: Serials;
     private _raw: string = '';
-    protected _sad: SerderSAD;
+    protected _sad: Record<string, unknown>;
     private _proto: Protocols = Protocols.KERI;
     private _size: number = 0;
     private _version: Version = Vrsn_1_0;
@@ -61,7 +38,7 @@ export class Serder {
      * @param code derivation code for the prefix
      */
     constructor(
-        sad: SerderSAD,
+        sad: Record<string, unknown>,
         kind: Serials = Serials.JSON,
         code: string = MtrDex.Blake3_256
     ) {
@@ -75,7 +52,7 @@ export class Serder {
         this._size = raw.length;
     }
 
-    get sad(): SerderSAD {
+    get sad(): Record<string, unknown> {
         return this._sad;
     }
 
@@ -87,13 +64,21 @@ export class Serder {
         return this._raw;
     }
 
-    get said() {
-        const field = IlkSaidMapping[this._sad.t as keyof IlksType];
-        if (field in this._sad) return this._sad[field];
+    get said(): string {
+        if ('d' in this._sad && typeof this._sad.d === 'string') {
+            return this._sad.d;
+        }
+
+        throw new Error(
+            `Cannot determine SAID for event type '${this._sad.t}'`
+        );
     }
 
-    get sner(): CesrNumber {
-        return new CesrNumber({}, this.sad['s']);
+    get sner(): CesrNumber | undefined {
+        return 's' in this.sad &&
+            (typeof this.sad.s == 'string' || typeof this.sad.s == 'number')
+            ? new CesrNumber({}, this.sad.s)
+            : undefined;
     }
 
     get kind(): Serials {
@@ -108,9 +93,9 @@ export class Serder {
      * @private
      */
     private _exhale(
-        sad: SerderSAD,
+        sad: Record<string, unknown>,
         kind: Serials
-    ): [string, Protocols, Serials, SerderSAD, Version] {
+    ): [string, Protocols, Serials, Record<string, unknown>, Version] {
         return sizeify(sad, kind);
     }
 
@@ -124,28 +109,6 @@ export class Serder {
 
     get version(): Version {
         return this._version;
-    }
-
-    get digers(): Diger[] {
-        let keys: string[] = [];
-        if ('n' in this._sad) {
-            if (
-                Array.isArray(this._sad['n']) &&
-                this._sad['n'].map((item) => typeof item === 'string')
-            ) {
-                // establishment event
-                keys = this._sad['n'];
-            }
-        } else {
-            // non-establishment event
-            keys = [];
-        }
-        // create a new Verfer for each key
-        const digers = [];
-        for (const key of keys) {
-            digers.push(new Diger({ qb64: key }));
-        }
-        return digers;
     }
 
     pretty() {
@@ -192,15 +155,19 @@ export function sizeify<T extends object = Record<string, unknown>>(
 
 export type KERISAD =
     | RotateEventSAD
+    | DelegateRotateEventSAD
     | InceptEventSAD
     | DelegateInceptEventSAD
     | InteractEventSAD
     | ReplyEventSAD
     | ExchangeSAD
-    | vdr.VDRInceptSAD
-    | SerderSAD;
+    | vdr.VCPSAD
+    | ACDCSAD
+    | IssSAD;
 
 type HasPre<SAD> = SAD extends { i: string } ? string : undefined;
+
+type HasSn<SAD> = SAD extends { s: string | number } ? number : undefined;
 
 export class SerderKERI<TSAD extends KERISAD = KERISAD> extends Serder {
     protected override _sad: TSAD;
@@ -222,8 +189,8 @@ export class SerderKERI<TSAD extends KERISAD = KERISAD> extends Serder {
         return ('i' in this._sad ? this._sad['i'] : undefined) as HasPre<TSAD>;
     }
 
-    get sn() {
-        return this.sner.num;
+    get sn(): HasSn<TSAD> {
+        return (this.sner ? this.sner.num : undefined) as HasSn<TSAD>;
     }
 
     get verfers(): Verfer[] {
@@ -246,5 +213,27 @@ export class SerderKERI<TSAD extends KERISAD = KERISAD> extends Serder {
             verfers.push(new Verfer({ qb64: key }));
         }
         return verfers;
+    }
+
+    get digers(): Diger[] {
+        let keys: string[] = [];
+        if ('n' in this._sad) {
+            if (
+                Array.isArray(this._sad['n']) &&
+                this._sad['n'].map((item) => typeof item === 'string')
+            ) {
+                // establishment event
+                keys = this._sad['n'];
+            }
+        } else {
+            // non-establishment event
+            keys = [];
+        }
+        // create a new Verfer for each key
+        const digers = [];
+        for (const key of keys) {
+            digers.push(new Diger({ qb64: key }));
+        }
+        return digers;
     }
 }

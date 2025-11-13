@@ -15,7 +15,7 @@ import { MtrDex } from '../core/matter.ts';
 import { CesrNumber } from '../core/number.ts';
 import { Salter, Tier } from '../core/salter.ts';
 import { Seqner } from '../core/seqner.ts';
-import { SerderKERI } from '../core/serder.ts';
+import { Serder, SerderKERI } from '../core/serder.ts';
 import { Tholder } from '../core/tholder.ts';
 import { Verfer } from '../core/verfer.ts';
 
@@ -271,7 +271,7 @@ export class Controller {
                 wits: [],
             });
         } else {
-            return new SerderKERI({ sad: state.controller['ee'], d: '' });
+            return new Serder({ sad: state.controller['ee'] });
         }
     }
 

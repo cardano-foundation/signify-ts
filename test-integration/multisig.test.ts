@@ -1,8 +1,7 @@
 import signify, {
     IssueCredentialResult,
-    Serder,
     SerderKERI,
-    SignifyClient,
+    SignifyClient
 } from 'signify-ts';
 import { assert, test } from 'vitest';
 import { resolveEnvironment } from './utils/resolve-env.ts';
@@ -109,21 +108,25 @@ test('multisig', async function run() {
     op1 = await client1.challenges().verify(aid2.prefix, words);
     op1 = await waitOperation(client1, op1);
     console.log('Member1 verified challenge response from member2');
-    let exnwords = new Serder(op1.response.exn);
-    op1 = await client1.challenges().responded(aid2.prefix, exnwords.sad.d);
+    let exnwords = new SerderKERI(op1.response?.exn);
+    let res1 = await client1
+        .challenges()
+        .responded(aid2.prefix, exnwords.sad.d);
+    assert.equal(res1.status, 202);
     console.log('Member1 marked challenge response as accepted');
 
     op1 = await client1.challenges().verify(aid3.prefix, words);
     op1 = await waitOperation(client1, op1);
     console.log('Member1 verified challenge response from member3');
-    exnwords = new Serder(op1.response.exn);
-    op1 = await client1.challenges().responded(aid3.prefix, exnwords.sad.d);
+    exnwords = new SerderKERI(op1.response?.exn);
+    res1 = await client1.challenges().responded(aid3.prefix, exnwords.sad.d);
+    assert.equal(res1.status, 202);
     console.log('Member1 marked challenge response as accepted');
 
     // First member start the creation of a multisig identifier
     let rstates = [aid1['state'], aid2['state'], aid3['state']];
     let states = rstates;
-    let icpResult1 = await client1.identifiers().create('multisig', {
+    const icpResult1 = await client1.identifiers().create('multisig', {
         algo: signify.Algos.group,
         mhab: aid1,
         isith: 3,
@@ -170,7 +173,7 @@ test('multisig', async function run() {
     let exn = res[0].exn;
     let icp = exn.e.icp;
 
-    let icpResult2 = await client2.identifiers().create('multisig', {
+    const icpResult2 = await client2.identifiers().create('multisig', {
         algo: signify.Algos.group,
         mhab: aid2,
         isith: icp.kt,
@@ -214,7 +217,7 @@ test('multisig', async function run() {
     res = await client3.groups().getRequest(msgSaid);
     exn = res[0].exn;
     icp = exn.e.icp;
-    let icpResult3 = await client3.identifiers().create('multisig', {
+    const icpResult3 = await client3.identifiers().create('multisig', {
         algo: signify.Algos.group,
         mhab: aid3,
         isith: icp.kt,
@@ -467,7 +470,7 @@ test('multisig', async function run() {
         s: '0',
         d: 'EBgew7O4yp8SBle0FU-wwN3GtnaroI0BQfBGAj33QiIG',
     };
-    let eventResponse1 = await client1.identifiers().interact('multisig', data);
+    const eventResponse1 = await client1.identifiers().interact('multisig', data);
     op1 = await eventResponse1.op();
     const interactSerder = eventResponse1.serder;
     sigs = eventResponse1.sigs;

@@ -26,26 +26,25 @@ export type RotateEventSAD =
     | (Omit<components['schemas']['ROT_V_1'], 'bt'> & { bt: string | number })
     | (Omit<components['schemas']['ROT_V_2'], 'bt'> & { bt: string | number });
 
+export type DelegateRotateEventSAD =
+    | (Omit<components['schemas']['DRT_V_1'], 'bt'> & { bt: string | number })
+    | (Omit<components['schemas']['DRT_V_2'], 'bt'> & { bt: string | number });
+
 export type InceptEventSAD =
     | (Omit<components['schemas']['ICP_V_1'], 'kt' | 'nt' | 'bt'> & {
           kt: number | string | string[] | string[][];
           nt: number | string | string[] | string[][];
           bt: string | number;
-          p?: string;
       })
     | (Omit<components['schemas']['ICP_V_2'], 'kt' | 'nt' | 'bt'> & {
           kt: number | string | string[] | string[][];
           nt: number | string | string[] | string[][];
           bt: string | number;
-          p?: string;
       });
 
-export type DelegateInceptEventSAD = (
+export type DelegateInceptEventSAD =
     | components['schemas']['DIP_V_1']
-    | components['schemas']['DIP_V_2']
-) & {
-    p?: string;
-};
+    | components['schemas']['DIP_V_2'];
 
 export type InteractEventSAD =
     | components['schemas']['IXN_V_1']
@@ -399,19 +398,17 @@ export function incept({
         s: sner.numh,
         kt: intive && tholder.num != undefined ? tholder.num : tholder.sith,
         k: keys,
-        nt: intive && tholder.num != undefined ? ntholder.num! : ntholder.sith,
+        nt: intive && ntholder.num != undefined ? ntholder.num : ntholder.sith,
         n: ndigs,
         bt: intive ? toader.num : toader.numh,
         b: wits,
         c: cnfg,
         a: data,
+        ...(delpre ? { di: delpre } : {}),
     };
 
-    if (delpre != undefined) {
-        (sad as DelegateInceptEventSAD)['di'] = delpre;
-        if (code == undefined) {
-            code = MtrDex.Blake3_256;
-        }
+    if (delpre != undefined && code == undefined) {
+        code = MtrDex.Blake3_256;
     }
 
     let prefixer;

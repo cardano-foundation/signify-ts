@@ -289,7 +289,10 @@ export class Identifier {
      * @param {any} [data] Option data to be anchored in the interaction event
      * @returns {Promise<EventResult<SerderKERI<InteractEventSAD>>>} A promise to the interaction event result
      */
-    async interact(name: string, data?: any) {
+    async interact(
+        name: string,
+        data?: any
+    ): Promise<EventResult<SerderKERI<InteractEventSAD>>> {
         const { serder, sigs, jsondata } = await this.createInteract(
             name,
             data
@@ -300,6 +303,7 @@ export class Identifier {
             'POST',
             jsondata
         );
+
         return new EventResult(serder, sigs, res);
     }
 

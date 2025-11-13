@@ -62,11 +62,11 @@ export class Saider extends Matter {
             throw new Error(`Unsupported digest code = ${code}.`);
         }
 
-        sad = { ...sad };
-        (sad as Record<string, unknown>)[label] = ''.padStart(
-            Matter.Sizes.get(code)!.fs!,
-            Dummy
-        );
+        sad = {
+            ...sad,
+            [label]: ''.padStart(Matter.Sizes.get(code)!.fs!, Dummy),
+        };
+
         if ('v' in sad) {
             [, , kind, sad] = sizeify(sad, kind);
         }
@@ -154,7 +154,7 @@ export class Saider extends Matter {
             kind,
             label
         );
-        (derivedSad as Record<string, unknown>)[label] = saider.qb64;
-        return [saider, derivedSad];
+
+        return [saider, { ...derivedSad, [label]: saider.qb64 }];
     }
 }

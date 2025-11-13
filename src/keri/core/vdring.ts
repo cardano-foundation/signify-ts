@@ -1,3 +1,4 @@
+import { components } from '../../types/keria-api-schema.ts';
 import { randomNonce } from '../app/coring.ts';
 import { TraitDex } from '../app/habery.ts';
 import {
@@ -11,7 +12,7 @@ import {
 import { ample } from './eventing.ts';
 import { MtrDex } from './matter.ts';
 import { Prefixer } from './prefixer.ts';
-import { SerderKERI, SerderSAD } from './serder.ts';
+import { SerderKERI } from './serder.ts';
 
 namespace vdr {
     export interface VDRInceptArgs {
@@ -25,17 +26,7 @@ namespace vdr {
         code?: string;
     }
 
-    export interface VDRInceptSAD extends SerderSAD {
-        v: string;
-        t: string;
-        i: string;
-        ii: string;
-        s: string;
-        c: string[];
-        bt: string;
-        b: string[];
-        n: string;
-    }
+    export type VCPSAD = components['schemas']['VCP_V_1'];
 
     export function incept({
         pre,
@@ -82,7 +73,7 @@ namespace vdr {
             }
         }
 
-        const sad: VDRInceptSAD = {
+        const sad: VCPSAD = {
             v: vs,
             t: ilk,
             d: '',
