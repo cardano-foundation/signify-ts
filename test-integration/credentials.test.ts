@@ -550,6 +550,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
         const dt = createTimestamp();
         const leCredential = await holderClient
             .credentials()
+            // TODO: remove cast when SerderACDC created
             .get(leCredentialId as string);
         assert(leCredential !== undefined);
 
@@ -606,6 +607,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
 
     await step('Legal Entity has chained credential', async () => {
         const legalEntityCredential = await retry(async () =>
+            // TODO: remove cast when SerderACDC created
             legalEntityClient.credentials().get(leCredentialId as string)
         );
         assert.equal(legalEntityCredential.sad.s, LE_SCHEMA_SAID);
@@ -643,8 +645,10 @@ test('single signature credentials', { timeout: 90000 }, async () => {
     });
 
     await step('Holder deletes LE credential', async () => {
+            // TODO: remove cast when SerderACDC created
         await holderClient.credentials().delete(leCredentialId as string);
         await expect(async () => {
+            // TODO: remove cast when SerderACDC created
             await holderClient.credentials().get(leCredentialId as string);
         }).rejects.toThrowError(
             `HTTP GET /credentials/${leCredentialId} - 404 Not Found - {"title": "404 Not Found", "description": "credential for said ${leCredentialId} not found."}`

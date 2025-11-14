@@ -46,9 +46,11 @@ export type InceptEventSAD =
     | (Omit<components['schemas']['ICP_V_2'], 'kt' | 'nt' | 'bt'> &
           ThresholdType);
 
-export type DelegateInceptEventSAD =
+export type DelegateInceptEventSAD = (
     | components['schemas']['DIP_V_1']
-    | components['schemas']['DIP_V_2'];
+    | components['schemas']['DIP_V_2']
+) &
+    ThresholdType;
 
 export type InteractEventSAD =
     | components['schemas']['IXN_V_1']

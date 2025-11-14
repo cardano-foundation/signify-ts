@@ -74,12 +74,6 @@ export class Serder {
         );
     }
 
-    get sner(): CesrNumber | undefined {
-        return 's' in this.sad && typeof this.sad.s == 'string'
-            ? new CesrNumber({}, this.sad.s)
-            : undefined;
-    }
-
     get kind(): Serials {
         return this._kind;
     }
@@ -186,6 +180,12 @@ export class SerderKERI<TSAD extends KERISAD = KERISAD> extends Serder {
 
     get pre(): HasPre<TSAD> {
         return ('i' in this._sad ? this._sad['i'] : undefined) as HasPre<TSAD>;
+    }
+
+    get sner(): CesrNumber | undefined {
+        return 's' in this.sad && typeof this.sad.s == 'string'
+            ? new CesrNumber({}, this.sad.s)
+            : undefined;
     }
 
     get sn(): HasSn<TSAD> {
