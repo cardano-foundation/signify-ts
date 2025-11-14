@@ -71,9 +71,7 @@ export class Saider extends Matter {
             [, , kind, sad] = sizeify(sad, kind);
         }
 
-        const ser = { ...sad };
-
-        const cpa = Saider._serialze(ser, kind);
+        const cpa = Saider._serialze(sad, kind);
 
         switch (code) {
             case MtrDex.Blake3_256:

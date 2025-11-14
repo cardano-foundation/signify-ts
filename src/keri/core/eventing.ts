@@ -22,25 +22,29 @@ import { Tholder } from './tholder.ts';
 
 const MaxIntThold = 2 ** 32 - 1;
 
+type ThresholdType = {
+    bt: string | number;
+    kt: number | string | string[] | string[][];
+    nt: number | string | string[] | string[][];
+};
+
 export type RotateEventSAD =
-    | (Omit<components['schemas']['ROT_V_1'], 'bt'> & { bt: string | number })
-    | (Omit<components['schemas']['ROT_V_2'], 'bt'> & { bt: string | number });
+    | (Omit<components['schemas']['ROT_V_1'], 'kt' | 'nt' | 'bt'> &
+          ThresholdType)
+    | (Omit<components['schemas']['ROT_V_2'], 'kt' | 'nt' | 'bt'> &
+          ThresholdType);
 
 export type DelegateRotateEventSAD =
-    | (Omit<components['schemas']['DRT_V_1'], 'bt'> & { bt: string | number })
-    | (Omit<components['schemas']['DRT_V_2'], 'bt'> & { bt: string | number });
+    | (Omit<components['schemas']['DRT_V_1'], 'kt' | 'nt' | 'bt'> &
+          ThresholdType)
+    | (Omit<components['schemas']['DRT_V_2'], 'kt' | 'nt' | 'bt'> &
+          ThresholdType);
 
 export type InceptEventSAD =
-    | (Omit<components['schemas']['ICP_V_1'], 'kt' | 'nt' | 'bt'> & {
-          kt: number | string | string[] | string[][];
-          nt: number | string | string[] | string[][];
-          bt: string | number;
-      })
-    | (Omit<components['schemas']['ICP_V_2'], 'kt' | 'nt' | 'bt'> & {
-          kt: number | string | string[] | string[][];
-          nt: number | string | string[] | string[][];
-          bt: string | number;
-      });
+    | (Omit<components['schemas']['ICP_V_1'], 'kt' | 'nt' | 'bt'> &
+          ThresholdType)
+    | (Omit<components['schemas']['ICP_V_2'], 'kt' | 'nt' | 'bt'> &
+          ThresholdType);
 
 export type DelegateInceptEventSAD =
     | components['schemas']['DIP_V_1']

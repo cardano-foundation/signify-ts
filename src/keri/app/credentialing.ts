@@ -82,7 +82,7 @@ export interface CredentialData {
     /**
      * Registry id.
      */
-    ri?: string;
+    ri: string;
     /**
      * Schema id
      */
@@ -102,7 +102,7 @@ export interface CredentialData {
 }
 
 export interface IssueCredentialResult {
-    acdc: SerderKERI<ACDCSAD>;
+    acdc: Serder;
     anc: SerderKERI<InteractEventSAD>;
     iss: SerderKERI<IssSAD>;
     op: Operation;
@@ -214,7 +214,7 @@ export interface IpexGrantArgs {
      */
     agreeSaid?: string;
     datetime?: string;
-    acdc: SerderKERI;
+    acdc: Serder;
     acdcAttachment?: string;
     iss: SerderKERI<IssSAD>;
     issAttachment?: string;
@@ -366,7 +366,7 @@ export class Credentials {
             u: args.u,
             i: args.i ?? hab.prefix,
             ri: args.ri,
-            s: args.s || '',
+            s: args.s,
             a: subject,
             e: args.e,
             r: args.r,
@@ -380,7 +380,7 @@ export class Credentials {
             d: '',
             i: acdc.d,
             s: '0',
-            ri: args.ri || '',
+            ri: args.ri,
             dt: subject.dt,
         };
         const [, iss] = Saider.saidify(issSAD);

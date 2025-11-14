@@ -75,8 +75,7 @@ export class Serder {
     }
 
     get sner(): CesrNumber | undefined {
-        return 's' in this.sad &&
-            (typeof this.sad.s == 'string' || typeof this.sad.s == 'number')
+        return 's' in this.sad && typeof this.sad.s == 'string'
             ? new CesrNumber({}, this.sad.s)
             : undefined;
     }

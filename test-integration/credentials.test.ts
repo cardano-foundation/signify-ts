@@ -550,7 +550,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
         const dt = createTimestamp();
         const leCredential = await holderClient
             .credentials()
-            .get(leCredentialId);
+            .get(leCredentialId as string);
         assert(leCredential !== undefined);
 
         const [grant, gsigs, gend] = await holderClient.ipex().grant({
@@ -606,7 +606,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
 
     await step('Legal Entity has chained credential', async () => {
         const legalEntityCredential = await retry(async () =>
-            legalEntityClient.credentials().get(leCredentialId)
+            legalEntityClient.credentials().get(leCredentialId as string)
         );
         assert.equal(legalEntityCredential.sad.s, LE_SCHEMA_SAID);
         assert.equal(legalEntityCredential.sad.i, holderAid.prefix);
@@ -643,9 +643,9 @@ test('single signature credentials', { timeout: 90000 }, async () => {
     });
 
     await step('Holder deletes LE credential', async () => {
-        await holderClient.credentials().delete(leCredentialId);
+        await holderClient.credentials().delete(leCredentialId as string);
         await expect(async () => {
-            await holderClient.credentials().get(leCredentialId);
+            await holderClient.credentials().get(leCredentialId as string);
         }).rejects.toThrowError(
             `HTTP GET /credentials/${leCredentialId} - 404 Not Found - {"title": "404 Not Found", "description": "credential for said ${leCredentialId} not found."}`
         );
