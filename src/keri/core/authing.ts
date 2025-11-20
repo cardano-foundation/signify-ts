@@ -209,14 +209,17 @@ export class Authenticator {
     ): Promise<Response> {
         const signature = wrapper.headers.get(HEADER_SIG);
         if (!signature) {
+            console.warn(wrapper);
             throw new Error('Signature is missing from ESSR payload');
         }
 
         if (wrapper.headers.get(HEADER_SIG_SENDER) !== sender) {
+            console.warn(wrapper);
             throw new Error('Message from a different remote agent');
         }
 
         if (wrapper.headers.get(HEADER_SIG_DESTINATION) !== receiver) {
+            console.warn(wrapper);
             throw new Error(
                 'Invalid ESSR payload, missing or incorrect destination prefix'
             );
@@ -224,6 +227,7 @@ export class Authenticator {
 
         const dt = wrapper.headers.get(HEADER_SIG_TIME);
         if (!dt) {
+            console.warn(wrapper);
             throw new Error('Timestamp is missing from ESSR payload');
         }
 
