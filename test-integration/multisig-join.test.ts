@@ -123,6 +123,48 @@ describe('multisig-join', () => {
             waitOperation(client2, createMultisig2),
         ]);
 
+        if (!createResult1.response) {
+            throw new Error(
+                'Multisig creation failed for client1: no response'
+            );
+        }
+
+        if (!createResult2.response) {
+            throw new Error(
+                'Multisig creation failed for client2: no response'
+            );
+        }
+
+        if (typeof createResult1.response === 'string') {
+            throw new Error(
+                `Multisig creation failed for client1: unexpected string response: ${createResult1.response}`
+            );
+        }
+
+        if (typeof createResult2.response === 'string') {
+            throw new Error(
+                `Multisig creation failed for client2: unexpected string response: ${createResult2.response}`
+            );
+        }
+
+        if (
+            !('k' in createResult1.response) ||
+            !Array.isArray(createResult1.response.k)
+        ) {
+            throw new Error(
+                'Invalid multisig creation response for client1: missing or invalid k array'
+            );
+        }
+
+        if (
+            !('k' in createResult2.response) ||
+            !Array.isArray(createResult2.response.k)
+        ) {
+            throw new Error(
+                'Invalid multisig creation response for client2: missing or invalid k array'
+            );
+        }
+
         assert.equal(createResult1.response.k[0], aid1.state.k[0]);
         assert.equal(createResult1.response.k[1], aid2.state.k[0]);
         assert.equal(createResult2.response.k[0], aid1.state.k[0]);

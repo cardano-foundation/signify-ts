@@ -45,5 +45,41 @@ export type ExnV1 = components['schemas']['EXN_V_1'];
 export type Dip =
     | components['schemas']['DIP_V_1']
     | components['schemas']['DIP_V_2'];
+export type Rot =
+    | components['schemas']['ROT_V_1']
+    | components['schemas']['ROT_V_2'];
 export type ExnEmbeds = components['schemas']['ExnEmbeds'];
 export type MultisigRpyEmbeds = components['schemas']['MultisigRpyEmbeds'];
+
+/**
+ * Defining Operation types
+ */
+export type OOBIOperation = components['schemas']['OOBIOperation'];
+export type QueryOperation = components['schemas']['QueryOperation'];
+export type EndRoleOperation = components['schemas']['EndRoleOperation'];
+export type WitnessOperation = components['schemas']['WitnessOperation'];
+export type DelegationOperation = components['schemas']['DelegationOperation'];
+export type RegistryOperation = components['schemas']['RegistryOperation'];
+export type LocSchemeOperation = components['schemas']['LocSchemeOperation'];
+export type ChallengeOperation = components['schemas']['ChallengeOperation'];
+export type ExchangeOperation = components['schemas']['ExchangeOperation'];
+export type SubmitOperation = components['schemas']['SubmitOperation'];
+export type DoneOperation = components['schemas']['DoneOperation'];
+export type CredentialOperation = components['schemas']['CredentialOperation'];
+export type GroupOperation = components['schemas']['GroupOperation'];
+export type DelegatorOperation = components['schemas']['DelegatorOperation'];
+export type GenericOperation =
+    | OOBIOperation
+    | QueryOperation
+    | EndRoleOperation
+    | WitnessOperation
+    | DelegationOperation
+    | RegistryOperation
+    | LocSchemeOperation
+    | ChallengeOperation
+    | ExchangeOperation
+    | SubmitOperation
+    | DoneOperation
+    | CredentialOperation
+    | GroupOperation
+    | DelegatorOperation;

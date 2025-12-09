@@ -2,6 +2,8 @@ import signify, {
     CreateIdentiferArgs,
     EventResult,
     Operation,
+    KeyState,
+    OOBIOperation,
     randomPasscode,
     ready,
     Salter,
@@ -248,9 +250,9 @@ export async function getOrCreateContact(
             return contact.id;
         }
     }
-    let op = await client.oobis().resolve(oobi, name);
-    op = await waitOperation(client, op);
-    const response = op.response as { i: string };
+    let op: OOBIOperation = await client.oobis().resolve(oobi, name);
+    op = (await waitOperation(client, op)) as OOBIOperation;
+    const response = op.response as KeyState;
     return response.i;
 }
 
@@ -393,12 +395,9 @@ export async function warnNotifications(
     expect(count).toBeGreaterThan(0); // replace warnNotifications with assertNotifications
 }
 
-async function deleteOperations<T = any>(
-    client: SignifyClient,
-    op: Operation<T>
-) {
-    if (op.metadata?.depends) {
-        await deleteOperations(client, op.metadata.depends);
+async function deleteOperations(client: SignifyClient, op: Operation) {
+    if (op.metadata && 'depends' in op.metadata && op.metadata.depends) {
+        await deleteOperations(client, op.metadata.depends as Operation);
     }
 
     await client.operations().delete(op.name);
@@ -512,11 +511,11 @@ export async function waitForNotifications(
  * Poll for operation to become completed.
  * Removes completed operation
  */
-export async function waitOperation<T = any>(
+export async function waitOperation(
     client: SignifyClient,
-    op: Operation<T> | string,
+    op: Operation | string,
     signal?: AbortSignal
-): Promise<Operation<T>> {
+): Promise<Operation> {
     if (typeof op === 'string') {
         op = await client.operations().get(op);
     }

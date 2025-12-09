@@ -19,8 +19,15 @@ import {
     serializeACDCAttachment,
     serializeIssExnAttachment,
 } from '../core/utils.ts';
-import { Operation } from './coring.ts';
-import { HabState } from '../core/keyState.ts';
+import {
+    ExchangeOperation,
+    CredentialOperation,
+    GroupOperation,
+    DelegationOperation,
+    WitnessOperation,
+    DoneOperation,
+    HabState,
+} from '../core/keyState.ts';
 
 import { components } from '../../types/keria-api-schema.ts';
 
@@ -95,13 +102,13 @@ export interface IssueCredentialResult {
     acdc: Serder;
     anc: Serder;
     iss: Serder;
-    op: Operation;
+    op: CredentialOperation;
 }
 
 export interface RevokeCredentialResult {
     anc: Serder;
     rev: Serder;
-    op: Operation;
+    op: GroupOperation | DelegationOperation | WitnessOperation | DoneOperation;
 }
 
 export interface IpexApplyArgs {
@@ -781,7 +788,7 @@ export class Ipex {
         exn: Serder,
         sigs: string[],
         recp: string[]
-    ): Promise<Operation<unknown>> {
+    ): Promise<ExchangeOperation> {
         const body = {
             exn: exn.sad,
             sigs,
@@ -825,7 +832,7 @@ export class Ipex {
         sigs: string[],
         atc: string,
         recp: string[]
-    ): Promise<Operation<unknown>> {
+    ): Promise<ExchangeOperation> {
         const body = {
             exn: exn.sad,
             sigs,
@@ -869,7 +876,7 @@ export class Ipex {
         exn: Serder,
         sigs: string[],
         recp: string[]
-    ): Promise<Operation<unknown>> {
+    ): Promise<ExchangeOperation> {
         const body = {
             exn: exn.sad,
             sigs,
@@ -937,7 +944,7 @@ export class Ipex {
         sigs: string[],
         atc: string,
         recp: string[]
-    ): Promise<Operation<unknown>> {
+    ): Promise<ExchangeOperation> {
         const body = {
             exn: exn.sad,
             sigs: sigs,
@@ -982,7 +989,7 @@ export class Ipex {
         sigs: string[],
         atc: string,
         recp: string[]
-    ): Promise<Operation<unknown>> {
+    ): Promise<ExchangeOperation> {
         const body = {
             exn: exn.sad,
             sigs: sigs,

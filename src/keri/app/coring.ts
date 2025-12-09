@@ -3,6 +3,22 @@ import libsodium from 'libsodium-wrappers-sumo';
 import { Salter } from '../core/salter.ts';
 import { Matter, MtrDex } from '../core/matter.ts';
 import { components } from '../../types/keria-api-schema.ts';
+import {
+    OOBIOperation,
+    QueryOperation,
+    EndRoleOperation,
+    WitnessOperation,
+    DelegationOperation,
+    RegistryOperation,
+    LocSchemeOperation,
+    ChallengeOperation,
+    ExchangeOperation,
+    SubmitOperation,
+    DoneOperation,
+    CredentialOperation,
+    GroupOperation,
+    DelegatorOperation,
+} from '../core/keyState.ts';
 
 type OOBI = components['schemas']['OOBI'];
 type KeyState = components['schemas']['KeyStateRecord'];
@@ -51,9 +67,9 @@ export class Oobis {
      * @async
      * @param {string} oobi The OOBI to be resolver
      * @param {string} [alias] Optional name or alias to link the OOBI resolution to a contact
-     * @returns {Promise<Operation<unknown>>} A promise to the long-running operation
+     * @returns {Promise<OOBIOperation>} A promise to the long-running operation
      */
-    async resolve(oobi: string, alias?: string): Promise<Operation<unknown>> {
+    async resolve(oobi: string, alias?: string): Promise<OOBIOperation> {
         const path = `/oobis`;
         const data: any = {
             url: oobi,
@@ -67,17 +83,21 @@ export class Oobis {
     }
 }
 
-// TODO: the generic will be replaced by specific overrides like IpexOperation
-export type Operation<T = unknown> = Omit<
-    components['schemas']['Operation'],
-    'response' | 'metadata'
-> & {
-    response?: T;
-    metadata?: {
-        depends?: Operation;
-        [property: string]: any;
-    };
-};
+export type Operation =
+    | OOBIOperation
+    | QueryOperation
+    | EndRoleOperation
+    | WitnessOperation
+    | DelegationOperation
+    | RegistryOperation
+    | LocSchemeOperation
+    | ChallengeOperation
+    | ExchangeOperation
+    | SubmitOperation
+    | DoneOperation
+    | CredentialOperation
+    | GroupOperation
+    | DelegatorOperation;
 
 export interface OperationsDeps {
     fetch(
@@ -109,7 +129,7 @@ export class Operations {
      * @param {string} name Name of the operation
      * @returns {Promise<Operation>} A promise to the status of the operation
      */
-    async get<T = unknown>(name: string): Promise<Operation<T>> {
+    async get(name: string): Promise<Operation> {
         const path = `/operations/${name}`;
         const data = null;
         const method = 'GET';
@@ -122,7 +142,7 @@ export class Operations {
      * @param {string} type Select operations by type
      * @returns {Promise<Operation[]>} A list of operations
      */
-    async list(type?: string): Promise<Operation<unknown>[]> {
+    async list(type?: string): Promise<Operation[]> {
         const params = new URLSearchParams();
         if (type !== undefined) {
             params.append('type', type);
@@ -148,21 +168,28 @@ export class Operations {
     /**
      * Poll for operation to become completed.
      */
-    async wait<T>(
-        op: Operation<T>,
+    async wait(
+        op: Operation,
         options: {
             signal?: AbortSignal;
             minSleep?: number;
             maxSleep?: number;
             increaseFactor?: number;
         } = {}
-    ): Promise<Operation<T>> {
+    ): Promise<Operation> {
         const minSleep = options.minSleep ?? 10;
         const maxSleep = options.maxSleep ?? 10000;
         const increaseFactor = options.increaseFactor ?? 50;
 
-        if (op.metadata?.depends?.done === false) {
-            await this.wait(op.metadata.depends, options);
+        if (
+            op.metadata &&
+            'depends' in op.metadata &&
+            op.metadata.depends &&
+            typeof op.metadata.depends === 'object' &&
+            'done' in op.metadata.depends &&
+            op.metadata.depends.done === false
+        ) {
+            await this.wait(op.metadata.depends as Operation, options);
         }
 
         if (op.done === true) {
@@ -265,13 +292,13 @@ export class KeyStates {
      * @param {string} pre Identifier prefix
      * @param {number} [sn] Optional sequence number
      * @param {any} [anchor] Optional anchor
-     * @returns {Promise<Operation<unknown>>} A promise to the long-running operation
+     * @returns {Promise<QueryOperation>} A promise to the long-running operation
      */
     async query(
         pre: string,
         sn?: string,
         anchor?: any
-    ): Promise<Operation<unknown>> {
+    ): Promise<QueryOperation> {
         const path = `/queries`;
         const data: any = {
             pre: pre,

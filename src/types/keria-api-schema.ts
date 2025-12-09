@@ -264,6 +264,25 @@ export interface components {
             b: string[];
             n: string;
         };
+        ISS_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            s: string;
+            ri: string;
+            dt: string;
+        };
+        REV_V_1: {
+            v: string;
+            t: string;
+            d: string;
+            i: string;
+            s: string;
+            ri: string;
+            p: string;
+            dt: string;
+        };
         EXN_V_1: {
             v: string;
             t: string;
@@ -329,13 +348,21 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        Operation: {
-            name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
-            metadata?: Record<string, never>;
-            response?: Record<string, never>;
-        };
+        Operation:
+            | components['schemas']['OOBIOperation']
+            | components['schemas']['QueryOperation']
+            | components['schemas']['EndRoleOperation']
+            | components['schemas']['WitnessOperation']
+            | components['schemas']['DelegationOperation']
+            | components['schemas']['RegistryOperation']
+            | components['schemas']['LocSchemeOperation']
+            | components['schemas']['ChallengeOperation']
+            | components['schemas']['ExchangeOperation']
+            | components['schemas']['SubmitOperation']
+            | components['schemas']['DoneOperation']
+            | components['schemas']['CredentialOperation']
+            | components['schemas']['GroupOperation']
+            | components['schemas']['DelegatorOperation'];
         EmptyDict: Record<string, never>;
         CredentialStateIssOrRev: {
             vn: unknown;
@@ -518,9 +545,6 @@ export interface components {
             role: string;
             eid: string;
         };
-        Rpy:
-            | components['schemas']['RPY_V_1']
-            | components['schemas']['RPY_V_2'];
         Challenge: {
             words: string[];
             dt?: string;
@@ -618,6 +642,9 @@ export interface components {
         Ixn:
             | components['schemas']['IXN_V_1']
             | components['schemas']['IXN_V_2'];
+        Rpy:
+            | components['schemas']['RPY_V_1']
+            | components['schemas']['RPY_V_2'];
         NotificationData: {
             r?: string;
             d?: string;
@@ -660,15 +687,6 @@ export interface components {
                 | components['schemas']['DRT_V_1']
                 | components['schemas']['DRT_V_2'];
         };
-        ISS_V_1: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            s: string;
-            ri: string;
-            dt: string;
-        };
         MultisigIssueEmbeds: {
             acdc:
                 | components['schemas']['ACDC_V_1']
@@ -685,16 +703,6 @@ export interface components {
                 | components['schemas']['DIP_V_2']
                 | components['schemas']['DRT_V_1']
                 | components['schemas']['DRT_V_2'];
-        };
-        REV_V_1: {
-            v: string;
-            t: string;
-            d: string;
-            i: string;
-            s: string;
-            ri: string;
-            p: string;
-            dt: string;
         };
         MultisigRevokeEmbeds: {
             rev: components['schemas']['REV_V_1'];
@@ -736,6 +744,222 @@ export interface components {
             groupName?: string;
             memberName?: string;
             sender?: string;
+        };
+        OOBIMetadata: {
+            oobi: string;
+        };
+        OOBIOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['OOBIMetadata'];
+            response?: components['schemas']['KeyStateRecord'];
+        };
+        QueryMetadata: {
+            pre: string;
+            sn: number;
+            anchor?: components['schemas']['Anchor'];
+        };
+        QueryOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['QueryMetadata'];
+            response?: components['schemas']['KeyStateRecord'];
+        };
+        EndRoleMetadata: {
+            cid: string;
+            role: string;
+            eid: string;
+        };
+        EndRoleOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['EndRoleMetadata'];
+            response?:
+                | components['schemas']['RPY_V_1']
+                | components['schemas']['RPY_V_2'];
+        };
+        WitnessMetadata: {
+            pre: string;
+            sn: number;
+        };
+        WitnessOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['WitnessMetadata'];
+            response?:
+                | components['schemas']['ICP_V_1']
+                | components['schemas']['ICP_V_2']
+                | components['schemas']['ROT_V_1']
+                | components['schemas']['ROT_V_2']
+                | components['schemas']['IXN_V_1']
+                | components['schemas']['IXN_V_2'];
+        };
+        DelegationMetadata: {
+            pre: string;
+            sn: number;
+        };
+        DelegationOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['DelegationMetadata'];
+            response?:
+                | components['schemas']['DIP_V_1']
+                | components['schemas']['DIP_V_2']
+                | components['schemas']['DRT_V_1']
+                | components['schemas']['DRT_V_2'];
+        };
+        RegistryOperationMetadata: {
+            pre: string;
+            depends: unknown;
+            anchor: components['schemas']['Anchor'];
+        };
+        RegistryOperationResponse: {
+            anchor: components['schemas']['Anchor'];
+        };
+        RegistryOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['RegistryOperationMetadata'];
+            response?: components['schemas']['RegistryOperationResponse'];
+        };
+        LocSchemeMetadata: {
+            eid: string;
+            scheme: string;
+            url: string;
+        };
+        LocSchemeOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['LocSchemeMetadata'];
+            response?: components['schemas']['LocSchemeMetadata'];
+        };
+        ChallengeOperationMetadata: {
+            words: string[];
+        };
+        ChallengeOperationResponse: {
+            exn:
+                | components['schemas']['EXN_V_1']
+                | components['schemas']['EXN_V_2'];
+        };
+        ChallengeOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['ChallengeOperationMetadata'];
+            response?: components['schemas']['ChallengeOperationResponse'];
+        };
+        ExchangeOperationMetadata: {
+            said: string;
+        };
+        ExchangeOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['ExchangeOperationMetadata'];
+            response?: components['schemas']['ExchangeOperationMetadata'];
+        };
+        SubmitOperationMetadata: {
+            pre: string;
+            sn: number;
+        };
+        SubmitOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['SubmitOperationMetadata'];
+            response?: components['schemas']['KeyStateRecord'];
+        };
+        DoneOperationMetadata: {
+            response:
+                | components['schemas']['ICP_V_1']
+                | components['schemas']['ICP_V_2']
+                | components['schemas']['ROT_V_1']
+                | components['schemas']['ROT_V_2']
+                | components['schemas']['EXN_V_1']
+                | components['schemas']['EXN_V_2'];
+            /** @default null */
+            pre: string | null;
+        };
+        DoneOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['DoneOperationMetadata'];
+            response?:
+                | components['schemas']['ICP_V_1']
+                | components['schemas']['ICP_V_2']
+                | components['schemas']['ROT_V_1']
+                | components['schemas']['ROT_V_2']
+                | components['schemas']['EXN_V_1']
+                | components['schemas']['EXN_V_2'];
+        };
+        CredentialOperationMetadata: {
+            ced:
+                | components['schemas']['ACDC_V_1']
+                | components['schemas']['ACDC_V_2'];
+            depends?:
+                | components['schemas']['ROT_V_1']
+                | components['schemas']['ROT_V_2']
+                | components['schemas']['DRT_V_1']
+                | components['schemas']['DRT_V_2']
+                | components['schemas']['IXN_V_1']
+                | components['schemas']['IXN_V_2'];
+        };
+        CredentialOperationResponse: {
+            ced?:
+                | components['schemas']['ACDC_V_1']
+                | components['schemas']['ACDC_V_2'];
+        };
+        CredentialOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['CredentialOperationMetadata'];
+            response?: components['schemas']['CredentialOperationResponse'];
+        };
+        GroupOperationMetadata: {
+            pre: string;
+            sn: number;
+        };
+        GroupOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['GroupOperationMetadata'];
+            response?:
+                | components['schemas']['IXN_V_1']
+                | components['schemas']['IXN_V_2']
+                | components['schemas']['ICP_V_1']
+                | components['schemas']['ICP_V_2']
+                | components['schemas']['ROT_V_1']
+                | components['schemas']['ROT_V_2']
+                | components['schemas']['DIP_V_1']
+                | components['schemas']['DIP_V_2']
+                | components['schemas']['DRT_V_1']
+                | components['schemas']['DRT_V_2'];
+        };
+        DelegatorOperationMetadata: {
+            pre: string;
+            teepre: string;
+            anchor?: components['schemas']['Anchor'];
+            depends?:
+                | components['schemas']['GroupOperation']
+                | components['schemas']['WitnessOperation']
+                | components['schemas']['DoneOperation'];
+        };
+        DelegatorOperation: {
+            name: string;
+            error?: components['schemas']['OperationStatus'];
+            done?: boolean;
+            metadata?: components['schemas']['DelegatorOperationMetadata'];
+            response?: string;
         };
     };
     responses: never;

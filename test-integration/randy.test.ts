@@ -1,5 +1,5 @@
 import { assert, test } from 'vitest';
-import signify from 'signify-ts';
+import signify, { Icp, Ixn, Rot, HabState } from 'signify-ts';
 import {
     assertOperations,
     getOrCreateClient,
@@ -12,9 +12,12 @@ test('randy', async () => {
     let icpResult = await client1
         .identifiers()
         .create('aid1', { algo: signify.Algos.randy });
-    let op = await waitOperation(client1, await icpResult.op());
+    let op = (await waitOperation(
+        client1,
+        await icpResult.op()
+    )) as signify.WitnessOperation;
     assert.equal(op['done'], true);
-    let aid = op['response'];
+    let aid = op['response'] as Icp;
     const icp = new signify.Serder(aid);
     assert.equal(icp.verfers.length, 1);
     assert.equal(icp.digers.length, 1);
@@ -23,29 +26,32 @@ test('randy', async () => {
 
     let aids = await client1.identifiers().list();
     assert.equal(aids.aids.length, 1);
-    aid = aids.aids[0];
-    assert.equal(aid.name, 'aid1');
-    assert.equal(aid.prefix, icp.pre);
+    let aid1_state = aids.aids[0] as HabState;
+    assert.equal(aid1_state.name, 'aid1');
+    assert.equal(aid1_state.prefix, icp.pre);
 
     icpResult = await client1.identifiers().interact('aid1', [icp.pre]);
-    op = await waitOperation(client1, await icpResult.op());
-    let ked = op['response'];
+    let doneOp = (await waitOperation(
+        client1,
+        await icpResult.op()
+    )) as signify.DoneOperation;
+    let ked = doneOp['response'] as Ixn;
     const ixn = new signify.Serder(ked);
     assert.equal(ixn.sad['s'], '1');
     assert.deepEqual([...ixn.sad['a']], [icp.pre]);
 
     aids = await client1.identifiers().list();
     assert.equal(aids.aids.length, 1);
-    aid = aids.aids[0];
+    aid1_state = aids.aids[0];
 
     const events = client1.keyEvents();
-    let log = await events.get(aid['prefix']);
+    let log = await events.get(aid1_state.prefix);
     assert.equal(log.length, 2);
 
     icpResult = await client1.identifiers().rotate('aid1');
-    op = await waitOperation(client1, await icpResult.op());
-    ked = op['response'];
-    const rot = new signify.Serder(ked);
+    let rotOp = await waitOperation(client1, await icpResult.op());
+    let rotKed = rotOp['response'] as Rot;
+    const rot = new signify.Serder(rotKed);
     assert.equal(rot.sad['s'], '2');
     assert.equal(rot.verfers.length, 1);
     assert.equal(rot.digers.length, 1);
@@ -56,7 +62,7 @@ test('randy', async () => {
         rot.verfers[0].qb64b
     );
     assert.equal(dig.qb64, icp.digers[0].qb64);
-    log = await events.get(aid['prefix']);
+    log = await events.get(aid1_state['prefix']);
     assert.equal(log.length, 3);
 
     await assertOperations(client1);

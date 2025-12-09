@@ -4,6 +4,7 @@ import {
     RotateIdentifierArgs,
     SignifyClient,
     KeyState,
+    QueryOperation,
 } from 'signify-ts';
 import {
     assertOperations,
@@ -79,10 +80,10 @@ describe('singlesig-rot', () => {
         assert.equal(parseInt(keystate2.s), parseInt(keystate1.s) - 1);
 
         // refresh remote keystate
-        let op = await client2
+        let op: QueryOperation = await client2
             .keyStates()
             .query(contact1_id, keystate1.s, undefined);
-        op = await waitOperation(client2, op);
+        op = (await waitOperation(client2, op)) as QueryOperation;
         const keystate3: KeyState = op.response as KeyState;
         // local and remote keystate match
         assert.equal(keystate3.s, keystate1.s);

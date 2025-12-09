@@ -1,5 +1,11 @@
 import { assert, test } from 'vitest';
-import { Serder } from 'signify-ts';
+import {
+    Serder,
+    ChallengeOperation,
+    Exn,
+    WitnessOperation,
+    Challenges,
+} from 'signify-ts';
 import {
     assertOperations,
     getOrCreateClients,
@@ -25,10 +31,18 @@ test('challenge', async () => {
             'BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX',
         ],
     });
-    const { response: aid1 } = await waitOperation(
+    const aliceIcpOp = (await waitOperation(
         client1,
         await icpResult1.op()
-    );
+    )) as WitnessOperation;
+
+    console.log("Alice's ICP operation response:", aliceIcpOp);
+
+    if (!aliceIcpOp.response) {
+        throw new Error('Alice ICP operation has no response');
+    }
+
+    const aid1 = aliceIcpOp.response;
     const rpyResult1 = await client1
         .identifiers()
         .addEndRole('alice', 'agent', client1!.agent!.pre);
@@ -43,10 +57,16 @@ test('challenge', async () => {
             'BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX',
         ],
     });
-    const { response: aid2 } = await waitOperation(
+    const bobIcpOp = (await waitOperation(
         client2,
         await icpResult2.op()
-    );
+    )) as WitnessOperation;
+
+    if (!bobIcpOp.response) {
+        throw new Error('Bob ICP operation has no response');
+    }
+
+    const aid2 = bobIcpOp.response;
     const rpyResult2 = await client2
         .identifiers()
         .addEndRole('bob', 'agent', client2!.agent!.pre);
@@ -73,17 +93,20 @@ test('challenge', async () => {
     console.log('Bob responded to Alice challenge with signed words');
 
     // Alice verifies Bob's response
-    const verifyOperation = await waitOperation(
+    const verifyOperation = (await waitOperation(
         client1,
         await client1.challenges().verify(aid2.i, challenge1_small.words)
-    );
+    )) as ChallengeOperation;
     console.log('Alice verified challenge response');
 
+    const challengeOperationResponse = verifyOperation.response;
+
+    if (!challengeOperationResponse || !challengeOperationResponse.exn) {
+        throw new Error('Challenge operation response or exn is missing');
+    }
+
     //Alice mark response as accepted
-    const verifyResponse = verifyOperation.response as {
-        exn: Record<string, unknown>;
-    };
-    const exn = new Serder(verifyResponse.exn);
+    const exn = new Serder(challengeOperationResponse.exn);
 
     await client1.challenges().responded(aid2.i, exn.sad.d);
     console.log('Alice marked challenge response as accepted');
