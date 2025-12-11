@@ -1,4 +1,4 @@
-import { assert, beforeAll, test, expect } from 'vitest';
+import { assert, beforeAll, test } from 'vitest';
 import { Ilks, Saider, Serder, SignifyClient } from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import {
@@ -16,7 +16,7 @@ const { vleiServerUrl } = resolveEnvironment();
 
 const QVI_SCHEMA_SAID = 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao';
 const LE_SCHEMA_SAID = 'ENPXp1vQzRF6JwIuS-mp2U8Uf1MoADoP_GqQ62VsDZWY';
-const CARDANO_SCHEMA_SAID = 'EFldQpJ2WY2_f2vfNYW_5SK6_IissMcpqzhsG3uO12aq';
+const CARDANO_SCHEMA_SAID = 'EKU2UWx115nPv1JqWVMCFRn0_EMaME08HrUK5cLuTP89';
 const vLEIServerHostUrl = `${vleiServerUrl}/oobi`;
 const QVI_SCHEMA_URL = `${vLEIServerHostUrl}/${QVI_SCHEMA_SAID}`;
 const LE_SCHEMA_URL = `${vLEIServerHostUrl}/${LE_SCHEMA_SAID}`;
@@ -346,7 +346,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
                 .issue(legalEntityAid.name, {
                     a: {
                         i: cardanoAid.prefix,
-                        label: 1337,
+                        label: '1337',
                     },
                     ri: legalEntityRegistry.regk,
                     s: CARDANO_SCHEMA_SAID,
@@ -368,7 +368,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
         const dt = createTimestamp();
         const cardanoCredential = await legalEntityClient
             .credentials()
-            .get(leCredentialId);
+            .get(cardanoCredentialId);
         assert(cardanoCredential !== undefined);
 
         const [grant, gsigs, gend] = await legalEntityClient.ipex().grant({
