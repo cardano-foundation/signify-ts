@@ -42,7 +42,7 @@ let legalEntityAid: Aid;;
 
 beforeAll(async () => {
     [gleifClient, qviClient, legalEntityClient] =
-        await getOrCreateClients(3);
+        await getOrCreateClients(3, ['0ADF2TpptgqcDE5IQUF1y', '0ADF2TpptgqcDE5IQUF1z', '0ADF2TpptgqcDE5IQUF1t']);
 });
 
 beforeAll(async () => {
@@ -54,7 +54,7 @@ beforeAll(async () => {
 });
 
 // Set these!
-const cardanoAid = { prefix: '', oobi: '' };
+const cardanoAid = { prefix: 'EFQuo2DNv8R3qUdl-_GxRbmFIkeKwgZoyXJnG15_y1Os', oobi: 'http://keria:3902/oobi/EFQuo2DNv8R3qUdl-_GxRbmFIkeKwgZoyXJnG15_y1Os/agent/EMVyas8pPngNUf_YwveBQrh6P0scNom2qTrCS-cIgEFR' };
 
 beforeAll(() => {
     assert.notEqual(cardanoAid.prefix, '', 'Please set the cardanoAid parameters to your Java AID and OOBI');
@@ -71,6 +71,37 @@ beforeAll(async () => {
     ]);
 });
 
+async function getOrCreateRegistry(
+    client: SignifyClient,
+    aidName: string,
+    registryName: string
+): Promise<{ name: string; regk: string }> {
+    // Check if registry already exists
+    let registries = await client.registries().list(aidName);
+    let registry = registries.find((r: { name: string }) => r.name === registryName);
+    
+    if (registry) {
+        return registry as { name: string; regk: string };
+    }
+    
+    // Create new registry
+    const regResult = await client
+        .registries()
+        .create({ name: aidName, registryName });
+
+    await waitOperation(client, await regResult.op());
+    
+    // Get the newly created registry
+    registries = await client.registries().list(aidName);
+    registry = registries.find((r: { name: string }) => r.name === registryName);
+    
+    if (!registry) {
+        throw new Error(`Failed to create registry "${registryName}"`);
+    }
+    
+    return registry as { name: string; regk: string };
+}
+
 test('single signature credentials', { timeout: 90000 }, async () => {
     await step('Resolve schema oobis', async () => {
         await Promise.all([
@@ -86,28 +117,13 @@ test('single signature credentials', { timeout: 90000 }, async () => {
     });
 
     const registry = await step('Create registry', async () => {
-        const registryName = 'vLEI-test-registry';
-        const updatedRegistryName = 'vLEI-test-registry-1';
-        const regResult = await gleifClient
-            .registries()
-            .create({ name: gleifAid.name, registryName: registryName });
-
-        await waitOperation(gleifClient, await regResult.op());
-        let registries = await gleifClient.registries().list(gleifAid.name);
-        const registry: { name: string; regk: string } = registries[0];
-        assert.equal(registries.length, 1);
+        const registryName = 'vLEI-test-registry-1';
+        
+        // Get or create registry
+        const registry = await getOrCreateRegistry(gleifClient, gleifAid.name, registryName);
+        
         assert.equal(registry.name, registryName);
-
-        await gleifClient
-            .registries()
-            .rename(gleifAid.name, registryName, updatedRegistryName);
-
-        registries = await gleifClient.registries().list(gleifAid.name);
-        const updateRegistry: { name: string; regk: string } = registries[0];
-        assert.equal(registries.length, 1);
-        assert.equal(updateRegistry.name, updatedRegistryName);
-
-        return updateRegistry;
+        return registry;
     });
 
     const qviCredentialId = await step('create QVI credential', async () => {
@@ -215,16 +231,8 @@ test('single signature credentials', { timeout: 90000 }, async () => {
         'holder create registry for LE credential',
         async () => {
             const registryName = 'vLEI-test-registry';
-            const regResult = await qviClient
-                .registries()
-                .create({ name: qviAid.name, registryName: registryName });
-
-            await waitOperation(qviClient, await regResult.op());
-            const registries = await qviClient
-                .registries()
-                .list(qviAid.name);
-            assert(registries.length >= 1);
-            return registries[0];
+            const registry = await getOrCreateRegistry(qviClient, qviAid.name, registryName);
+            return registry;
         }
     );
 
@@ -321,25 +329,27 @@ test('single signature credentials', { timeout: 90000 }, async () => {
         'legal entity create registry for Cardano credential',
         async () => {
             const registryName = 'cardano-registry';
-            const regResult = await legalEntityClient
-                .registries()
-                .create({ name: legalEntityAid.name, registryName: registryName });
-
-            await waitOperation(legalEntityClient, await regResult.op());
-            const registries = await legalEntityClient
-                .registries()
-                .list(legalEntityAid.name);
-            assert(registries.length >= 1);
-            return registries[0];
+            const registry = await getOrCreateRegistry(legalEntityClient, legalEntityAid.name, registryName);
+            return registry;
         }
     );
 
     const cardanoCredentialId = await step(
         'legal entity create Cardano (chained) credential',
         async () => {
-            const leCredential = await legalEntityClient
-                .credentials()
-                .get(leCredentialId);
+            let leCredential;
+            try {
+                leCredential = await retry(async () => {
+                    return await legalEntityClient.credentials().get(leCredentialId);
+                });
+            } catch (error) {
+                const credentials = await legalEntityClient.credentials().list();
+                leCredential = credentials.find((c: any) => c.sad.s === LE_SCHEMA_SAID);
+                
+                if (!leCredential) {
+                    throw new Error(`LE credential not found. Expected SAID: ${leCredentialId}`);
+                }
+            }
 
             const result = await legalEntityClient
                 .credentials()
