@@ -136,7 +136,7 @@ test('multisig', async function run() {
     let chOp1: ChallengeOperation = await client1
         .challenges()
         .verify(aid2.prefix, words);
-    chOp1 = (await waitOperation(client1, chOp1)) as ChallengeOperation;
+    chOp1 = await waitOperation(client1, chOp1);
     console.log('Member1 verified challenge response from member2');
     assert(chOp1.done && ('response' in chOp1), 'Challenge operation failed');
     const chOp1Response = chOp1.response;
@@ -153,13 +153,10 @@ test('multisig', async function run() {
     let chOp2: ChallengeOperation = await client1
         .challenges()
         .verify(aid3.prefix, words);
-    chOp2 = (await waitOperation(client1, chOp2)) as ChallengeOperation;
+    chOp2 = await waitOperation(client1, chOp2);
     console.log('Member1 verified challenge response from member3');
     assert(chOp2.done && ('response' in chOp2), 'Challenge operation failed');
     const chOp2Response = chOp2.response;
-    if (!chOp2Response || !chOp2Response.exn) {
-        throw new Error('Challenge operation response or exn is missing');
-    }
     exnwords = new Serder(chOp2Response.exn);
     let res2 = await client1
         .challenges()
@@ -680,19 +677,18 @@ test('multisig', async function run() {
     let qOp3: QueryOperation = await client3
         .keyStates()
         .query(aid1.prefix, '1');
-    qOp3 = (await waitOperation(client3, qOp3)) as QueryOperation;
+    qOp3 = await waitOperation(client3, qOp3);
     qOp3 = await client3.keyStates().query(aid2.prefix, '1');
-    qOp3 = (await waitOperation(client3, qOp3)) as QueryOperation;
+    qOp3 = await waitOperation(client3, qOp3);
 
     let qOp4: QueryOperation = await client4
         .keyStates()
         .query(aid1.prefix, '1');
-    qOp4 = (await waitOperation(client4, qOp4)) as QueryOperation;
+    qOp4 = await waitOperation(client4, qOp4);
     qOp4 = await client4.keyStates().query(aid2.prefix, '1');
-    qOp4 = (await waitOperation(client4, qOp4)) as QueryOperation;
+    qOp4 = await waitOperation(client4, qOp4);
     qOp4 = await client4.keyStates().query(aid3.prefix, '1');
-    qOp4 = (await waitOperation(client4, qOp4)) as QueryOperation;
-
+    qOp4 = await waitOperation(client4, qOp4);
     rstates = [aid1State, aid2State, aid3State];
     states = rstates;
 

@@ -264,7 +264,7 @@ export async function getOrCreateContact(
             return contact.id;
         }
     }
-    let op: OOBIOperation = await client.oobis().resolve(oobi, name);
+    let op = await client.oobis().resolve(oobi, name);
     op = (await waitOperation(client, op)) as CompletedOOBIOperation;
     const response = op.response as KeyState;
     return response.i;

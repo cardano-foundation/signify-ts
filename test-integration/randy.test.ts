@@ -12,10 +12,10 @@ test('randy', async () => {
     let icpResult = await client1
         .identifiers()
         .create('aid1', { algo: signify.Algos.randy });
-    let op = (await waitOperation(
+    let op = await waitOperation(
         client1,
         await icpResult.op()
-    )) as signify.WitnessOperation;
+    );
     assert.equal(op['done'], true);
     assert.ok('response' in op);
     let aid = op['response'];
@@ -27,15 +27,15 @@ test('randy', async () => {
 
     let aids = await client1.identifiers().list();
     assert.equal(aids.aids.length, 1);
-    let aid1_state = aids.aids[0] as HabState;
+    let aid1_state = aids.aids[0];
     assert.equal(aid1_state.name, 'aid1');
     assert.equal(aid1_state.prefix, icp.pre);
 
     icpResult = await client1.identifiers().interact('aid1', [icp.pre]);
-    let doneOp = (await waitOperation(
+    let doneOp = await waitOperation(
         client1,
         await icpResult.op()
-    )) as signify.DoneOperation;
+    );
     assert.equal(doneOp['done'], true);
     assert.ok('response' in doneOp);
     let ked = doneOp['response'];

@@ -32,8 +32,6 @@ test('challenge', async () => {
         await icpResult1.op()
     );
 
-    console.log("Alice's ICP operation response:", aliceIcpOp);
-
     assert(aliceIcpOp.done && ('response' in aliceIcpOp));
 
     const aid1 = aliceIcpOp.response;
