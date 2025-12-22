@@ -17,7 +17,6 @@ import {
     GroupOperation,
     WitnessOperation,
     QueryOperation,
-    RegistryOperation,
     ExchangeOperation,
     assertMultisigIcp,
     assertMultisigRpy,
@@ -139,6 +138,7 @@ test('multisig', async function run() {
         .verify(aid2.prefix, words);
     chOp1 = (await waitOperation(client1, chOp1)) as ChallengeOperation;
     console.log('Member1 verified challenge response from member2');
+    assert(chOp1.done && ('response' in chOp1), 'Challenge operation failed');
     const chOp1Response = chOp1.response;
     if (!chOp1Response || !chOp1Response.exn) {
         throw new Error('Challenge operation response or exn is missing');
@@ -155,6 +155,7 @@ test('multisig', async function run() {
         .verify(aid3.prefix, words);
     chOp2 = (await waitOperation(client1, chOp2)) as ChallengeOperation;
     console.log('Member1 verified challenge response from member3');
+    assert(chOp2.done && ('response' in chOp2), 'Challenge operation failed');
     const chOp2Response = chOp2.response;
     if (!chOp2Response || !chOp2Response.exn) {
         throw new Error('Challenge operation response or exn is missing');
@@ -656,21 +657,24 @@ test('multisig', async function run() {
     console.log('Member3 rotated keys');
 
     // Update new key states
-    let qOp1: QueryOperation = await client1
+    let qOp1 = await client1
         .keyStates()
         .query(aid2.prefix, '1');
-    qOp1 = (await waitOperation(client1, qOp1)) as QueryOperation;
+    qOp1 = await waitOperation(client1, qOp1);
+    assert(qOp1.done && ('response' in qOp1), 'Query operation failed');
     const aid2State = qOp1['response'] as KeyState;
     qOp1 = await client1.keyStates().query(aid3.prefix, '1');
-    qOp1 = (await waitOperation(client1, qOp1)) as QueryOperation;
+    qOp1 = await waitOperation(client1, qOp1);
+    assert(qOp1.done && ('response' in qOp1), 'Query operation failed');
     const aid3State = qOp1['response'] as KeyState;
 
     let qOp2: QueryOperation = await client2
         .keyStates()
         .query(aid3.prefix, '1');
-    qOp2 = (await waitOperation(client2, qOp2)) as QueryOperation;
+    qOp2 = await waitOperation(client2, qOp2);
     qOp2 = await client2.keyStates().query(aid1.prefix, '1');
-    qOp2 = (await waitOperation(client2, qOp2)) as QueryOperation;
+    qOp2 = await waitOperation(client2, qOp2);
+    assert(qOp2.done && ('response' in qOp2), 'Query operation failed');
     const aid1State = qOp2['response'] as KeyState;
 
     let qOp3: QueryOperation = await client3
@@ -824,7 +828,7 @@ test('multisig', async function run() {
         registryName: 'vLEI Registry',
         nonce: 'AHSNDV3ABI6U8OIgKaj3aky91ZpNL54I5_7-qwtC6q2s',
     });
-    const regOp1: RegistryOperation = await vcpRes1.op();
+    const regOp1 = await vcpRes1.op();
     serder = vcpRes1.regser;
     const regk = serder.pre;
     let anc = vcpRes1.serder;
@@ -866,7 +870,7 @@ test('multisig', async function run() {
         registryName: 'vLEI Registry',
         nonce: 'AHSNDV3ABI6U8OIgKaj3aky91ZpNL54I5_7-qwtC6q2s',
     });
-    const regOp2: RegistryOperation = await vcpRes2.op();
+    const regOp2 = await vcpRes2.op();
     serder = vcpRes2.regser;
     anc = vcpRes2.serder;
     sigs = vcpRes2.sigs;
@@ -907,7 +911,7 @@ test('multisig', async function run() {
         registryName: 'vLEI Registry',
         nonce: 'AHSNDV3ABI6U8OIgKaj3aky91ZpNL54I5_7-qwtC6q2s',
     });
-    const regOp3: RegistryOperation = await vcpRes3.op();
+    const regOp3 = await vcpRes3.op();
     serder = vcpRes3.regser;
     anc = vcpRes3.serder;
     sigs = vcpRes3.sigs;
@@ -935,9 +939,9 @@ test('multisig', async function run() {
         );
 
     // Done
-    await waitOperation(client1, regOp1);
-    await waitOperation(client2, regOp2);
-    await waitOperation(client3, regOp3);
+    await waitOperation(client1, regOp1.name);
+    await waitOperation(client2, regOp2.name);
+    await waitOperation(client3, regOp3.name);
     console.log('Multisig create registry completed!');
 
     //Create Credential

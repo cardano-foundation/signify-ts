@@ -168,6 +168,21 @@ export class Operations {
     /**
      * Poll for operation to become completed.
      */
+    async wait(op: OOBIOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<OOBIOperation>;
+    async wait(op: QueryOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<QueryOperation>;
+    async wait(op: EndRoleOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<EndRoleOperation>;
+    async wait(op: WitnessOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<WitnessOperation>;
+    async wait(op: DelegationOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<DelegationOperation>;
+    async wait(op: RegistryOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<RegistryOperation>;
+    async wait(op: LocSchemeOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<LocSchemeOperation>;
+    async wait(op: ChallengeOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<ChallengeOperation>;
+    async wait(op: ExchangeOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<ExchangeOperation>;
+    async wait(op: SubmitOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<SubmitOperation>;
+    async wait(op: DoneOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<DoneOperation>;
+    async wait(op: CredentialOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<CredentialOperation>;
+    async wait(op: GroupOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<GroupOperation>;
+    async wait(op: DelegatorOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<DelegatorOperation>;
+    async wait(op: Operation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<Operation>;
     async wait(
         op: Operation,
         options: {

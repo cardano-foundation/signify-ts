@@ -75,7 +75,8 @@ describe('singlesig-ixn', () => {
         let op: QueryOperation = await client2
             .keyStates()
             .query(contact1_id, keystate1.s, undefined);
-        op = (await waitOperation(client2, op)) as QueryOperation;
+        op = await waitOperation(client2, op);
+        assert(op.done && 'response' in op, 'KeyState query operation failed');
         const keystate3: KeyState = op.response as KeyState;
         // local and remote keystate match
         assert.equal(keystate3.s, keystate1.s);

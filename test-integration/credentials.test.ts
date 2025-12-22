@@ -116,7 +116,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
             .registries()
             .create({ name: issuerAid.name, registryName: registryName });
 
-        await waitOperation(issuerClient, await regResult.op());
+        await waitOperation(issuerClient, (await regResult.op()).name);
         let registries = await issuerClient.registries().list(issuerAid.name);
         const registry: { name: string; regk: string } = registries[0];
         assert.equal(registries.length, 1);
@@ -507,7 +507,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
                 .registries()
                 .create({ name: holderAid.name, registryName: registryName });
 
-            await waitOperation(holderClient, await regResult.op());
+            await waitOperation(holderClient, (await regResult.op()).name);
             const registries = await holderClient
                 .registries()
                 .list(holderAid.name);

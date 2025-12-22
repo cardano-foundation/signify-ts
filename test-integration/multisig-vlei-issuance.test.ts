@@ -506,8 +506,8 @@ test('multisig-vlei-issuance', async function run() {
         );
 
         await Promise.all([
-            waitOperation(clientGAR1, registryOp1),
-            waitOperation(clientGAR2, registryOp2),
+            waitOperation(clientGAR1, registryOp1.name),
+            waitOperation(clientGAR2, registryOp2.name),
         ]);
 
         await waitAndMarkNotification(clientGAR1, '/multisig/vcp');
@@ -844,9 +844,9 @@ test('multisig-vlei-issuance', async function run() {
         );
 
         await Promise.all([
-            waitOperation(clientQAR1, registryOp1),
-            waitOperation(clientQAR2, registryOp2),
-            waitOperation(clientQAR3, registryOp3),
+            waitOperation(clientQAR1, registryOp1.name),
+            waitOperation(clientQAR2, registryOp2.name),
+            waitOperation(clientQAR3, registryOp3.name),
         ]);
 
         await waitAndMarkNotification(clientQAR1, '/multisig/vcp');
@@ -1095,9 +1095,9 @@ test('multisig-vlei-issuance', async function run() {
         );
 
         await Promise.all([
-            waitOperation(clientLAR1, registryOp1),
-            waitOperation(clientLAR2, registryOp2),
-            waitOperation(clientLAR3, registryOp3),
+            waitOperation(clientLAR1, registryOp1.name),
+            waitOperation(clientLAR2, registryOp2.name),
+            waitOperation(clientLAR3, registryOp3.name),
         ]);
 
         await waitAndMarkNotification(clientLAR1, '/multisig/vcp');

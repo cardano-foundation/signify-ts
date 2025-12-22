@@ -341,28 +341,6 @@ export interface components {
                 | components['schemas']['DRT_V_2'];
             ancatc: string;
         };
-        OperationStatus: {
-            code: number;
-            message: string;
-            details?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        Operation:
-            | components['schemas']['OOBIOperation']
-            | components['schemas']['QueryOperation']
-            | components['schemas']['EndRoleOperation']
-            | components['schemas']['WitnessOperation']
-            | components['schemas']['DelegationOperation']
-            | components['schemas']['RegistryOperation']
-            | components['schemas']['LocSchemeOperation']
-            | components['schemas']['ChallengeOperation']
-            | components['schemas']['ExchangeOperation']
-            | components['schemas']['SubmitOperation']
-            | components['schemas']['DoneOperation']
-            | components['schemas']['CredentialOperation']
-            | components['schemas']['GroupOperation']
-            | components['schemas']['DelegatorOperation'];
         EmptyDict: Record<string, never>;
         CredentialStateIssOrRev: {
             vn: unknown;
@@ -748,134 +726,401 @@ export interface components {
         OOBIMetadata: {
             oobi: string;
         };
-        OOBIOperation: {
+        PendingOOBIOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['OOBIMetadata'];
-            response?: components['schemas']['KeyStateRecord'];
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
         };
+        CompletedOOBIOperation: {
+            name: string;
+            metadata?: components['schemas']['OOBIMetadata'];
+            response: components['schemas']['KeyStateRecord'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        OperationStatus: {
+            code: number;
+            message: string;
+            details?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        FailedOOBIOperation: {
+            name: string;
+            metadata?: components['schemas']['OOBIMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        OOBIOperation:
+            | components['schemas']['PendingOOBIOperation']
+            | components['schemas']['CompletedOOBIOperation']
+            | components['schemas']['FailedOOBIOperation'];
         QueryMetadata: {
             pre: string;
             sn: number;
             anchor?: components['schemas']['Anchor'];
         };
-        QueryOperation: {
+        PendingQueryOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['QueryMetadata'];
-            response?: components['schemas']['KeyStateRecord'];
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
         };
+        CompletedQueryOperation: {
+            name: string;
+            metadata?: components['schemas']['QueryMetadata'];
+            response: components['schemas']['KeyStateRecord'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        FailedQueryOperation: {
+            name: string;
+            metadata?: components['schemas']['QueryMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        QueryOperation:
+            | components['schemas']['PendingQueryOperation']
+            | components['schemas']['CompletedQueryOperation']
+            | components['schemas']['FailedQueryOperation'];
         EndRoleMetadata: {
             cid: string;
             role: string;
             eid: string;
         };
-        EndRoleOperation: {
+        PendingEndRoleOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['EndRoleMetadata'];
-            response?:
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
+        };
+        CompletedEndRoleOperation: {
+            name: string;
+            metadata?: components['schemas']['EndRoleMetadata'];
+            response:
                 | components['schemas']['RPY_V_1']
                 | components['schemas']['RPY_V_2'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
         };
+        FailedEndRoleOperation: {
+            name: string;
+            metadata?: components['schemas']['EndRoleMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        EndRoleOperation:
+            | components['schemas']['PendingEndRoleOperation']
+            | components['schemas']['CompletedEndRoleOperation']
+            | components['schemas']['FailedEndRoleOperation'];
         WitnessMetadata: {
             pre: string;
             sn: number;
         };
-        WitnessOperation: {
+        PendingWitnessOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['WitnessMetadata'];
-            response?:
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
+        };
+        CompletedWitnessOperation: {
+            name: string;
+            metadata?: components['schemas']['WitnessMetadata'];
+            response:
                 | components['schemas']['ICP_V_1']
                 | components['schemas']['ICP_V_2']
                 | components['schemas']['ROT_V_1']
                 | components['schemas']['ROT_V_2']
                 | components['schemas']['IXN_V_1']
                 | components['schemas']['IXN_V_2'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
         };
+        FailedWitnessOperation: {
+            name: string;
+            metadata?: components['schemas']['WitnessMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        WitnessOperation:
+            | components['schemas']['PendingWitnessOperation']
+            | components['schemas']['CompletedWitnessOperation']
+            | components['schemas']['FailedWitnessOperation'];
         DelegationMetadata: {
             pre: string;
             sn: number;
         };
-        DelegationOperation: {
+        PendingDelegationOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['DelegationMetadata'];
-            response?:
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
+        };
+        CompletedDelegationOperation: {
+            name: string;
+            metadata?: components['schemas']['DelegationMetadata'];
+            response:
                 | components['schemas']['DIP_V_1']
                 | components['schemas']['DIP_V_2']
                 | components['schemas']['DRT_V_1']
                 | components['schemas']['DRT_V_2'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
         };
+        FailedDelegationOperation: {
+            name: string;
+            metadata?: components['schemas']['DelegationMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        DelegationOperation:
+            | components['schemas']['PendingDelegationOperation']
+            | components['schemas']['CompletedDelegationOperation']
+            | components['schemas']['FailedDelegationOperation'];
         RegistryOperationMetadata: {
             pre: string;
             depends: unknown;
             anchor: components['schemas']['Anchor'];
         };
+        PendingRegistryOperation: {
+            name: string;
+            metadata?: components['schemas']['RegistryOperationMetadata'];
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
+        };
         RegistryOperationResponse: {
             anchor: components['schemas']['Anchor'];
         };
-        RegistryOperation: {
+        CompletedRegistryOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['RegistryOperationMetadata'];
-            response?: components['schemas']['RegistryOperationResponse'];
+            response: components['schemas']['RegistryOperationResponse'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
         };
+        FailedRegistryOperation: {
+            name: string;
+            metadata?: components['schemas']['RegistryOperationMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        RegistryOperation:
+            | components['schemas']['PendingRegistryOperation']
+            | components['schemas']['CompletedRegistryOperation']
+            | components['schemas']['FailedRegistryOperation'];
         LocSchemeMetadata: {
             eid: string;
             scheme: string;
             url: string;
         };
-        LocSchemeOperation: {
+        PendingLocSchemeOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['LocSchemeMetadata'];
-            response?: components['schemas']['LocSchemeMetadata'];
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
         };
+        CompletedLocSchemeOperation: {
+            name: string;
+            metadata?: components['schemas']['LocSchemeMetadata'];
+            response: components['schemas']['LocSchemeMetadata'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        FailedLocSchemeOperation: {
+            name: string;
+            metadata?: components['schemas']['LocSchemeMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        LocSchemeOperation:
+            | components['schemas']['PendingLocSchemeOperation']
+            | components['schemas']['CompletedLocSchemeOperation']
+            | components['schemas']['FailedLocSchemeOperation'];
         ChallengeOperationMetadata: {
             words: string[];
+        };
+        PendingChallengeOperation: {
+            name: string;
+            metadata?: components['schemas']['ChallengeOperationMetadata'];
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
         };
         ChallengeOperationResponse: {
             exn:
                 | components['schemas']['EXN_V_1']
                 | components['schemas']['EXN_V_2'];
         };
-        ChallengeOperation: {
+        CompletedChallengeOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['ChallengeOperationMetadata'];
-            response?: components['schemas']['ChallengeOperationResponse'];
+            response: components['schemas']['ChallengeOperationResponse'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
         };
+        FailedChallengeOperation: {
+            name: string;
+            metadata?: components['schemas']['ChallengeOperationMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        ChallengeOperation:
+            | components['schemas']['PendingChallengeOperation']
+            | components['schemas']['CompletedChallengeOperation']
+            | components['schemas']['FailedChallengeOperation'];
         ExchangeOperationMetadata: {
             said: string;
         };
-        ExchangeOperation: {
+        PendingExchangeOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['ExchangeOperationMetadata'];
-            response?: components['schemas']['ExchangeOperationMetadata'];
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
         };
+        CompletedExchangeOperation: {
+            name: string;
+            metadata?: components['schemas']['ExchangeOperationMetadata'];
+            response: components['schemas']['ExchangeOperationMetadata'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        FailedExchangeOperation: {
+            name: string;
+            metadata?: components['schemas']['ExchangeOperationMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        ExchangeOperation:
+            | components['schemas']['PendingExchangeOperation']
+            | components['schemas']['CompletedExchangeOperation']
+            | components['schemas']['FailedExchangeOperation'];
         SubmitOperationMetadata: {
             pre: string;
             sn: number;
         };
-        SubmitOperation: {
+        PendingSubmitOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['SubmitOperationMetadata'];
-            response?: components['schemas']['KeyStateRecord'];
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
         };
+        CompletedSubmitOperation: {
+            name: string;
+            metadata?: components['schemas']['SubmitOperationMetadata'];
+            response: components['schemas']['KeyStateRecord'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        FailedSubmitOperation: {
+            name: string;
+            metadata?: components['schemas']['SubmitOperationMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        SubmitOperation:
+            | components['schemas']['PendingSubmitOperation']
+            | components['schemas']['CompletedSubmitOperation']
+            | components['schemas']['FailedSubmitOperation'];
         DoneOperationMetadata: {
             response:
                 | components['schemas']['ICP_V_1']
@@ -887,19 +1132,45 @@ export interface components {
             /** @default null */
             pre: string | null;
         };
-        DoneOperation: {
+        PendingDoneOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['DoneOperationMetadata'];
-            response?:
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
+        };
+        CompletedDoneOperation: {
+            name: string;
+            metadata?: components['schemas']['DoneOperationMetadata'];
+            response:
                 | components['schemas']['ICP_V_1']
                 | components['schemas']['ICP_V_2']
                 | components['schemas']['ROT_V_1']
                 | components['schemas']['ROT_V_2']
                 | components['schemas']['EXN_V_1']
                 | components['schemas']['EXN_V_2'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
         };
+        FailedDoneOperation: {
+            name: string;
+            metadata?: components['schemas']['DoneOperationMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        DoneOperation:
+            | components['schemas']['PendingDoneOperation']
+            | components['schemas']['CompletedDoneOperation']
+            | components['schemas']['FailedDoneOperation'];
         CredentialOperationMetadata: {
             ced:
                 | components['schemas']['ACDC_V_1']
@@ -917,23 +1188,56 @@ export interface components {
                 | components['schemas']['ACDC_V_1']
                 | components['schemas']['ACDC_V_2'];
         };
-        CredentialOperation: {
+        PendingCredentialOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['CredentialOperationMetadata'];
-            response?: components['schemas']['CredentialOperationResponse'];
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
         };
+        CompletedCredentialOperation: {
+            name: string;
+            metadata?: components['schemas']['CredentialOperationMetadata'];
+            response: components['schemas']['CredentialOperationResponse'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        FailedCredentialOperation: {
+            name: string;
+            metadata?: components['schemas']['CredentialOperationMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        CredentialOperation:
+            | components['schemas']['PendingCredentialOperation']
+            | components['schemas']['CompletedCredentialOperation']
+            | components['schemas']['FailedCredentialOperation'];
         GroupOperationMetadata: {
             pre: string;
             sn: number;
         };
-        GroupOperation: {
+        PendingGroupOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['GroupOperationMetadata'];
-            response?:
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
+        };
+        CompletedGroupOperation: {
+            name: string;
+            metadata?: components['schemas']['GroupOperationMetadata'];
+            response:
                 | components['schemas']['IXN_V_1']
                 | components['schemas']['IXN_V_2']
                 | components['schemas']['ICP_V_1']
@@ -944,7 +1248,26 @@ export interface components {
                 | components['schemas']['DIP_V_2']
                 | components['schemas']['DRT_V_1']
                 | components['schemas']['DRT_V_2'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
         };
+        FailedGroupOperation: {
+            name: string;
+            metadata?: components['schemas']['GroupOperationMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        GroupOperation:
+            | components['schemas']['PendingGroupOperation']
+            | components['schemas']['CompletedGroupOperation']
+            | components['schemas']['FailedGroupOperation'];
         DelegatorOperationMetadata: {
             pre: string;
             teepre: string;
@@ -954,13 +1277,54 @@ export interface components {
                 | components['schemas']['WitnessOperation']
                 | components['schemas']['DoneOperation'];
         };
-        DelegatorOperation: {
+        PendingDelegatorOperation: {
             name: string;
-            error?: components['schemas']['OperationStatus'];
-            done?: boolean;
             metadata?: components['schemas']['DelegatorOperationMetadata'];
-            response?: string;
+            /**
+             * @default false
+             * @enum {unknown}
+             */
+            done: false;
         };
+        CompletedDelegatorOperation: {
+            name: string;
+            metadata?: components['schemas']['DelegatorOperationMetadata'];
+            response: string;
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        FailedDelegatorOperation: {
+            name: string;
+            metadata?: components['schemas']['DelegatorOperationMetadata'];
+            error: components['schemas']['OperationStatus'];
+            /**
+             * @default true
+             * @enum {unknown}
+             */
+            done: true;
+        };
+        DelegatorOperation:
+            | components['schemas']['PendingDelegatorOperation']
+            | components['schemas']['CompletedDelegatorOperation']
+            | components['schemas']['FailedDelegatorOperation'];
+        Operation:
+            | components['schemas']['OOBIOperation']
+            | components['schemas']['QueryOperation']
+            | components['schemas']['EndRoleOperation']
+            | components['schemas']['WitnessOperation']
+            | components['schemas']['DelegationOperation']
+            | components['schemas']['RegistryOperation']
+            | components['schemas']['LocSchemeOperation']
+            | components['schemas']['ChallengeOperation']
+            | components['schemas']['ExchangeOperation']
+            | components['schemas']['SubmitOperation']
+            | components['schemas']['DoneOperation']
+            | components['schemas']['CredentialOperation']
+            | components['schemas']['GroupOperation']
+            | components['schemas']['DelegatorOperation'];
     };
     responses: never;
     parameters: never;

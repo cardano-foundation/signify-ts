@@ -123,48 +123,8 @@ describe('multisig-join', () => {
             waitOperation(client2, createMultisig2),
         ]);
 
-        if (!createResult1.response) {
-            throw new Error(
-                'Multisig creation failed for client1: no response'
-            );
-        }
-
-        if (!createResult2.response) {
-            throw new Error(
-                'Multisig creation failed for client2: no response'
-            );
-        }
-
-        if (typeof createResult1.response === 'string') {
-            throw new Error(
-                `Multisig creation failed for client1: unexpected string response: ${createResult1.response}`
-            );
-        }
-
-        if (typeof createResult2.response === 'string') {
-            throw new Error(
-                `Multisig creation failed for client2: unexpected string response: ${createResult2.response}`
-            );
-        }
-
-        if (
-            !('k' in createResult1.response) ||
-            !Array.isArray(createResult1.response.k)
-        ) {
-            throw new Error(
-                'Invalid multisig creation response for client1: missing or invalid k array'
-            );
-        }
-
-        if (
-            !('k' in createResult2.response) ||
-            !Array.isArray(createResult2.response.k)
-        ) {
-            throw new Error(
-                'Invalid multisig creation response for client2: missing or invalid k array'
-            );
-        }
-
+        assert.ok('response' in createResult1);
+        assert.ok('response' in createResult2);
         assert.equal(createResult1.response.k[0], aid1.state.k[0]);
         assert.equal(createResult1.response.k[1], aid2.state.k[0]);
         assert.equal(createResult2.response.k[0], aid1.state.k[0]);
@@ -263,11 +223,15 @@ describe('multisig-join', () => {
             waitOperation(client3, updates[5]),
         ]);
 
+        assert(aid1State.done && ('response' in aid1State), 'aid1State query operation failed');
+        assert(aid2State.done && ('response' in aid2State), 'aid2State query operation failed');
+        assert(aid3State.done && ('response' in aid3State), 'aid3State query operation failed');
+
         const states = [
-            aid1State.response as KeyState,
-            aid2State.response as KeyState,
+            aid1State.response,
+            aid2State.response,
         ];
-        const rstates = [...states, aid3State.response as KeyState];
+        const rstates = [...states, aid3State.response];
         const rotateOperation1 = await client1
             .identifiers()
             .rotate(nameMultisig, { states, rstates });
@@ -352,6 +316,10 @@ describe('multisig-join', () => {
             waitOperation(client3, updates[5]),
         ]);
 
+        assert(aid1State.done && ('response' in aid1State), 'aid1State query operation failed');
+        assert(aid2State.done && ('response' in aid2State), 'aid2State query operation failed');
+        assert(aid3State.done && ('response' in aid3State), 'aid3State query operation failed');
+
         const states = [
             aid1State.response as KeyState,
             aid2State.response as KeyState,
@@ -435,8 +403,7 @@ describe('multisig-join', () => {
             await endRoleOperation.op()
         );
 
-        assert.equal(endRoleResult.done, true);
-        assert.equal(endRoleResult.error, null);
+        assert(endRoleResult.done && ('response' in endRoleResult), 'End role operation failed');
     });
 });
 

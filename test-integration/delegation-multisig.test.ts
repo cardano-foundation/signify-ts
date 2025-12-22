@@ -292,6 +292,9 @@ test('delegation-multisig', async () => {
             waitOperation(delegator2Client, delApprOp2),
         ]);
 
+        assert(dresult1.done && ('response' in dresult1));
+        assert(dresult2.done && ('response' in dresult2));
+
         assert.equal(dresult1.response, dresult2.response);
 
         await waitAndMarkNotification(delegator1Client, '/multisig/ixn');

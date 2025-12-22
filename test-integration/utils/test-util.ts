@@ -4,6 +4,19 @@ import signify, {
     Operation,
     KeyState,
     OOBIOperation,
+    QueryOperation,
+    EndRoleOperation,
+    WitnessOperation,
+    DelegationOperation,
+    RegistryOperation,
+    LocSchemeOperation,
+    ChallengeOperation,
+    ExchangeOperation,
+    SubmitOperation,
+    DoneOperation,
+    CredentialOperation,
+    GroupOperation,
+    DelegatorOperation,
     randomPasscode,
     ready,
     Salter,
@@ -11,6 +24,7 @@ import signify, {
     Tier,
     HabState,
     ExternalModule,
+    CompletedOOBIOperation,
 } from 'signify-ts';
 import { RetryOptions, retry } from './retry.ts';
 import assert from 'assert';
@@ -251,7 +265,7 @@ export async function getOrCreateContact(
         }
     }
     let op: OOBIOperation = await client.oobis().resolve(oobi, name);
-    op = (await waitOperation(client, op)) as OOBIOperation;
+    op = (await waitOperation(client, op)) as CompletedOOBIOperation;
     const response = op.response as KeyState;
     return response.i;
 }
@@ -511,6 +525,21 @@ export async function waitForNotifications(
  * Poll for operation to become completed.
  * Removes completed operation
  */
+export async function waitOperation(client: SignifyClient, op: OOBIOperation | string, signal?: AbortSignal): Promise<OOBIOperation>;
+export async function waitOperation(client: SignifyClient, op: QueryOperation | string, signal?: AbortSignal): Promise<QueryOperation>;
+export async function waitOperation(client: SignifyClient, op: EndRoleOperation | string, signal?: AbortSignal): Promise<EndRoleOperation>;
+export async function waitOperation(client: SignifyClient, op: WitnessOperation | string, signal?: AbortSignal): Promise<WitnessOperation>;
+export async function waitOperation(client: SignifyClient, op: DelegationOperation | string, signal?: AbortSignal): Promise<DelegationOperation>;
+export async function waitOperation(client: SignifyClient, op: RegistryOperation | string, signal?: AbortSignal): Promise<RegistryOperation>;
+export async function waitOperation(client: SignifyClient, op: LocSchemeOperation | string, signal?: AbortSignal): Promise<LocSchemeOperation>;
+export async function waitOperation(client: SignifyClient, op: ChallengeOperation | string, signal?: AbortSignal): Promise<ChallengeOperation>;
+export async function waitOperation(client: SignifyClient, op: ExchangeOperation | string, signal?: AbortSignal): Promise<ExchangeOperation>;
+export async function waitOperation(client: SignifyClient, op: SubmitOperation | string, signal?: AbortSignal): Promise<SubmitOperation>;
+export async function waitOperation(client: SignifyClient, op: DoneOperation | string, signal?: AbortSignal): Promise<DoneOperation>;
+export async function waitOperation(client: SignifyClient, op: CredentialOperation | string, signal?: AbortSignal): Promise<CredentialOperation>;
+export async function waitOperation(client: SignifyClient, op: GroupOperation | string, signal?: AbortSignal): Promise<GroupOperation>;
+export async function waitOperation(client: SignifyClient, op: DelegatorOperation | string, signal?: AbortSignal): Promise<DelegatorOperation>;
+export async function waitOperation(client: SignifyClient, op: Operation | string, signal?: AbortSignal): Promise<Operation>;
 export async function waitOperation(
     client: SignifyClient,
     op: Operation | string,

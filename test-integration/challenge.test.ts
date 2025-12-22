@@ -1,10 +1,6 @@
 import { assert, test } from 'vitest';
 import {
     Serder,
-    ChallengeOperation,
-    Exn,
-    WitnessOperation,
-    Challenges,
 } from 'signify-ts';
 import {
     assertOperations,
@@ -31,16 +27,14 @@ test('challenge', async () => {
             'BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX',
         ],
     });
-    const aliceIcpOp = (await waitOperation(
+    const aliceIcpOp = await waitOperation(
         client1,
         await icpResult1.op()
-    )) as WitnessOperation;
+    );
 
     console.log("Alice's ICP operation response:", aliceIcpOp);
 
-    if (!aliceIcpOp.response) {
-        throw new Error('Alice ICP operation has no response');
-    }
+    assert(aliceIcpOp.done && ('response' in aliceIcpOp));
 
     const aid1 = aliceIcpOp.response;
     const rpyResult1 = await client1
@@ -57,14 +51,12 @@ test('challenge', async () => {
             'BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX',
         ],
     });
-    const bobIcpOp = (await waitOperation(
+    const bobIcpOp = await waitOperation(
         client2,
         await icpResult2.op()
-    )) as WitnessOperation;
+    );
 
-    if (!bobIcpOp.response) {
-        throw new Error('Bob ICP operation has no response');
-    }
+    assert(bobIcpOp.done && ('response' in bobIcpOp));
 
     const aid2 = bobIcpOp.response;
     const rpyResult2 = await client2
@@ -93,12 +85,13 @@ test('challenge', async () => {
     console.log('Bob responded to Alice challenge with signed words');
 
     // Alice verifies Bob's response
-    const verifyOperation = (await waitOperation(
+    const verifyOperation = await waitOperation(
         client1,
         await client1.challenges().verify(aid2.i, challenge1_small.words)
-    )) as ChallengeOperation;
+    );
     console.log('Alice verified challenge response');
 
+    assert(verifyOperation.done && ('response' in verifyOperation), 'Challenge verify operation failed');
     const challengeOperationResponse = verifyOperation.response;
 
     if (!challengeOperationResponse || !challengeOperationResponse.exn) {

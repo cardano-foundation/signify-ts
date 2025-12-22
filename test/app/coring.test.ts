@@ -5,6 +5,7 @@ import {
     randomNonce,
     Operations,
     OperationsDeps,
+    Operation,
 } from '../../src/keri/app/coring.ts';
 import { SignifyClient } from '../../src/keri/app/clienting.ts';
 import { Tier } from '../../src/keri/core/salter.ts';
@@ -224,7 +225,7 @@ describe('Operations', () => {
                 })
             );
 
-            const op = { name, done: true };
+            const op: Operation = { name, done: true, response: {} };
             const result = await client.operations().wait(op);
             assert.equal(client.fetch.mock.calls.length, 0);
             assert.equal<unknown>(op, result);
@@ -238,7 +239,7 @@ describe('Operations', () => {
                 })
             );
 
-            const op = { name, done: false };
+            const op: Operation = { name, done: false };
             await client.operations().wait(op);
             assert.equal(client.fetch.mock.calls.length, 1);
         });
@@ -257,7 +258,7 @@ describe('Operations', () => {
                 })
             );
 
-            const op = { name, done: false };
+            const op: Operation = { name, done: false };
             await client.operations().wait(op, { maxSleep: 10 });
             assert.equal(client.fetch.mock.calls.length, 2);
         });
@@ -271,7 +272,7 @@ describe('Operations', () => {
                     })
             );
 
-            const op = { name, done: false };
+            const op: Operation = { name, done: false };
 
             const controller = new AbortController();
             const promise = client
@@ -324,7 +325,11 @@ describe('Operations', () => {
                 )
             );
 
-            await client.operations().wait(op, { maxSleep: 10 });
+            const { depends: removedDepends, ...newOp } = op as Record<string, unknown>;
+            void removedDepends;
+            await client
+                .operations()
+                .wait(newOp as Operation, { maxSleep: 10 });
             assert.equal(client.fetch.mock.calls.length, 3);
         });
     });
