@@ -7,7 +7,14 @@ import { MtrDex } from '../core/matter';
 import { Serder } from '../core/serder';
 import { parseRangeHeaders } from '../core/httping';
 import { KeyManager } from '../core/keeping';
-import { EstablishmentEvent, ExternState, GroupState, HabState, RandyState, SaltyState } from '../core/state';
+import {
+    EstablishmentEvent,
+    ExternState,
+    GroupState,
+    HabState,
+    RandyState,
+    SaltyState,
+} from '../core/state';
 
 /** Arguments required to create an identfier */
 export interface CreateIdentiferArgs {
@@ -38,11 +45,11 @@ export interface CreateIdentiferArgs {
 }
 
 export interface CreateIdentifierBody {
-    name: string,
-    icp: EstablishmentEvent,
-    sigs: string[],
-    smids?: string[],
-    rmids?: string[],
+    name: string;
+    icp: EstablishmentEvent;
+    sigs: string[];
+    smids?: string[];
+    rmids?: string[];
     [Algos.salty]?: SaltyState;
     [Algos.randy]?: RandyState;
     [Algos.group]?: GroupState;
@@ -139,7 +146,7 @@ export class Identifier {
      * @returns {Promise<HabState>} A promise to the identifier information
      */
     async get(name: string): Promise<HabState> {
-        const path = `/identifiers/${encodeURIComponent(name)}`;
+        const path = `/identifiers/${name}`;
         const data = null;
         const method = 'GET';
         const res = await this.client.fetch(path, method, data);
@@ -246,7 +253,7 @@ export class Identifier {
             name,
             icp,
             sigs,
-            smids: states?.map(state => state.i),
+            smids: states?.map((state) => state.i),
             rmids: rstates?.map((state) => state.i),
             [algo]: keeper.params(),
         };
@@ -254,7 +261,7 @@ export class Identifier {
 
     async submitInceptionData(jsondata: CreateIdentifierBody) {
         const res = await this.client.fetch('/identifiers', 'POST', jsondata);
-        return new EventResult(new Serder(jsondata.icp), jsondata.sigs, res); 
+        return new EventResult(new Serder(jsondata.icp), jsondata.sigs, res);
     }
 
     /**
