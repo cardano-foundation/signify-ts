@@ -52,7 +52,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test:
-    name: Run integration test using keria:${{ matrix.keria-version }}
+    name: Run integration test using keria:${{ matrix.keria-version }} and auth-mode ${{ matrix.auth-mode }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

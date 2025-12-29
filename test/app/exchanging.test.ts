@@ -148,10 +148,8 @@ describe('exchange', () => {
 
         let [exn, end] = exchange('/multisig/vcp', {}, 'test', '', dt);
         assert.deepStrictEqual(exn.ked, {
-            a: {
-                i: '',
-            },
-            d: 'EPWm8LWxxQXmXlB8gbTZKDy7NIwXxpx49N_ZYTa5QkJV',
+            a: {},
+            d: 'EKxDkCyDQzcC9DG8-CyvAPCndUsC_XQ70rmqEcGsLA4-',
             dt: '2023-08-30T17:22:54.183Z',
             e: {},
             i: 'test',
@@ -160,7 +158,7 @@ describe('exchange', () => {
             r: '/multisig/vcp',
             rp: '',
             t: 'exn',
-            v: 'KERI10JSON0000bf_',
+            v: 'KERI10JSON0000b9_',
         });
         assert.deepStrictEqual(end, new Uint8Array());
 
@@ -247,10 +245,8 @@ describe('exchange', () => {
         );
 
         assert.deepStrictEqual(exn.ked, {
-            a: {
-                i: '',
-            },
-            d: 'EOK2xNjB5xlSvizCUrkFKbdF4j1nsGpvt6TR1HL0wvaY',
+            a: {},
+            d: 'EBov2eDqMMfnQ2ubdM795wt6FA9TUw6iHLSEHVzL1wTL',
             dt: '2023-08-30T17:22:54.183Z',
             e: {
                 d: 'EDPWpKtMoPwro_Of8TQzpNMGdtmfyWzqTcRKQ01fGFRi',
@@ -285,7 +281,7 @@ describe('exchange', () => {
             r: '/multisig/vcp',
             rp: '',
             t: 'exn',
-            v: 'KERI10JSON00021b_',
+            v: 'KERI10JSON000215_',
         });
         assert.equal(
             d(end),

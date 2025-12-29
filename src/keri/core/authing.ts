@@ -18,38 +18,89 @@ import { Diger } from './diger';
 import { MtrDex } from './matter';
 import { b, d } from './core';
 
-export class Authenticator {
+export abstract class Authenticator {
+    protected verfer: Verfer;
+    protected readonly csig: Signer;
+
+    constructor(csig: Signer, verfer: Verfer) {
+        this.csig = csig;
+        this.verfer = verfer;
+    }
+
+    abstract prepare(
+        request: Request,
+        local: string,
+        remote: string
+    ): Promise<Request>;
+    abstract verify(
+        request: Request,
+        response: Response,
+        local: string,
+        remote: string
+    ): Promise<Response>;
+}
+
+export class SignedHeaderAuthenticator extends Authenticator {
     static DefaultFields = [
         '@method',
         '@path',
         'signify-resource',
         HEADER_SIG_TIME.toLowerCase(),
     ];
-    private readonly _csig: Signer;
-    private readonly _cx25519Pub: Uint8Array;
-    private readonly _cx25519Priv: Uint8Array;
 
-    private readonly _verfer: Verfer;
-    private readonly _vx25519Pub: Uint8Array;
-
-    constructor(csig: Signer, verfer: Verfer) {
-        this._csig = csig;
-        const sigkey = new Uint8Array(
-            this._csig.raw.length + this._csig.verfer.raw.length
+    async prepare(
+        request: Request,
+        _local: string,
+        _remote: string
+    ): Promise<Request> {
+        const headers = request.headers;
+        const signedHeaders = this.sign(
+            request.headers,
+            request.method,
+            new URL(request.url).pathname
         );
-        sigkey.set(this._csig.raw);
-        sigkey.set(this._csig.verfer.raw, this._csig.raw.length);
-        this._cx25519Priv =
-            libsodium.crypto_sign_ed25519_sk_to_curve25519(sigkey);
-        this._cx25519Pub = libsodium.crypto_scalarmult_base(this._cx25519Priv);
 
-        this._verfer = verfer;
-        this._vx25519Pub = libsodium.crypto_sign_ed25519_pk_to_curve25519(
-            this._verfer.raw
-        );
+        signedHeaders.forEach((value, key) => {
+            headers.set(key, value);
+        });
+
+        return request;
     }
 
-    verify(headers: Headers, method: string, path: string): boolean {
+    async verify(
+        request: Request,
+        response: Response,
+        _local: string,
+        remote: string
+    ): Promise<Response> {
+        if (response.status === 401) {
+            throw new Error(
+                `HTTP ${request.method} ${new URL(request.url).pathname} - ${response.status} ${response.statusText}`
+            );
+        }
+
+        if (remote !== response.headers.get(HEADER_SIG_SENDER)) {
+            throw new Error('message from a different remote agent');
+        }
+
+        if (
+            !this.verifyHeaders(
+                response.headers,
+                request.method,
+                new URL(request.url).pathname
+            )
+        ) {
+            throw new Error('response verification failed');
+        }
+
+        return response;
+    }
+
+    private verifyHeaders(
+        headers: Headers,
+        method: string,
+        path: string
+    ): boolean {
         const siginput = headers.get(HEADER_SIG_INPUT);
         if (siginput == null) {
             return false;
@@ -103,7 +154,7 @@ export class Authenticator {
             const signage = designature(signature!);
             const markers = signage[0].markers as Map<string, Siger | Cigar>;
             const cig = markers.get(input.name);
-            if (!cig || !this._verfer.verify(cig.raw, ser)) {
+            if (!cig || !this.verfer.verify(cig.raw, ser)) {
                 throw new Error(`Signature for ${input.keyid} invalid.`);
             }
         });
@@ -111,24 +162,15 @@ export class Authenticator {
         return true;
     }
 
-    sign(
-        headers: Headers,
-        method: string,
-        path: string,
-        fields?: Array<string>
-    ): Headers {
-        if (fields == undefined) {
-            fields = Authenticator.DefaultFields;
-        }
-
-        const [header, sig] = siginput(this._csig, {
+    private sign(headers: Headers, method: string, path: string): Headers {
+        const [header, sig] = siginput(this.csig, {
             name: 'signify',
             method,
             path,
             headers,
-            fields,
+            fields: SignedHeaderAuthenticator.DefaultFields,
             alg: 'ed25519',
-            keyid: this._csig.verfer.qb64,
+            keyid: this.csig.verfer.qb64,
         });
 
         header.forEach((value, key) => {
@@ -145,33 +187,55 @@ export class Authenticator {
 
         return headers;
     }
+}
 
-    async wrap(
+export class EssrAuthenticator extends Authenticator {
+    private readonly cx25519Pub: Uint8Array;
+    private readonly cx25519Priv: Uint8Array;
+
+    private readonly vx25519Pub: Uint8Array;
+
+    constructor(csig: Signer, verfer: Verfer) {
+        super(csig, verfer);
+        const sigkey = new Uint8Array(
+            this.csig.raw.length + this.csig.verfer.raw.length
+        );
+        sigkey.set(this.csig.raw);
+        sigkey.set(this.csig.verfer.raw, this.csig.raw.length);
+        this.cx25519Priv =
+            libsodium.crypto_sign_ed25519_sk_to_curve25519(sigkey);
+        this.cx25519Pub = libsodium.crypto_scalarmult_base(this.cx25519Priv);
+
+        this.vx25519Pub = libsodium.crypto_sign_ed25519_pk_to_curve25519(
+            this.verfer.raw
+        );
+    }
+
+    async prepare(
         request: Request,
-        baseUrl: string,
-        sender: string,
-        receiver: string
+        local: string,
+        remote: string
     ): Promise<Request> {
         const dt = new Date().toISOString().replace('Z', '000+00:00');
 
         const headers = new Headers();
-        headers.set(HEADER_SIG_SENDER, sender);
-        headers.set(HEADER_SIG_DESTINATION, receiver);
+        headers.set(HEADER_SIG_SENDER, local);
+        headers.set(HEADER_SIG_DESTINATION, remote);
         headers.set(HEADER_SIG_TIME, dt);
         headers.set('Content-Type', 'application/octet-stream');
 
-        const requestStr = await Authenticator.serializeRequest(request);
-        const raw = libsodium.crypto_box_seal(requestStr, this._vx25519Pub);
+        const requestStr = await EssrAuthenticator.serializeRequest(request);
+        const raw = libsodium.crypto_box_seal(requestStr, this.vx25519Pub);
 
         const diger = new Diger({ code: MtrDex.Blake3_256 }, raw);
         const payload = {
-            src: sender,
-            dest: receiver,
+            src: local,
+            dest: remote,
             d: diger.qb64,
             dt,
         };
 
-        const sig = this._csig.sign(b(JSON.stringify(payload)));
+        const sig = this.csig.sign(b(JSON.stringify(payload)));
         const markers = new Map<string, Siger | Cigar>();
         markers.set('signify', sig);
         const signage = new Signage(markers, false);
@@ -181,11 +245,26 @@ export class Authenticator {
             headers.append(key, value);
         });
 
-        return new Request(baseUrl + '/', {
+        return new Request(new URL(request.url).origin + '/', {
             method: 'POST',
             body: raw,
             headers,
         });
+    }
+
+    async verify(
+        request: Request,
+        response: Response,
+        local: string,
+        remote: string
+    ): Promise<Response> {
+        if (response.status === 401) {
+            throw new Error(
+                `HTTP ${request.method} ${new URL(request.url).pathname} - ${response.status} ${response.statusText}`
+            );
+        }
+
+        return await this.unwrap(response, remote, local);
     }
 
     static async serializeRequest(request: Request) {
@@ -195,14 +274,41 @@ export class Authenticator {
         });
 
         let body = '';
-        if (request.method !== 'GET') {
-            body = Buffer.from(await request.arrayBuffer()).toString('utf-8');
+        if (request.method !== 'GET' && request.body) {
+            body = Buffer.from(await this.streamToBytes(request.body)).toString(
+                'utf-8'
+            );
         }
 
         return `${request.method} ${request.url} HTTP/1.1\r\n${headers}\r\n${body}`;
     }
 
-    async unwrap(
+    static async streamToBytes(stream: ReadableStream): Promise<Uint8Array> {
+        const reader = stream.getReader();
+        const chunks = [];
+        let done, value;
+
+        while ((({ done, value } = await reader.read()), !done)) {
+            if (value) chunks.push(value);
+        }
+        reader.releaseLock();
+
+        const totalLength = chunks.reduce(
+            (acc, chunk) => acc + chunk.length,
+            0
+        );
+        const result = new Uint8Array(totalLength);
+        let offset = 0;
+
+        for (const chunk of chunks) {
+            result.set(chunk, offset);
+            offset += chunk.length;
+        }
+
+        return result;
+    }
+
+    private async unwrap(
         wrapper: Response,
         sender: string,
         receiver: string
@@ -240,10 +346,15 @@ export class Authenticator {
         const signages = designature(signature);
         const markers = signages[0].markers as Map<string, Siger | Cigar>;
         const cig = markers.get('signify');
+        if (!cig) {
+            throw new Error(
+                'Invalid signature format - missing "signify" marker'
+            );
+        }
 
-        const verified = this._verfer.verify(
-            cig?.raw,
-            Buffer.from(JSON.stringify(payload))
+        const verified = this.verfer.verify(
+            cig.raw,
+            b(JSON.stringify(payload))
         );
         if (!verified) {
             throw new Error('Invalid signature');
@@ -252,11 +363,11 @@ export class Authenticator {
         const plaintext = d(
             libsodium.crypto_box_seal_open(
                 ciphertext,
-                this._cx25519Pub,
-                this._cx25519Priv
+                this.cx25519Pub,
+                this.cx25519Priv
             )
         );
-        const response = this.deserializeResponse(plaintext);
+        const response = EssrAuthenticator.deserializeResponse(plaintext);
 
         if (response.headers.get(HEADER_SIG_SENDER) !== sender) {
             throw new Error(
@@ -267,7 +378,7 @@ export class Authenticator {
         return response;
     }
 
-    private deserializeResponse(httpString: string) {
+    static deserializeResponse(httpString: string): Response {
         const lines = httpString.split('\r\n');
 
         const [_, statusCode, ...statusTextArr] = lines[0].split(' ');
