@@ -75,7 +75,9 @@ export class SignedHeaderAuthenticator extends Authenticator {
     ): Promise<Response> {
         if (response.status === 401) {
             throw new Error(
-                `HTTP ${request.method} ${new URL(request.url).pathname} - ${response.status} ${response.statusText}`
+                `HTTP ${request.method} ${new URL(request.url).pathname} - ${
+                    response.status
+                } ${response.statusText}`
             );
         }
 
@@ -260,7 +262,9 @@ export class EssrAuthenticator extends Authenticator {
     ): Promise<Response> {
         if (response.status === 401) {
             throw new Error(
-                `HTTP ${request.method} ${new URL(request.url).pathname} - ${response.status} ${response.statusText}`
+                `HTTP ${request.method} ${new URL(request.url).pathname} - ${
+                    response.status
+                } ${response.statusText}`
             );
         }
 

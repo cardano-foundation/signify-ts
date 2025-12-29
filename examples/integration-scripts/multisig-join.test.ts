@@ -1,5 +1,5 @@
 import signify, { Serder, SignifyClient } from 'signify-ts';
-import { 
+import {
     getOrCreateClient,
     getOrCreateIdentifier,
     markNotification,

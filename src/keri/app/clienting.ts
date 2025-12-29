@@ -1,4 +1,8 @@
-import { Authenticator, EssrAuthenticator, SignedHeaderAuthenticator } from '../core/authing';
+import {
+    Authenticator,
+    EssrAuthenticator,
+    SignedHeaderAuthenticator,
+} from '../core/authing';
 import { HEADER_SIG_SENDER, HEADER_SIG_TIME } from '../core/httping';
 import { ExternalModule, KeyManager } from '../core/keeping';
 import { Tier } from '../core/salter';
@@ -6,7 +10,14 @@ import { Tier } from '../core/salter';
 import { Identifier } from './aiding';
 import { Contacts, Challenges } from './contacting';
 import { Agent, Controller } from './controller';
-import { Oobis, Operations, KeyEvents, KeyStates, Config, Replies } from './coring';
+import {
+    Oobis,
+    Operations,
+    KeyEvents,
+    KeyStates,
+    Config,
+    Replies,
+} from './coring';
 import { Credentials, Ipex, Registries, Schemas } from './credentialing';
 import { Delegations } from './delegating';
 import { Escrows } from './escrowing';

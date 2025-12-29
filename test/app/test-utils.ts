@@ -11,12 +11,9 @@ import {
     Serials,
     Tier,
     incept,
-    Versionage
+    Versionage,
 } from '../../src/index';
-import {
-    EstablishmentState,
-    HabState,
-} from '../../src/keri/core/state';
+import { EstablishmentState, HabState } from '../../src/keri/core/state';
 
 const boot_url = 'http://127.0.0.1:3903';
 

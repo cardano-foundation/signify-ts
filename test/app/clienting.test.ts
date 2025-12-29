@@ -82,7 +82,10 @@ describe('SignifyClient', () => {
         assert.equal(fetchMock.mock.calls[0]![0]!, boot_url + '/boot');
         const bodyString = fetchMock.mock.calls[0]![1]!.body!.toString();
         const bodyObj = JSON.parse(bodyString);
-        assert.equal(bodyObj.sig, 'AACJwsJ0mvb4VgxD87H4jIsiT1QtlzznUy9zrX3lGdd48jjQRTv8FxlJ8ClDsGtkvK4Eekg5p-oPYiPvK_1eTXEG');
+        assert.equal(
+            bodyObj.sig,
+            'AACJwsJ0mvb4VgxD87H4jIsiT1QtlzznUy9zrX3lGdd48jjQRTv8FxlJ8ClDsGtkvK4Eekg5p-oPYiPvK_1eTXEG'
+        );
         assert.equal(bodyObj.stem, 'signify:controller');
         assert.equal(bodyObj.pidx, 1);
         assert.equal(bodyObj.tier, 'low');
@@ -257,10 +260,9 @@ describe('SignifyClient', () => {
         const bran = '0123456789abcdefghijk';
         const client = new SignifyClient(url, bran, Tier.low, boot_url);
 
-        await assert.rejects(
-            client.fetch('/identifiers', 'GET', undefined),
-            { message: 'Client needs to call connect first' }
-        );
+        await assert.rejects(client.fetch('/identifiers', 'GET', undefined), {
+            message: 'Client needs to call connect first',
+        });
 
         await client.connect();
 
@@ -353,10 +355,9 @@ describe('SignifyClient', () => {
                 statusText: 'Bad Request',
             })
         );
-        await assert.rejects(
-            client.fetch('/identifiers', 'GET', undefined),
-            { message: 'HTTP GET /identifiers - 400 Bad Request - Error info' }
-        );
+        await assert.rejects(client.fetch('/identifiers', 'GET', undefined), {
+            message: 'HTTP GET /identifiers - 400 Bad Request - Error info',
+        });
     });
 
     test('ESSR protected fetch', async () => {
@@ -413,7 +414,8 @@ describe('SignifyClient', () => {
             response.headers.get(HEADER_SIG_SENDER),
             'EEXekkGu9IAzav6pZVJhkLnjtjM5v3AcyA-pdKUcaGei'
         );
-        assert.equal((await response.text()).replace(/ /g, ''),
+        assert.equal(
+            (await response.text()).replace(/ /g, ''),
             JSON.stringify({
                 name: 'oobi.0ABZPhjVcllT3Sa2u61PRpqd',
                 metadata: {

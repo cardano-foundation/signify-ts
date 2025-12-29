@@ -188,9 +188,9 @@ describe('SignedHeaderAuthenticator.prepare', () => {
             ],
             ['Signify-Timestamp', '2022-09-24T00:05:48.196795+00:00'],
         ]);
-        jest
-            .spyOn(utilApi, 'nowUTC')
-            .mockReturnValue(new Date('2021-01-01T00:00:00.000000+00:00'));
+        jest.spyOn(utilApi, 'nowUTC').mockReturnValue(
+            new Date('2021-01-01T00:00:00.000000+00:00')
+        );
 
         const authn = new SignedHeaderAuthenticator(signer, verfer);
         const request = await authn.prepare(
@@ -610,7 +610,10 @@ signify-resource: ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose\r
             response.headers.get('signify-resource'),
             'ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose'
         );
-        assert.equal(JSON.stringify(await response.json()), JSON.stringify({ a: 1 }));
+        assert.equal(
+            JSON.stringify(await response.json()),
+            JSON.stringify({ a: 1 })
+        );
     });
 
     test('Can deserialise a POST response with a text body', async () => {

@@ -2,7 +2,11 @@ import { strict as assert } from 'assert';
 import signify from 'signify-ts';
 import { BIP39Shim } from './modules/bip39_shim';
 import { resolveEnvironment } from './utils/resolve-env';
-import { assertOperations, getOrCreateClient, waitOperation } from './utils/test-util';
+import {
+    assertOperations,
+    getOrCreateClient,
+    waitOperation,
+} from './utils/test-util';
 
 const { url, bootUrl } = resolveEnvironment();
 
