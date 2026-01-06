@@ -300,7 +300,7 @@ export async function getOrCreateIdentifier(
     let id: any = undefined;
     try {
         const identfier = await client.identifiers().get(name);
-        console.log('identifiers.get', identfier);
+        // console.log('identifiers.get', identfier);
         id = identfier.prefix;
     } catch {
         const env = resolveEnvironment();
@@ -313,7 +313,7 @@ export async function getOrCreateIdentifier(
             .create(name, kargs);
         let op = await result.op();
         op = await waitOperation(client, op);
-        console.log('identifiers.create', op);
+        // console.log('identifiers.create', op);
         id = op.response.i;
     }
     const eid = client.agent?.pre!;
