@@ -1,5 +1,5 @@
 import { assert, test } from 'vitest';
-import signify, { HabState } from 'signify-ts';
+import signify from 'signify-ts';
 import {
     assertOperations,
     getOrCreateClient,
@@ -12,10 +12,7 @@ test('randy', async () => {
     let icpResult = await client1
         .identifiers()
         .create('aid1', { algo: signify.Algos.randy });
-    let op = await waitOperation(
-        client1,
-        await icpResult.op()
-    );
+    let op = await waitOperation(client1, await icpResult.op());
     assert.equal(op['done'], true);
     assert.ok('response' in op);
     let aid = op['response'];
@@ -32,12 +29,7 @@ test('randy', async () => {
     assert.equal(aid1_state.prefix, icp.pre);
 
     icpResult = await client1.identifiers().interact('aid1', [icp.pre]);
-    let doneOp = await waitOperation(
-        client1,
-        await icpResult.op()
-    );
-    assert.equal(doneOp['done'], true);
-    assert.ok('response' in doneOp);
+    let doneOp = await waitOperation(client1, await icpResult.op());
     let ked = doneOp['response'];
     const ixn = new signify.Serder(ked);
     assert.equal(ixn.sad['s'], '1');
@@ -53,8 +45,6 @@ test('randy', async () => {
 
     icpResult = await client1.identifiers().rotate('aid1');
     let rotOp = await waitOperation(client1, await icpResult.op());
-    assert.equal(rotOp['done'], true);
-    assert.ok('response' in rotOp);
     let rotKed = rotOp['response'];
     const rot = new signify.Serder(rotKed);
     assert.equal(rot.sad['s'], '2');

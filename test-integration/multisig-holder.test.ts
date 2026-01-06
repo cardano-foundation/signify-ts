@@ -1,9 +1,7 @@
 import { assert, test } from 'vitest';
 import signify, {
     SignifyClient,
-    ExchangeOperation,
-    OOBIOperation,
-    GroupOperation,
+    Operation,
     CredentialData,
     assertIpexGrant
 } from 'signify-ts';
@@ -59,38 +57,32 @@ test('multisig', async function run() {
         client3.oobis().get('issuer', 'agent'),
     ]);
 
-    let op1: OOBIOperation = await client1
-        .oobis()
-        .resolve(oobi2.oobis[0], 'member2');
-    await waitOperation(client1, op1);
+    let op1 = await client1.oobis().resolve(oobi2.oobis[0], 'member2');
+    op1 = await waitOperation(client1, op1);
     op1 = await client1.oobis().resolve(oobi3.oobis[0], 'issuer');
-    await waitOperation(client1, op1);
+    op1 = await waitOperation(client1, op1);
     op1 = await client1.oobis().resolve(SCHEMA_OOBI, 'schema');
-    await waitOperation(client1, op1);
+    op1 = await waitOperation(client1, op1);
     console.log('Member1 resolved 3 OOBIs');
 
-    let op2: OOBIOperation = await client2
-        .oobis()
-        .resolve(oobi1.oobis[0], 'member1');
-    await waitOperation(client2, op2);
+    let op2 = await client2.oobis().resolve(oobi1.oobis[0], 'member1');
+    op2 = await waitOperation(client2, op2);
     op2 = await client2.oobis().resolve(oobi3.oobis[0], 'issuer');
-    await waitOperation(client2, op2);
+    op2 = await waitOperation(client2, op2);
     op2 = await client2.oobis().resolve(SCHEMA_OOBI, 'schema');
-    await waitOperation(client2, op2);
+    op2 = await waitOperation(client2, op2);
     console.log('Member2 resolved 3 OOBIs');
 
-    let op3: OOBIOperation = await client3
-        .oobis()
-        .resolve(oobi1.oobis[0], 'member1');
-    await waitOperation(client3, op3);
+    let op3 = await client3.oobis().resolve(oobi1.oobis[0], 'member1');
+    op3 = await waitOperation(client3, op3);
     op3 = await client3.oobis().resolve(oobi2.oobis[0], 'member2');
-    await waitOperation(client3, op3);
+    op3 = await waitOperation(client3, op3);
     op3 = await client3.oobis().resolve(SCHEMA_OOBI, 'schema');
-    await waitOperation(client3, op3);
+    op3 = await waitOperation(client3, op3);
     console.log('Issuer resolved 3 OOBIs');
 
     //// First member start the creation of a multisig identifier
-    let multisigOp1: GroupOperation = await startMultisigIncept(client1, {
+    op1 = await startMultisigIncept(client1, {
         groupName: 'holder',
         localMemberName: aid1.name,
         isith: 2,
@@ -104,7 +96,7 @@ test('multisig', async function run() {
     // Second member check notifications and join the multisig
     let msgSaid = await waitAndMarkNotification(client2, '/multisig/icp');
     console.log('Member2 received exchange message to join multisig');
-    let multisigOp2: GroupOperation = await acceptMultisigIncept(client2, {
+    op2 = await acceptMultisigIncept(client2, {
         groupName: 'holder',
         localMemberName: aid2.name,
         msgSaid,
@@ -112,8 +104,8 @@ test('multisig', async function run() {
     console.log('Member2 joined multisig, waiting for others...');
 
     // Check for completion
-    await waitOperation(client1, multisigOp1);
-    await waitOperation(client2, multisigOp2);
+    op1 = await waitOperation(client1, op1);
+    op2 = await waitOperation(client2, op2);
     console.log('Multisig created!');
 
     const identifiers1 = await client1.identifiers().list();
@@ -398,7 +390,7 @@ test('multisig', async function run() {
     const exnRes = assertIpexGrant(await client1.exchanges().get(grantMsgSaid));
 
     recp = [aid2['state']].map((state) => state['i']);
-    const exOp1: ExchangeOperation = await multisigAdmitCredential(
+    const exOp1 = await multisigAdmitCredential(
         client1,
         'holder',
         'member1',
@@ -423,7 +415,7 @@ test('multisig', async function run() {
     console.log(`Member2 /exn/ipex/grant msg :  ` + JSON.stringify(exnRes2));
 
     const recp2 = [aid1['state']].map((state) => state['i']);
-    const exOp2: ExchangeOperation = await multisigAdmitCredential(
+    const exOp2 = await multisigAdmitCredential(
         client2,
         'holder',
         'member2',
@@ -507,7 +499,7 @@ async function issueCredential(
             iss: result.iss,
         });
 
-        let op: ExchangeOperation = await client
+        let op = await client
             .ipex()
             .submitGrant(name, grant, gsigs, end, [data.a.i]);
         await waitOperation(client, op);
@@ -530,7 +522,7 @@ async function multisigAdmitCredential(
     grantSaid: string,
     issuerPrefix: string,
     recipients: string[]
-): Promise<ExchangeOperation> {
+): Promise<Operation> {
     const mHab = await client.identifiers().get(memberAlias);
     const gHab = await client.identifiers().get(groupName);
 

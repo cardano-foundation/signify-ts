@@ -123,8 +123,6 @@ describe('multisig-join', () => {
             waitOperation(client2, createMultisig2),
         ]);
 
-        assert.ok('response' in createResult1);
-        assert.ok('response' in createResult2);
         assert.equal(createResult1.response.k[0], aid1.state.k[0]);
         assert.equal(createResult1.response.k[1], aid2.state.k[0]);
         assert.equal(createResult2.response.k[0], aid1.state.k[0]);
@@ -223,14 +221,7 @@ describe('multisig-join', () => {
             waitOperation(client3, updates[5]),
         ]);
 
-        assert(aid1State.done && ('response' in aid1State), 'aid1State query operation failed');
-        assert(aid2State.done && ('response' in aid2State), 'aid2State query operation failed');
-        assert(aid3State.done && ('response' in aid3State), 'aid3State query operation failed');
-
-        const states = [
-            aid1State.response,
-            aid2State.response,
-        ];
+        const states = [aid1State.response, aid2State.response];
         const rstates = [...states, aid3State.response];
         const rotateOperation1 = await client1
             .identifiers()
@@ -316,14 +307,10 @@ describe('multisig-join', () => {
             waitOperation(client3, updates[5]),
         ]);
 
-        assert(aid1State.done && ('response' in aid1State), 'aid1State query operation failed');
-        assert(aid2State.done && ('response' in aid2State), 'aid2State query operation failed');
-        assert(aid3State.done && ('response' in aid3State), 'aid3State query operation failed');
-
         const states = [
-            aid1State.response as KeyState,
-            aid2State.response as KeyState,
-            aid3State.response as KeyState,
+            aid1State.response,
+            aid2State.response,
+            aid3State.response,
         ];
         const rotateOperation1 = await client1
             .identifiers()
@@ -402,8 +389,6 @@ describe('multisig-join', () => {
             client3,
             await endRoleOperation.op()
         );
-
-        assert(endRoleResult.done && ('response' in endRoleResult), 'End role operation failed');
     });
 });
 

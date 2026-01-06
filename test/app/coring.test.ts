@@ -325,7 +325,10 @@ describe('Operations', () => {
                 )
             );
 
-            const { depends: removedDepends, ...newOp } = op as Record<string, unknown>;
+            const { depends: removedDepends, ...newOp } = op as Record<
+                string,
+                unknown
+            >;
             void removedDepends;
             await client
                 .operations()

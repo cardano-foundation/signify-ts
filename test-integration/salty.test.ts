@@ -14,7 +14,6 @@ test('salty', async () => {
         .create('aid1', { bran: '0123456789abcdefghijk' });
     let op = await waitOperation(client1, await icpResult.op());
 
-    assert.ok('response' in op);
     const aid1 = op['response'];
     const icp = new signify.Serder(aid1);
     assert.equal(icp.pre, 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK');
@@ -47,7 +46,6 @@ test('salty', async () => {
         bran: '0123456789lmnopqrstuv',
     });
     op = await waitOperation(client1, await icpResult.op());
-    assert.ok('response' in op);
     const aid2 = op['response'];
     const icp2 = new signify.Serder(aid2);
     assert.equal(icp2.pre, 'EP10ooRj0DJF0HWZePEYMLPl-arMV-MAoTKK-o3DXbgX');
@@ -107,7 +105,6 @@ test('salty', async () => {
 
     icpResult = await client1.identifiers().rotate('aid1');
     op = await waitOperation(client1, await icpResult.op());
-    assert.ok('response' in op);
     let rotKed = op['response'];
     const rot = new signify.Serder(rotKed);
     assert.equal(rot.sad['d'], 'EBQABdRgaxJONrSLcgrdtbASflkvLxJkiDO0H-XmuhGg');
@@ -125,7 +122,6 @@ test('salty', async () => {
 
     icpResult = await client1.identifiers().interact('aid1', [icp.pre]);
     op = await waitOperation(client1, await icpResult.op());
-    assert.ok('response' in op);
     let ixnKed = op['response'];
     const ixn = new signify.Serder(ixnKed);
     assert.equal(ixn.sad['d'], 'ENsmRAg_oM7Hl1S-GTRMA7s4y760lQMjzl0aqOQ2iTce');

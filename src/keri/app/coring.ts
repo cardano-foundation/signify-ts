@@ -18,6 +18,21 @@ import {
     CredentialOperation,
     GroupOperation,
     DelegatorOperation,
+    CompletedOOBIOperation,
+    CompletedQueryOperation,
+    CompletedEndRoleOperation,
+    CompletedWitnessOperation,
+    CompletedDelegationOperation,
+    CompletedRegistryOperation,
+    CompletedLocSchemeOperation,
+    CompletedChallengeOperation,
+    CompletedExchangeOperation,
+    CompletedSubmitOperation,
+    CompletedDoneOperation,
+    CompletedCredentialOperation,
+    CompletedGroupOperation,
+    CompletedDelegatorOperation,
+    CompletedOperation,
 } from '../core/keyState.ts';
 
 type OOBI = components['schemas']['OOBI'];
@@ -123,6 +138,39 @@ export class Operations {
         this.client = client;
     }
 
+    private hasDepends(op: Operation): op is (
+        | RegistryOperation
+        | CredentialOperation
+        | DelegatorOperation
+    ) & {
+        metadata: NonNullable<
+            (
+                | RegistryOperation
+                | CredentialOperation
+                | DelegatorOperation
+            )['metadata']
+        >;
+    } {
+        return op.metadata !== undefined && 'depends' in op.metadata;
+    }
+
+    /**
+     * Check if operation failed and throw error with details
+     * @throws {Error} If operation has an error
+     */
+    private throwIfFailed(
+        op: Operation & { done: true }
+    ): asserts op is CompletedOperation {
+        if ('error' in op && op.error !== null) {
+            const details = op.error.details
+                ? ` Details: ${JSON.stringify(op.error.details)}`
+                : '';
+            throw new Error(
+                `Operation '${op.name}' failed [Code ${op.error.code}]: ${op.error.message}${details}`
+            );
+        }
+    }
+
     /**
      * Get operation status
      * @async
@@ -168,21 +216,141 @@ export class Operations {
     /**
      * Poll for operation to become completed.
      */
-    async wait(op: OOBIOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<OOBIOperation>;
-    async wait(op: QueryOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<QueryOperation>;
-    async wait(op: EndRoleOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<EndRoleOperation>;
-    async wait(op: WitnessOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<WitnessOperation>;
-    async wait(op: DelegationOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<DelegationOperation>;
-    async wait(op: RegistryOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<RegistryOperation>;
-    async wait(op: LocSchemeOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<LocSchemeOperation>;
-    async wait(op: ChallengeOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<ChallengeOperation>;
-    async wait(op: ExchangeOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<ExchangeOperation>;
-    async wait(op: SubmitOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<SubmitOperation>;
-    async wait(op: DoneOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<DoneOperation>;
-    async wait(op: CredentialOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<CredentialOperation>;
-    async wait(op: GroupOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<GroupOperation>;
-    async wait(op: DelegatorOperation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<DelegatorOperation>;
-    async wait(op: Operation, options?: { signal?: AbortSignal; minSleep?: number; maxSleep?: number; increaseFactor?: number }): Promise<Operation>;
+    async wait(
+        op: OOBIOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedOOBIOperation>;
+    async wait(
+        op: QueryOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedQueryOperation>;
+    async wait(
+        op: EndRoleOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedEndRoleOperation>;
+    async wait(
+        op: WitnessOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedWitnessOperation>;
+    async wait(
+        op: DelegationOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedDelegationOperation>;
+    async wait(
+        op: RegistryOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedRegistryOperation>;
+    async wait(
+        op: LocSchemeOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedLocSchemeOperation>;
+    async wait(
+        op: ChallengeOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedChallengeOperation>;
+    async wait(
+        op: ExchangeOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedExchangeOperation>;
+    async wait(
+        op: SubmitOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedSubmitOperation>;
+    async wait(
+        op: DoneOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedDoneOperation>;
+    async wait(
+        op: CredentialOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedCredentialOperation>;
+    async wait(
+        op: GroupOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedGroupOperation>;
+    async wait(
+        op: DelegatorOperation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedDelegatorOperation>;
+    async wait(
+        op: Operation,
+        options?: {
+            signal?: AbortSignal;
+            minSleep?: number;
+            maxSleep?: number;
+            increaseFactor?: number;
+        }
+    ): Promise<CompletedOperation>;
     async wait(
         op: Operation,
         options: {
@@ -191,40 +359,38 @@ export class Operations {
             maxSleep?: number;
             increaseFactor?: number;
         } = {}
-    ): Promise<Operation> {
+    ): Promise<CompletedOperation> {
         const minSleep = options.minSleep ?? 10;
         const maxSleep = options.maxSleep ?? 10000;
         const increaseFactor = options.increaseFactor ?? 50;
 
         if (
-            op.metadata &&
-            'depends' in op.metadata &&
+            this.hasDepends(op) &&
             op.metadata.depends &&
-            typeof op.metadata.depends === 'object' &&
-            'done' in op.metadata.depends &&
-            op.metadata.depends.done === false
+            !op.metadata.depends.done
         ) {
-            await this.wait(op.metadata.depends as Operation, options);
+            await this.wait(op.metadata.depends, options);
         }
 
         if (op.done === true) {
+            this.throwIfFailed(op);
             return op;
         }
 
         let retries = 0;
-
         while (true) {
             op = await this.get(op.name);
+
+            if (op.done === true) {
+                this.throwIfFailed(op);
+                return op;
+            }
 
             const delay = Math.max(
                 minSleep,
                 Math.min(maxSleep, 2 ** retries * increaseFactor)
             );
             retries++;
-
-            if (op.done === true) {
-                return op;
-            }
 
             await new Promise((resolve) => setTimeout(resolve, delay));
             options.signal?.throwIfAborted();

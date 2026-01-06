@@ -3,7 +3,6 @@ import {
     SignifyClient,
     Serder,
     IssueCredentialResult,
-    KeyState,
     Algos,
     Siger,
     ready,
@@ -11,13 +10,6 @@ import {
     b,
     d,
     CredentialData,
-    OOBIOperation,
-    ChallengeOperation,
-    CredentialOperation,
-    GroupOperation,
-    WitnessOperation,
-    QueryOperation,
-    ExchangeOperation,
     assertMultisigIcp,
     assertMultisigRpy,
     assertMultisigIxn,
@@ -71,9 +63,7 @@ test('multisig', async function run() {
         client4.oobis().get('holder', 'agent'),
     ]);
 
-    let op1: OOBIOperation = await client1
-        .oobis()
-        .resolve(oobi2.oobis[0], 'member2');
+    let op1 = await client1.oobis().resolve(oobi2.oobis[0], 'member2');
     await waitOperation(client1, op1);
     op1 = await client1.oobis().resolve(oobi3.oobis[0], 'member3');
     await waitOperation(client1, op1);
@@ -83,9 +73,7 @@ test('multisig', async function run() {
     await waitOperation(client1, op1);
     console.log('Member1 resolved 4 OOBIs');
 
-    let op2: OOBIOperation = await client2
-        .oobis()
-        .resolve(oobi1.oobis[0], 'member1');
+    let op2 = await client2.oobis().resolve(oobi1.oobis[0], 'member1');
     await waitOperation(client2, op2);
     op2 = await client2.oobis().resolve(oobi3.oobis[0], 'member3');
     await waitOperation(client2, op2);
@@ -95,9 +83,7 @@ test('multisig', async function run() {
     await waitOperation(client2, op2);
     console.log('Member2 resolved 4 OOBIs');
 
-    let op3: OOBIOperation = await client3
-        .oobis()
-        .resolve(oobi1.oobis[0], 'member1');
+    let op3 = await client3.oobis().resolve(oobi1.oobis[0], 'member1');
     await waitOperation(client3, op3);
     op3 = await client3.oobis().resolve(oobi2.oobis[0], 'member2');
     await waitOperation(client3, op3);
@@ -107,9 +93,7 @@ test('multisig', async function run() {
     await waitOperation(client3, op3);
     console.log('Member3 resolved 4 OOBIs');
 
-    let op4: OOBIOperation = await client4
-        .oobis()
-        .resolve(oobi1.oobis[0], 'member1');
+    let op4 = await client4.oobis().resolve(oobi1.oobis[0], 'member1');
     await waitOperation(client4, op4);
     op4 = await client4.oobis().resolve(oobi2.oobis[0], 'member2');
     await waitOperation(client4, op4);
@@ -133,12 +117,9 @@ test('multisig', async function run() {
     await client3.challenges().respond('member3', aid1.prefix, words);
     console.log('Member3 responded challenge with signed words');
 
-    let chOp1: ChallengeOperation = await client1
-        .challenges()
-        .verify(aid2.prefix, words);
+    let chOp1 = await client1.challenges().verify(aid2.prefix, words);
     chOp1 = await waitOperation(client1, chOp1);
     console.log('Member1 verified challenge response from member2');
-    assert(chOp1.done && ('response' in chOp1), 'Challenge operation failed');
     const chOp1Response = chOp1.response;
     if (!chOp1Response || !chOp1Response.exn) {
         throw new Error('Challenge operation response or exn is missing');
@@ -150,12 +131,9 @@ test('multisig', async function run() {
     assert.equal(res1.status, 202);
     console.log('Member1 marked challenge response as accepted');
 
-    let chOp2: ChallengeOperation = await client1
-        .challenges()
-        .verify(aid3.prefix, words);
+    let chOp2 = await client1.challenges().verify(aid3.prefix, words);
     chOp2 = await waitOperation(client1, chOp2);
     console.log('Member1 verified challenge response from member3');
-    assert(chOp2.done && ('response' in chOp2), 'Challenge operation failed');
     const chOp2Response = chOp2.response;
     exnwords = new Serder(chOp2Response.exn);
     let res2 = await client1
@@ -502,7 +480,7 @@ test('multisig', async function run() {
 
     // Holder resolve multisig OOBI
     const oobimultisig = await client1.oobis().get('multisig', 'agent');
-    const oobiOp4: OOBIOperation = await client4
+    const oobiOp4 = await client4
         .oobis()
         .resolve(oobimultisig.oobis[0], 'multisig');
     await waitOperation(client4, oobiOp4);
@@ -517,7 +495,7 @@ test('multisig', async function run() {
         d: 'EBgew7O4yp8SBle0FU-wwN3GtnaroI0BQfBGAj33QiIG',
     };
     let eventResponse1 = await client1.identifiers().interact('multisig', data);
-    const gOp1: GroupOperation = await eventResponse1.op();
+    const gOp1 = await eventResponse1.op();
     serder = eventResponse1.serder;
     sigs = eventResponse1.sigs;
     sigers = sigs.map((sig) => new Siger({ qb64: sig }));
@@ -637,53 +615,42 @@ test('multisig', async function run() {
     // Members agree out of band to rotate keys
     console.log('Members agree out of band to rotate keys');
     icpResult1 = await client1.identifiers().rotate('member1');
-    const rotOp1: WitnessOperation = await icpResult1.op();
+    const rotOp1 = await icpResult1.op();
     await waitOperation(client1, rotOp1);
     aid1 = await client1.identifiers().get('member1');
 
     console.log('Member1 rotated keys');
     icpResult2 = await client2.identifiers().rotate('member2');
-    const rotOp2: WitnessOperation = await icpResult2.op();
+    const rotOp2 = await icpResult2.op();
     await waitOperation(client2, rotOp2);
     aid2 = await client2.identifiers().get('member2');
     console.log('Member2 rotated keys');
     icpResult3 = await client3.identifiers().rotate('member3');
-    const rotOp3: WitnessOperation = await icpResult3.op();
+    const rotOp3 = await icpResult3.op();
     await waitOperation(client3, rotOp3);
     aid3 = await client3.identifiers().get('member3');
     console.log('Member3 rotated keys');
 
     // Update new key states
-    let qOp1 = await client1
-        .keyStates()
-        .query(aid2.prefix, '1');
+    let qOp1 = await client1.keyStates().query(aid2.prefix, '1');
     qOp1 = await waitOperation(client1, qOp1);
-    assert(qOp1.done && ('response' in qOp1), 'Query operation failed');
-    const aid2State = qOp1['response'] as KeyState;
+    const aid2State = qOp1['response'];
     qOp1 = await client1.keyStates().query(aid3.prefix, '1');
     qOp1 = await waitOperation(client1, qOp1);
-    assert(qOp1.done && ('response' in qOp1), 'Query operation failed');
-    const aid3State = qOp1['response'] as KeyState;
+    const aid3State = qOp1['response'];
 
-    let qOp2: QueryOperation = await client2
-        .keyStates()
-        .query(aid3.prefix, '1');
+    let qOp2 = await client2.keyStates().query(aid3.prefix, '1');
     qOp2 = await waitOperation(client2, qOp2);
     qOp2 = await client2.keyStates().query(aid1.prefix, '1');
     qOp2 = await waitOperation(client2, qOp2);
-    assert(qOp2.done && ('response' in qOp2), 'Query operation failed');
-    const aid1State = qOp2['response'] as KeyState;
+    const aid1State = qOp2['response'];
 
-    let qOp3: QueryOperation = await client3
-        .keyStates()
-        .query(aid1.prefix, '1');
+    let qOp3 = await client3.keyStates().query(aid1.prefix, '1');
     qOp3 = await waitOperation(client3, qOp3);
     qOp3 = await client3.keyStates().query(aid2.prefix, '1');
     qOp3 = await waitOperation(client3, qOp3);
 
-    let qOp4: QueryOperation = await client4
-        .keyStates()
-        .query(aid1.prefix, '1');
+    let qOp4 = await client4.keyStates().query(aid1.prefix, '1');
     qOp4 = await waitOperation(client4, qOp4);
     qOp4 = await client4.keyStates().query(aid2.prefix, '1');
     qOp4 = await waitOperation(client4, qOp4);
@@ -698,7 +665,7 @@ test('multisig', async function run() {
     eventResponse1 = await client1
         .identifiers()
         .rotate('multisig', { states: states, rstates: rstates });
-    const groupRotOp1: GroupOperation = await eventResponse1.op();
+    const groupRotOp1 = await eventResponse1.op();
     serder = eventResponse1.serder;
     sigs = eventResponse1.sigs;
     sigers = sigs.map((sig) => new Siger({ qb64: sig }));
@@ -739,7 +706,7 @@ test('multisig', async function run() {
     icpResult2 = await client2
         .identifiers()
         .rotate('multisig', { states: states, rstates: rstates });
-    const groupRotOp2: GroupOperation = await icpResult2.op();
+    const groupRotOp2 = await icpResult2.op();
     serder = icpResult2.serder;
     sigs = icpResult2.sigs;
     sigers = sigs.map((sig) => new Siger({ qb64: sig }));
@@ -776,7 +743,7 @@ test('multisig', async function run() {
     icpResult3 = await client3
         .identifiers()
         .rotate('multisig', { states: states, rstates: rstates });
-    const groupRotOp3: GroupOperation = await icpResult3.op();
+    const groupRotOp3 = await icpResult3.op();
     serder = icpResult3.serder;
     sigs = icpResult3.sigs;
     sigers = sigs.map((sig) => new Siger({ qb64: sig }));
@@ -958,7 +925,7 @@ test('multisig', async function run() {
             ...vcdata,
         },
     });
-    const credOp1: CredentialOperation = credRes.op;
+    const credOp1 = credRes.op;
     await multisigIssue(client1, 'member1', 'multisig', credRes);
 
     console.log(
@@ -980,7 +947,7 @@ test('multisig', async function run() {
         .credentials()
         .issue('multisig', acdc as CredentialData);
 
-    const credOp2: CredentialOperation = credRes2.op;
+    const credOp2 = credRes2.op;
     await multisigIssue(client2, 'member2', 'multisig', credRes2);
     console.log('Member2 joins credential create event, waiting for others...');
 
@@ -997,7 +964,7 @@ test('multisig', async function run() {
         .credentials()
         .issue('multisig', issExn2.e.acdc as CredentialData);
 
-    const credOp3: CredentialOperation = credRes3.op;
+    const credOp3 = credRes3.op;
     await multisigIssue(client3, 'member3', 'multisig', credRes3);
     console.log('Member3 joins credential create event, waiting for others...');
 
@@ -1032,7 +999,7 @@ test('multisig', async function run() {
         datetime: stamp,
     });
 
-    const exOp1: ExchangeOperation = await client1
+    const exOp1 = await client1
         .ipex()
         .submitGrant('multisig', grant, gsigs, end, [holder]);
 
@@ -1079,7 +1046,7 @@ test('multisig', async function run() {
         datetime: stamp,
     });
 
-    const exOp2: ExchangeOperation = await client2
+    const exOp2 = await client2
         .ipex()
         .submitGrant('multisig', grant2, gsigs2, end2, [holder]);
 
@@ -1120,7 +1087,7 @@ test('multisig', async function run() {
         datetime: stamp,
     });
 
-    const exOp3: ExchangeOperation = await client3
+    const exOp3 = await client3
         .ipex()
         .submitGrant('multisig', grant3, gsigs3, end3, [holder]);
 
@@ -1160,7 +1127,7 @@ test('multisig', async function run() {
         recipient: m['prefix'],
     });
 
-    const exOp4: ExchangeOperation = await client4
+    const exOp4 = await client4
         .ipex()
         .submitAdmit('holder', admit, asigs, aend, [m['prefix']]);
 

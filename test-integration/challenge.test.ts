@@ -1,7 +1,5 @@
 import { assert, test } from 'vitest';
-import {
-    Serder,
-} from 'signify-ts';
+import { Serder } from 'signify-ts';
 import {
     assertOperations,
     getOrCreateClients,
@@ -27,14 +25,10 @@ test('challenge', async () => {
             'BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX',
         ],
     });
-    const aliceIcpOp = await waitOperation(
+    const { response: aid1 } = await waitOperation(
         client1,
         await icpResult1.op()
     );
-
-    assert(aliceIcpOp.done && ('response' in aliceIcpOp));
-
-    const aid1 = aliceIcpOp.response;
     const rpyResult1 = await client1
         .identifiers()
         .addEndRole('alice', 'agent', client1!.agent!.pre);
@@ -49,14 +43,10 @@ test('challenge', async () => {
             'BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX',
         ],
     });
-    const bobIcpOp = await waitOperation(
+    const { response: aid2 } = await waitOperation(
         client2,
         await icpResult2.op()
     );
-
-    assert(bobIcpOp.done && ('response' in bobIcpOp));
-
-    const aid2 = bobIcpOp.response;
     const rpyResult2 = await client2
         .identifiers()
         .addEndRole('bob', 'agent', client2!.agent!.pre);
@@ -89,15 +79,11 @@ test('challenge', async () => {
     );
     console.log('Alice verified challenge response');
 
-    assert(verifyOperation.done && ('response' in verifyOperation), 'Challenge verify operation failed');
-    const challengeOperationResponse = verifyOperation.response;
-
-    if (!challengeOperationResponse || !challengeOperationResponse.exn) {
-        throw new Error('Challenge operation response or exn is missing');
-    }
-
     //Alice mark response as accepted
-    const exn = new Serder(challengeOperationResponse.exn);
+    const verifyResponse = verifyOperation.response as {
+        exn: Record<string, unknown>;
+    };
+    const exn = new Serder(verifyResponse.exn);
 
     await client1.challenges().responded(aid2.i, exn.sad.d);
     console.log('Alice marked challenge response as accepted');
