@@ -464,7 +464,7 @@ async function createRegistry(
 ) {
     const result = await client.registries().create({ name, registryName });
     const op = await result.op();
-    await waitOperation(client, op.name);
+    await waitOperation(client, op);
 
     const registries = await client.registries().list(name);
     assert.equal(registries.length, 1);

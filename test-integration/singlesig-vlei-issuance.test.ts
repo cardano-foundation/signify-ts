@@ -486,7 +486,7 @@ async function getOrCreateRegistry(
         const regResult = await client
             .registries()
             .create({ name: aid.name, registryName: registryName });
-        await waitOperation(client, (await regResult.op()).name);
+        await waitOperation(client, await regResult.op());
         registries = await client.registries().list(aid.name);
     }
     return registries[0];
