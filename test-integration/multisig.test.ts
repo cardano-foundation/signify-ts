@@ -121,9 +121,6 @@ test('multisig', async function run() {
     chOp1 = await waitOperation(client1, chOp1);
     console.log('Member1 verified challenge response from member2');
     const chOp1Response = chOp1.response;
-    if (!chOp1Response || !chOp1Response.exn) {
-        throw new Error('Challenge operation response or exn is missing');
-    }
     let exnwords = new Serder(chOp1Response.exn);
     let res1 = await client1
         .challenges()

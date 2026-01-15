@@ -27,6 +27,7 @@ import {
     WitnessOperation,
     DoneOperation,
     HabState,
+    RegistryOperation,
 } from '../core/keyState.ts';
 
 import { components } from '../../types/keria-api-schema.ts';
@@ -562,7 +563,7 @@ export class RegistryResult {
         return this._sigs;
     }
 
-    async op(): Promise<Registry> {
+    async op(): Promise<RegistryOperation> {
         const res = await this.promise;
         return await res.json();
     }

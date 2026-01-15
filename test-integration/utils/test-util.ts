@@ -423,7 +423,7 @@ export async function warnNotifications(
 
 async function deleteOperations(client: SignifyClient, op: Operation) {
     if (op.metadata && 'depends' in op.metadata && op.metadata.depends) {
-        await deleteOperations(client, op.metadata.depends as Operation);
+        await deleteOperations(client, op.metadata.depends);
     }
 
     await client.operations().delete(op.name);
