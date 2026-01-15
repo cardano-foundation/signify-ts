@@ -899,9 +899,9 @@ test('multisig', async function run() {
         );
 
     // Done
-    await waitOperation(client1, regOp1.name);
-    await waitOperation(client2, regOp2.name);
-    await waitOperation(client3, regOp3.name);
+    await waitOperation(client1, regOp1);
+    await waitOperation(client2, regOp2);
+    await waitOperation(client3, regOp3);
     console.log('Multisig create registry completed!');
 
     //Create Credential

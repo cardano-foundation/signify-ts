@@ -450,7 +450,7 @@ test('multisig-vlei-issuance', async function run() {
             timestamp
         );
 
-        await Promise.all(opList1.map((op) => waitOperation(clientQAR1, op)));
+        await Promise.all(opList1.map((op) => (clientQAR1, op)));
         await Promise.all(opList2.map((op) => waitOperation(clientQAR2, op)));
         await Promise.all(opList3.map((op) => waitOperation(clientQAR3, op)));
 
@@ -506,8 +506,8 @@ test('multisig-vlei-issuance', async function run() {
         );
 
         await Promise.all([
-            waitOperation(clientGAR1, registryOp1.name),
-            waitOperation(clientGAR2, registryOp2.name),
+            waitOperation(clientGAR1, registryOp1),
+            waitOperation(clientGAR2, registryOp2),
         ]);
 
         await waitAndMarkNotification(clientGAR1, '/multisig/vcp');
@@ -844,9 +844,9 @@ test('multisig-vlei-issuance', async function run() {
         );
 
         await Promise.all([
-            waitOperation(clientQAR1, registryOp1.name),
-            waitOperation(clientQAR2, registryOp2.name),
-            waitOperation(clientQAR3, registryOp3.name),
+            waitOperation(clientQAR1, registryOp1),
+            waitOperation(clientQAR2, registryOp2),
+            waitOperation(clientQAR3, registryOp3),
         ]);
 
         await waitAndMarkNotification(clientQAR1, '/multisig/vcp');
@@ -1095,9 +1095,9 @@ test('multisig-vlei-issuance', async function run() {
         );
 
         await Promise.all([
-            waitOperation(clientLAR1, registryOp1.name),
-            waitOperation(clientLAR2, registryOp2.name),
-            waitOperation(clientLAR3, registryOp3.name),
+            waitOperation(clientLAR1, registryOp1),
+            waitOperation(clientLAR2, registryOp2),
+            waitOperation(clientLAR3, registryOp3),
         ]);
 
         await waitAndMarkNotification(clientLAR1, '/multisig/vcp');
