@@ -450,7 +450,7 @@ test('multisig-vlei-issuance', async function run() {
             timestamp
         );
 
-        await Promise.all(opList1.map((op) => (clientQAR1, op)));
+        await Promise.all(opList1.map((op) => waitOperation(clientQAR1, op)));
         await Promise.all(opList2.map((op) => waitOperation(clientQAR2, op)));
         await Promise.all(opList3.map((op) => waitOperation(clientQAR3, op)));
 
