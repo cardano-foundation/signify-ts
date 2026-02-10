@@ -253,6 +253,73 @@ export class SignifyClient {
     }
 
     /**
+     * Fetch a resource from the KERIA agent with a raw body (non-JSON)
+     * @async
+     * @param {string} path Path to the resource
+     * @param {string} method HTTP method
+     * @param {BodyInit | null} body Raw body to be sent (e.g., ArrayBuffer, Uint8Array, Blob)
+     * @param {string} [contentType] Optional content type header
+     * @param {Headers} [extraHeaders] Optional extra headers to be sent with the request
+     * @returns {Promise<Response>} A promise to the result of the fetch
+     */
+    async fetchRaw(
+        path: string,
+        method: string,
+        body: BodyInit | null,
+        contentType?: string,
+        extraHeaders?: Headers
+    ): Promise<Response> {
+        if (!this.authn) {
+            throw new Error('Client needs to call connect first');
+        }
+
+        const headers = new Headers();
+        headers.set(HEADER_SIG_SENDER, this.controller.pre);
+        headers.set(
+            HEADER_SIG_TIME,
+            new Date().toISOString().replace('Z', '000+00:00')
+        );
+
+        if (extraHeaders) {
+            extraHeaders.forEach((value, key) => {
+                headers.append(key, value);
+            });
+        }
+
+        if (contentType && body != null) {
+            headers.set('Content-Type', contentType);
+        }
+
+        const requestBody = method == 'GET' ? null : body;
+        const baseRequest = new Request(this.url + path, {
+            method,
+            body: requestBody,
+            headers,
+        });
+        const request = await this.authn.prepare(
+            baseRequest,
+            this.controller.pre,
+            this.agent!.pre
+        );
+
+        const res = await this.authn.verify(
+            baseRequest,
+            await fetch(request),
+            this.controller.pre,
+            this.agent!.pre
+        );
+
+        if (!res.ok) {
+            const error = await res.text();
+            throw new Error(
+                `HTTP ${method} ${path} - ${res.status} ${res.statusText} - ${error}`
+            );
+        }
+
+        return res;
+    }
+
+    /**
      * Create a Signed Request to fetch a resource from an external URL with headers signed by an AID
      * @async
      * @param {string} aidName Name or alias of the AID to be used for signing

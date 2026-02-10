@@ -81,6 +81,13 @@ export interface IdentifierDeps {
         body: unknown,
         headers?: Headers
     ): Promise<Response>;
+    fetchRaw(
+        pathname: string,
+        method: string,
+        body: BodyInit | null,
+        contentType?: string,
+        headers?: Headers
+    ): Promise<Response>;
     pidx: number;
     manager: KeyManager | null;
 }
@@ -90,6 +97,19 @@ export interface IdentifierDeps {
  */
 export interface IdentifierInfo {
     name: string;
+}
+
+/**
+ * Metadata for a managed identifier
+ */
+export interface IdentifierMetadata {
+    id?: string;
+    [key: string]: unknown;
+}
+
+export interface IdentifierMetadataImage {
+    contentType: string;
+    data: ArrayBuffer;
 }
 
 export interface LocSchemeArgs {
@@ -165,6 +185,44 @@ export class Identifier {
         const method = 'PUT';
         const res = await this.client.fetch(path, method, info);
         return await res.json();
+    }
+
+    /**
+     * Update metadata for a managed identifier
+     * @async
+     * @param {string} name Prefix or alias of the identifier
+     * @param {IdentifierMetadata} metadata Metadata object to create/update. Use empty object {} to delete metadata
+     * @returns {Promise<IdentifierMetadata>} A promise to the metadata object with id field (identifier prefix)
+     */
+    async updateMetadata(
+        name: string,
+        metadata: IdentifierMetadata
+    ): Promise<IdentifierMetadata> {
+        const path = `/identifiers/${name}/metadata`;
+        const method = 'PUT';
+        const res = await this.client.fetch(path, method, metadata);
+        return await res.json();
+    }
+
+    async uploadMetadataImage(
+        name: string,
+        image: BodyInit,
+        contentType: string
+    ): Promise<void> {
+        const path = `/identifiers/${name}/metadata/img`;
+        const method = 'POST';
+        await this.client.fetchRaw(path, method, image, contentType);
+    }
+
+    async downloadMetadataImage(
+        name: string
+    ): Promise<IdentifierMetadataImage> {
+        const path = `/identifiers/${name}/metadata/img`;
+        const method = 'GET';
+        const res = await this.client.fetchRaw(path, method, null);
+        const contentType = res.headers.get('Content-Type') ?? '';
+        const data = await res.arrayBuffer();
+        return { contentType, data };
     }
 
     async createInceptionData(
