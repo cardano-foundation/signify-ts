@@ -389,7 +389,7 @@ test('multisig', async function run() {
     endRoleRes = await client2
         .identifiers()
         .addEndRole('multisig', rpyrole, rpyeid, rpystamp);
-    op2 = await endRoleRes.op();
+    const endRole2 = await endRoleRes.op();
     rpy = endRoleRes.serder;
     sigs = endRoleRes.sigs;
 
@@ -438,7 +438,7 @@ test('multisig', async function run() {
     endRoleRes = await client3
         .identifiers()
         .addEndRole('multisig', rpyrole2, rpyeid2, rpystamp2);
-    op3 = await endRoleRes.op();
+    const endRole3 = await endRoleRes.op();
     rpy = endRoleRes.serder;
     sigs = endRoleRes.sigs;
     hab = await client3.identifiers().get('multisig');
@@ -534,7 +534,7 @@ test('multisig', async function run() {
     const multisigData = embeds1.ixn.a;
 
     icpResult2 = await client2.identifiers().interact('multisig', multisigData);
-    op2 = await icpResult2.op();
+    const gOp2 = await icpResult2.op();
     serder = icpResult2.serder;
     sigs = icpResult2.sigs;
     sigers = sigs.map((sig) => new Siger({ qb64: sig }));
@@ -576,7 +576,7 @@ test('multisig', async function run() {
     const interactData = ixn2.a;
 
     icpResult3 = await client3.identifiers().interact('multisig', interactData);
-    op3 = await icpResult3.op();
+    const gOp3 = await icpResult3.op();
     serder = icpResult3.serder;
     sigs = icpResult3.sigs;
     sigers = sigs.map((sig) => new Siger({ qb64: sig }));

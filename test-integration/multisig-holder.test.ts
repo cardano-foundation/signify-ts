@@ -3,7 +3,7 @@ import signify, {
     SignifyClient,
     Operation,
     CredentialData,
-    assertIpexGrant
+    assertIpexGrant,
 } from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import {
