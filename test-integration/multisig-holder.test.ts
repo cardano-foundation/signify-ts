@@ -424,8 +424,8 @@ test('multisig', async function run() {
         recp2
     );
 
-    await waitOperation(client1, op1);
-    await waitOperation(client2, op2);
+    await waitOperation(client1, exOp1);
+    await waitOperation(client2, exOp2);
 
     let creds1 = await client1.credentials().list();
     console.log(`Member1 has ${creds1.length} credential`);
