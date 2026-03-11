@@ -4,6 +4,7 @@ import signify, {
     Operation,
     CredentialData,
     assertIpexGrant,
+    assertMultisigRpy,
 } from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env.ts';
 import {
