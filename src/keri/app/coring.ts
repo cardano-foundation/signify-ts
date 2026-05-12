@@ -59,6 +59,18 @@ export class Oobis {
         const res = await this.client.fetch(path, method, data);
         return await res.json();
     }
+
+    /**
+     * Get end roles for an AID by prefix
+     * @param {string} aid AID prefix
+     * @param {string} [role] Optional role to filter by
+     * @returns {Promise<any>} A promise to the list of end roles
+     */
+    async endroles(aid: string, role?: string): Promise<any> {
+        const path = role ? `/endroles/${aid}/${role}` : `/endroles/${aid}`;
+        const res = await this.client.fetch(path, 'GET', null);
+        return await res.json();
+    }
 }
 
 export interface Operation<T = unknown> {
