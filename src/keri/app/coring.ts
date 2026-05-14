@@ -71,6 +71,16 @@ export class Oobis {
         const res = await this.client.fetch(path, 'GET', null);
         return await res.json();
     }
+
+    /**
+     * Get location schemes for an EID
+     * @param {string} eid EID prefix
+     * @returns {Promise<any>} A promise to the list of location schemes
+     */
+    async locschemes(eid: string): Promise<any> {
+        const res = await this.client.fetch(`/locschemes/${eid}`, 'GET', null);
+        return await res.json();
+    }
 }
 
 export interface Operation<T = unknown> {
