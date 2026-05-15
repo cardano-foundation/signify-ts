@@ -73,6 +73,18 @@ export class Oobis {
     }
 
     /**
+     * Resolve the indexer.
+     *
+     * @param {string} aid Indexer AID prefix (used as both cid and eid)
+     * @param {string} agentOobi Any OOBI URL from the same KERIA instance
+     * @returns {Promise<any>} A promise to the long-running operation
+     */
+    async resolveIndexer(aid: string, agentOobi: string): Promise<any> {
+        const oobiBase = agentOobi.split('/oobi/')[0];
+        return await this.resolve(`${oobiBase}/oobi/${aid}/indexer/${aid}`);
+    }
+
+    /**
      * Get location schemes for an EID
      * @param {string} eid EID prefix
      * @returns {Promise<any>} A promise to the list of location schemes

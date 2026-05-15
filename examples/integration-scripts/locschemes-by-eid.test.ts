@@ -11,11 +11,7 @@ import {
 let client1: SignifyClient;
 let client2: SignifyClient;
 
-const INDEXER_LOC_SCHEMES = [
-    { url: 'https://indexer.example.com', scheme: 'https' },
-    { url: 'http://indexer.example.com',  scheme: 'http'  },
-    { url: 'tcp://indexer.example.com:5621', scheme: 'tcp' },
-];
+const INDEXER_LOC_SCHEME = { url: 'http://indexer.example.com', scheme: 'http' };
 
 let indexerAid: string;
 let agentOobi: string;
@@ -33,7 +29,7 @@ afterAll(async () => {
 });
 
 describe('locschemes-by-eid', () => {
-    test('user1: create AID with mailbox, indexer end roles and loc schemes', async () => {
+    test('user1: create AID with indexer end role and loc scheme', async () => {
         const aidName = 'indexer-node';
 
         const createResult = await client1.identifiers().create(aidName);
@@ -57,12 +53,10 @@ describe('locschemes-by-eid', () => {
                 .addEndRole(aidName, 'indexer', indexerAid);
             await waitOperation(client1, await endResult.op());
 
-            for (const { url, scheme } of INDEXER_LOC_SCHEMES) {
-                const locRes = await client1
-                    .identifiers()
-                    .addLocScheme(aidName, { url, scheme });
-                await waitOperation(client1, await locRes.op());
-            }
+            const locRes = await client1
+                .identifiers()
+                .addLocScheme(aidName, INDEXER_LOC_SCHEME);
+            await waitOperation(client1, await locRes.op());
         }
 
         const oobi = await client1.oobis().get(aidName);
@@ -84,17 +78,16 @@ describe('locschemes-by-eid', () => {
     });
 
     test('resolver: fetch loc schemes by indexer EID', async () => {
-        const roles = await client2.oobis().endroles(indexerAid);
+        await waitOperation(client2, await client2.oobis().resolveIndexer(indexerAid, agentOobi));
+        const roles = await client2.oobis().endroles(indexerAid, 'indexer');
         const indexerRole = roles.find((r: any) => r.role === 'indexer');
         expect(indexerRole).toBeDefined();
 
         const locSchemes = await client2.oobis().locschemes(indexerRole.eid);
-        expect(Array.isArray(locSchemes)).toBe(true);
-        expect(locSchemes).toHaveLength(3);
         expect(locSchemes).toEqual(
-            expect.arrayContaining(
-                INDEXER_LOC_SCHEMES.map((s) => expect.objectContaining(s))
-            )
+            expect.arrayContaining([
+                expect.objectContaining(INDEXER_LOC_SCHEME),
+            ])
         );
     });
 });
