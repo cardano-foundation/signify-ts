@@ -78,7 +78,8 @@ describe('locschemes-by-eid', () => {
     });
 
     test('resolver: fetch loc schemes by indexer EID', async () => {
-        await waitOperation(client2, await client2.oobis().resolveIndexer(indexerAid, agentOobi));
+        const oobiBase = agentOobi.split('/oobi/')[0];
+        await waitOperation(client2, await client2.oobis().resolve(`${oobiBase}/oobi/${indexerAid}/indexer/${indexerAid}`));
         const roles = await client2.oobis().endroles(indexerAid, 'indexer');
         const indexerRole = roles.find((r: any) => r.role === 'indexer');
         expect(indexerRole).toBeDefined();
