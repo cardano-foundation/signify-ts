@@ -242,7 +242,8 @@ export async function createRegistryMultisig(
     multisigAID: HabState,
     registryName: string,
     nonce: string,
-    isInitiator: boolean = false
+    isInitiator: boolean = false,
+    sn?: number
 ) {
     if (!isInitiator) await waitAndMarkNotification(client, '/multisig/vcp');
 
@@ -250,6 +251,7 @@ export async function createRegistryMultisig(
         name: multisigAID.name,
         registryName: registryName,
         nonce: nonce,
+        sn,
     });
     const op = await vcpResult.op();
 
@@ -277,7 +279,10 @@ export async function createRegistryMultisig(
             recp
         );
 
-    return op;
+    const ancSn: number = anc.sn;
+    const ancDig: string = anc.ked['d'];
+
+    return { op, ancSn, ancDig };
 }
 
 export async function delegateMultisig(
@@ -407,14 +412,18 @@ export async function issueCredentialMultisig(
     otherMembersAIDs: HabState[],
     multisigAIDName: string,
     kargsIss: CredentialData,
-    isInitiator: boolean = false
+    isInitiator: boolean = false,
+    sn?: number,
+    dig?: string
 ) {
     if (!isInitiator) await waitAndMarkNotification(client, '/multisig/iss');
 
     const credResult = await client
         .credentials()
-        .issue(multisigAIDName, kargsIss);
+        .issue(multisigAIDName, kargsIss, sn, dig);
     const op = credResult.op;
+    const ancSn: number = credResult.anc.sn;
+    const ancDig: string = credResult.anc.ked['d'];
 
     const multisigAID = await client.identifiers().get(multisigAIDName);
     const keeper = client.manager!.get(multisigAID);
@@ -441,7 +450,7 @@ export async function issueCredentialMultisig(
             recp
         );
 
-    return op;
+    return { op, ancSn, ancDig };
 }
 
 export async function startMultisigIncept(
