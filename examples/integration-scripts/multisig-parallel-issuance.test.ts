@@ -174,31 +174,16 @@ test('multisig issuance with explicit anchorPoint', async () => {
         } as CredentialSubject,
     };
 
-    const { op: cred1OpIssuer1, ancSn: ancSnA, ancDig: ancDigA } =
-        await issueCredentialMultisig(
-            clientIssuer1,
-            aidIssuer1,
-            [aidIssuer2],
-            'issuerGroup',
-            cred1Data,
-            true
-        );
-
-    const { op: cred1OpIssuer2 } = await issueCredentialMultisig(
-        clientIssuer2,
-        aidIssuer2,
-        [aidIssuer1],
+    const { op: cred1OpIssuer1, anc: ancA } = await issueCredentialMultisig(
+        clientIssuer1,
+        aidIssuer1,
+        [aidIssuer2],
         'issuerGroup',
         cred1Data,
-        false
+        true
     );
 
-    await Promise.all([
-        waitOperation(clientIssuer1, cred1OpIssuer1),
-        waitOperation(clientIssuer2, cred1OpIssuer2),
-    ]);
-
-    const anchorForCredB: AnchorPoint = { sn: ancSnA, d: ancDigA };
+    const anchorForCredB: AnchorPoint = { sn: ancA.sn, d: ancA.d };
 
     const { op: cred2OpIssuer1 } = await issueCredentialMultisig(
         clientIssuer1,
@@ -208,6 +193,15 @@ test('multisig issuance with explicit anchorPoint', async () => {
         cred2Data,
         true,
         anchorForCredB
+    );
+
+    const { op: cred1OpIssuer2 } = await issueCredentialMultisig(
+        clientIssuer2,
+        aidIssuer2,
+        [aidIssuer1],
+        'issuerGroup',
+        cred1Data,
+        false
     );
 
     const { op: cred2OpIssuer2 } = await issueCredentialMultisig(
@@ -221,7 +215,9 @@ test('multisig issuance with explicit anchorPoint', async () => {
     );
 
     await Promise.all([
+        waitOperation(clientIssuer1, cred1OpIssuer1),
         waitOperation(clientIssuer1, cred2OpIssuer1),
+        waitOperation(clientIssuer2, cred1OpIssuer2),
         waitOperation(clientIssuer2, cred2OpIssuer2),
     ]);
 

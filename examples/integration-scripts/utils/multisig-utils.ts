@@ -422,8 +422,10 @@ export async function issueCredentialMultisig(
         .credentials()
         .issue(multisigAIDName, kargsIss, anchorPoint);
     const op = credResult.op;
-    const ancSn: number = parseInt(credResult.anc.ked['s'] as string, 16);
-    const ancDig: string = credResult.anc.ked['d'] as string;
+    const anc = {
+        sn: parseInt(credResult.anc.ked['s'] as string, 16),
+        d: credResult.anc.ked['d'] as string,
+    };
 
     const multisigAID = await client.identifiers().get(multisigAIDName);
     const keeper = client.manager!.get(multisigAID);
@@ -450,7 +452,7 @@ export async function issueCredentialMultisig(
             recp
         );
 
-    return { op, ancSn, ancDig };
+    return { op, anc };
 }
 
 export async function startMultisigIncept(
