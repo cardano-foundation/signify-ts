@@ -85,6 +85,11 @@ export interface CredentialData {
     r?: { [key: string]: unknown };
 }
 
+export interface AnchorPoint {
+    sn: number;
+    d: string;
+}
+
 export interface IssueCredentialResult {
     acdc: Serder;
     anc: Serder;
@@ -337,8 +342,7 @@ export class Credentials {
     async issue(
         name: string,
         args: CredentialData,
-        sn?: number,
-        dig?: string
+        anchorPoint?: AnchorPoint
     ): Promise<IssueCredentialResult> {
         const hab = await this.client.identifiers().get(name);
         const estOnly = hab.state.c !== undefined && hab.state.c.includes('EO');
@@ -380,8 +384,8 @@ export class Credentials {
             dt: subject.dt,
         });
 
-        const ancSn = sn ?? parseInt(hab.state.s, 16) + 1;
-        const ancDig = dig ?? hab.state.d;
+        const ancSn = (anchorPoint?.sn ?? parseInt(hab.state.s, 16)) + 1;
+        const ancDig = anchorPoint?.d ?? hab.state.d;
         const anc = interact({
             pre: hab.prefix,
             sn: ancSn,
@@ -436,7 +440,7 @@ export class Credentials {
         name: string,
         said: string,
         datetime?: string,
-        sn?: number
+        anchorPoint?: AnchorPoint
     ): Promise<RevokeCredentialResult> {
         const hab = await this.client.identifiers().get(name);
         const pre: string = hab.prefix;
@@ -472,8 +476,8 @@ export class Credentials {
             var estOnly = false;
         }
 
-        const ancSn = sn ?? parseInt(state.s, 16) + 1;
-        const dig = state.d;
+        const ancSn = (anchorPoint?.sn ?? parseInt(state.s, 16)) + 1;
+        const ancDig = anchorPoint?.d ?? state.d;
 
         const data: any = [
             {
@@ -493,7 +497,7 @@ export class Credentials {
                 pre: pre,
                 sn: ancSn,
                 data: data,
-                dig: dig,
+                dig: ancDig,
                 version: undefined,
                 kind: undefined,
             });
@@ -531,7 +535,7 @@ export interface CreateRegistryArgs {
     noBackers?: boolean;
     baks?: string[];
     nonce?: string;
-    sn?: number;
+    anchorPoint?: AnchorPoint;
 }
 
 export class RegistryResult {
@@ -609,7 +613,7 @@ export class Registries {
         toad = 0,
         baks = [],
         nonce,
-        sn,
+        anchorPoint,
     }: CreateRegistryArgs): Promise<RegistryResult> {
         const hab = await this.client.identifiers().get(name);
         const pre: string = hab.prefix;
@@ -631,8 +635,8 @@ export class Registries {
             throw new Error('establishment only not implemented');
         } else {
             const state = hab.state;
-            const ancSn = sn ?? parseInt(state.s, 16) + 1;
-            const dig = state.d;
+            const ancSn = (anchorPoint?.sn ?? parseInt(state.s, 16)) + 1;
+            const ancDig = anchorPoint?.d ?? state.d;
 
             const data: any = [
                 {
@@ -646,7 +650,7 @@ export class Registries {
                 pre: pre,
                 sn: ancSn,
                 data: data,
-                dig: dig,
+                dig: ancDig,
                 version: Versionage,
                 kind: Serials.JSON,
             });

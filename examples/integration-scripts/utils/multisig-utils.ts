@@ -1,5 +1,6 @@
 import signify, {
     Algos,
+    AnchorPoint,
     CreateIdentiferArgs,
     CredentialData,
     Serder,
@@ -243,7 +244,7 @@ export async function createRegistryMultisig(
     registryName: string,
     nonce: string,
     isInitiator: boolean = false,
-    sn?: number
+    anchorPoint?: AnchorPoint
 ) {
     if (!isInitiator) await waitAndMarkNotification(client, '/multisig/vcp');
 
@@ -251,7 +252,7 @@ export async function createRegistryMultisig(
         name: multisigAID.name,
         registryName: registryName,
         nonce: nonce,
-        sn,
+        anchorPoint,
     });
     const op = await vcpResult.op();
 
@@ -413,17 +414,16 @@ export async function issueCredentialMultisig(
     multisigAIDName: string,
     kargsIss: CredentialData,
     isInitiator: boolean = false,
-    sn?: number,
-    dig?: string
+    anchorPoint?: AnchorPoint
 ) {
     if (!isInitiator) await waitAndMarkNotification(client, '/multisig/iss');
 
     const credResult = await client
         .credentials()
-        .issue(multisigAIDName, kargsIss, sn, dig);
+        .issue(multisigAIDName, kargsIss, anchorPoint);
     const op = credResult.op;
-    const ancSn: number = credResult.anc.sn;
-    const ancDig: string = credResult.anc.ked['d'];
+    const ancSn: number = parseInt(credResult.anc.ked['s'] as string, 16);
+    const ancDig: string = credResult.anc.ked['d'] as string;
 
     const multisigAID = await client.identifiers().get(multisigAIDName);
     const keeper = client.manager!.get(multisigAID);

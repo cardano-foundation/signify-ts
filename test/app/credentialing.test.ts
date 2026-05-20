@@ -5,6 +5,7 @@ import libsodium from 'libsodium-wrappers-sumo';
 import jsFetchMock from 'jest-fetch-mock';
 import 'whatwg-fetch';
 import {
+    AnchorPoint,
     d,
     Ident,
     Ilks,
@@ -261,7 +262,6 @@ describe('Credentialing', () => {
         assert.equal(lastBody.sigs[0].substring(0, 2), 'AA');
         assert.equal(lastBody.sigs[0].length, 88);
 
-        console.log(`lastbbody is ${JSON.stringify(lastBody, null, 2)}`);
         const credential = lastBody.acdc.i;
         await credentials.revoke('aid1', credential);
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
@@ -310,6 +310,97 @@ describe('Credentialing', () => {
         );
         assert.equal(lastCall[1], 'DELETE');
         assert.equal(lastCall[2], undefined);
+    });
+
+    it('issue() with anchorPoint uses provided sn+1 and d for ixn', async () => {
+        await libsodium.ready;
+        const bran = '0123456789abcdefghijk';
+        const client = new SignifyClient(url, bran, Tier.low, boot_url);
+        await client.boot();
+        await client.connect();
+
+        const credentials = client.credentials();
+        const registry = 'EP10ooRj0DJF0HWZePEYMLPl-arMV-MAoTKK-o3DXbgX';
+        const schema = 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao';
+        const issuee = 'EG2XjQN-3jPN5rcR4spLjaJyM4zA6Lgg-Hd5vSMymu5p';
+        const anchorPoint: AnchorPoint = {
+            sn: 5,
+            d: 'EAnchorDigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        };
+
+        await credentials.issue(
+            'aid1',
+            { ri: registry, s: schema, a: { i: issuee } },
+            anchorPoint
+        );
+
+        const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
+        const lastBody = lastCall[2];
+        assert.equal(lastCall[0], '/identifiers/aid1/credentials');
+        assert.equal(lastCall[1], 'POST');
+        assert.equal(lastBody.ixn.t, 'ixn');
+        assert.equal(parseInt(lastBody.ixn.s, 16), 6);
+        assert.equal(lastBody.ixn.p, anchorPoint.d);
+    });
+
+    it('revoke() with anchorPoint uses provided sn+1 and d for ixn', async () => {
+        await libsodium.ready;
+        const bran = '0123456789abcdefghijk';
+        const client = new SignifyClient(url, bran, Tier.low, boot_url);
+        await client.boot();
+        await client.connect();
+
+        const credentials = client.credentials();
+        const anchorPoint: AnchorPoint = {
+            sn: 3,
+            d: 'EAnchorDigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        };
+
+        await credentials.revoke(
+            'aid1',
+            mockCredential.sad.d,
+            undefined,
+            anchorPoint
+        );
+
+        const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
+        const lastBody = lastCall[2];
+        assert.equal(
+            lastCall[0],
+            `/identifiers/aid1/credentials/${mockCredential.sad.d}`
+        );
+        assert.equal(lastCall[1], 'DELETE');
+        assert.equal(lastBody.ixn.t, 'ixn');
+        assert.equal(parseInt(lastBody.ixn.s, 16), 4);
+        assert.equal(lastBody.ixn.p, anchorPoint.d);
+    });
+
+    it('Registries.create() with anchorPoint uses provided sn+1 and d for ixn', async () => {
+        await libsodium.ready;
+        const bran = '0123456789abcdefghijk';
+        const client = new SignifyClient(url, bran, Tier.low, boot_url);
+        await client.boot();
+        await client.connect();
+
+        const registries = client.registries();
+        const anchorPoint: AnchorPoint = {
+            sn: 2,
+            d: 'EAnchorDigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        };
+
+        await registries.create({
+            name: 'aid1',
+            registryName: 'testRegistry',
+            anchorPoint,
+        });
+
+        const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
+        const lastBody = lastCall[2];
+        assert.equal(lastCall[0], '/identifiers/aid1/registries');
+        assert.equal(lastCall[1], 'POST');
+        assert.equal(lastBody.ixn.t, 'ixn');
+        assert.equal(parseInt(lastBody.ixn.s, 16), 3);
+        assert.equal(lastBody.ixn.p, anchorPoint.d);
     });
 });
 
@@ -361,16 +452,16 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(grant.ked, {
-            v: 'KERI10JSON0004e5_',
+            v: 'KERI10JSON0004b2_',
             t: 'exn',
-            d: 'EPVuNFwXTG56BvNtGjeyxncY-MfZMXOAgEtsmIvktkdb',
+            d: 'EFYfsW_8h3Tg8p8k4PyPpgTaz81K4g0oZoQhElcp9svD',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
+            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             p: '',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/grant',
-            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: { m: '', i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k' },
+            a: { m: '' },
             e: {
                 acdc: {
                     v: 'ACDC10JSON000197_',
@@ -408,7 +499,7 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(gsigs, [
-            'AADGVl57V4gcKYPO_Dn4UuYIdHI62vEQP--U3pnsl8oCqiqQbRqjw2E_7PHBy5-U78de5rhfF4UZQBFeub5evO8M',
+            'AACeaOv4L2DshEfm0Bz7A7M7N25-P3GW7dqgC8Gm_7BCesEdPXgI7nl5QbfVc-iXvJsErD-FNTqDFHLDRnbinRED',
         ]);
         assert.equal(
             end,
@@ -449,21 +540,21 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(admit.ked, {
-            v: 'KERI10JSON000178_',
+            v: 'KERI10JSON000145_',
             t: 'exn',
-            d: 'EJrfQsTZhkHC6vDEwkbWISpbBk9HFLO3NuI5uByYw8tH',
+            d: 'EHynwUZNfo3GCW2AkAyu7B8XGc_Uw4f8YuXU4xtf7k5t',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            p: 'EPVuNFwXTG56BvNtGjeyxncY-MfZMXOAgEtsmIvktkdb',
+            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
+            p: 'EFYfsW_8h3Tg8p8k4PyPpgTaz81K4g0oZoQhElcp9svD',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/admit',
-            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: { m: '', i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k' },
+            a: { m: '' },
             e: {},
         });
 
         assert.deepStrictEqual(asigs, [
-            'AAC4MTRQR-U8_3Hf53f2nJuh3n93lauXSHUkF1Yk2diTHwF-qkcBHn_jd-6pgRnRtBV2CInfwZyOsSL2CrRyuNEN',
+            'AADvfvY47Q97U2OBiDHOY4ZXSFQZp077vBd8PVQZqDNX9CV5NtneWerbzdgQ7bvdsKUl75x0y5iXAsRRzLrVrT0B',
         ]);
 
         await ipex.submitAdmit('multisig', admit, asigs, aend, [holder]);
@@ -519,18 +610,17 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(apply.ked, {
-            v: 'KERI10JSON0001aa_',
+            v: 'KERI10JSON000177_',
             t: 'exn',
-            d: 'ELjIE5cr_M2r7oUYw2pwcdNY_ZBuEgRlefaP0zSs_bXL',
+            d: 'EDFeDvVMgLiDm3zV_A9fDk7gY4tEDFfQupScvNgABBXw',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
+            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             p: '',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/apply',
-            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
             a: {
                 m: 'Applying',
-                i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
                 s: 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao',
                 a: { LEI: '5493001KJTIIGC8Y1R17' },
             },
@@ -538,7 +628,7 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(applySigs, [
-            'AADJYSkOTxd8KfH4YUKWWjkNynAH4fm3wcKOPmepLiI_iuNPV9TL-sIRxLeCBG5rQmqXtnSP0Wi6jgI7sHC9PBgF',
+            'AABdbLeRZ6RlWhiyCobCcg8FXhVCPZ3A0XlOKM5a6s1ZhI88cNlcHVzQGTGV4bB-y3ySeMGczzKQVCyf4lg1ZJQA',
         ]);
 
         assert.equal(applyEnd, '');
@@ -557,19 +647,16 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(offer.ked, {
-            v: 'KERI10JSON000357_',
+            v: 'KERI10JSON000324_',
             t: 'exn',
-            d: 'EBkyi_fhfnDWJXi4FW6t_o4F7Oep3PvSZ6E-qT716kfU',
+            d: 'EDocl1gyKIfm7Cj3gjoUkwLjl6KrB6l2HrkPLEMMBlig',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            p: 'ELjIE5cr_M2r7oUYw2pwcdNY_ZBuEgRlefaP0zSs_bXL',
+            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
+            p: 'EDFeDvVMgLiDm3zV_A9fDk7gY4tEDFfQupScvNgABBXw',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/offer',
-            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: {
-                m: 'How about this',
-                i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
-            },
+            a: { m: 'How about this' },
             e: {
                 acdc: {
                     v: 'ACDC10JSON000197_',
@@ -589,7 +676,7 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(offerSigs, [
-            'AADUeKpUxTKVS1DYRuHC3YDM8T4YMREnQLi00QiJH2Q_WjtMZTd7rBLH12xAJkt8h4KEOn4U_c-jpHdj9S9qKXsO',
+            'AABPcf_WNQISpvPj5CI9QekftQenP_R_St8P2rpWwPJXY4NCCQsHUwAZomPN28ujDDGxYU3x1a1JbLIUyZylhE0I',
         ]);
         assert.equal(offerEnd, '');
 
@@ -608,24 +695,21 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(agree.ked, {
-            v: 'KERI10JSON00017b_',
+            v: 'KERI10JSON000148_',
             t: 'exn',
-            d: 'EDLk56nlLrPHzhy3-5BHkhBNi-7tWUseWL_83I5QRmZ8',
+            d: 'EFBg4k0ICOSB_kSYtVQ6HymynENxShlJxB6e4kLCrRTd',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            p: 'EBkyi_fhfnDWJXi4FW6t_o4F7Oep3PvSZ6E-qT716kfU',
+            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
+            p: 'EDocl1gyKIfm7Cj3gjoUkwLjl6KrB6l2HrkPLEMMBlig',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/agree',
-            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: {
-                m: 'OK!',
-                i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
-            },
+            a: { m: 'OK!' },
             e: {},
         });
 
         assert.deepStrictEqual(agreeSigs, [
-            'AADgFlQVwRU7PF_gi4_o-wEgh3lZxzDtiwnIr9XFBrLOxhR6nBJNhrHZ_MkagCQcFHMpFkD9Vhxgq8HkV2gssPcO',
+            'AADy0GdBWaL_9fU8zD-UFC5c2tV8ejfCHncK_sBltryo2VfkSHkyf8SroAwxmXJgrUVJRvoC68dLa_PzuaYf9pYG',
         ]);
         assert.equal(agreeEnd, '');
 
@@ -645,16 +729,16 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(grant.ked, {
-            v: 'KERI10JSON000511_',
+            v: 'KERI10JSON0004de_',
             t: 'exn',
-            d: 'ENwwMpAuZ3NaZqqeydm3G18EDZFWuHzeJMfzfwNkb99N',
+            d: 'ELm3X5SkBDpwziA8h-NvHdHoxYv0H5866t6xPleWYjqo',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            p: 'EDLk56nlLrPHzhy3-5BHkhBNi-7tWUseWL_83I5QRmZ8',
+            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
+            p: 'EFBg4k0ICOSB_kSYtVQ6HymynENxShlJxB6e4kLCrRTd',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/grant',
-            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: { m: '', i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k' },
+            a: { m: '' },
             e: {
                 acdc: {
                     v: 'ACDC10JSON000197_',
@@ -692,7 +776,7 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(gsigs, [
-            'AAB61_g8jLGO1vx8Fadd6UrDItNACwFAiuAvWGrm_szxWWNZwT21V0N79Q7bRHNdVzZudgAKVUhNUHhnwrUW6jsK',
+            'AAA9fdN0pyY0pCGjuNFdX-IiOml7pgEENHYYno9BegDhMhtAGu0WM8nw_rF0ezkadBYwc0ILr8gN59VOmfWZgvgC',
         ]);
         assert.equal(
             end,
@@ -734,21 +818,21 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(admit.ked, {
-            v: 'KERI10JSON000178_',
+            v: 'KERI10JSON000145_',
             t: 'exn',
-            d: 'EPcEK9tPuLOHbLiPm_FETkIVLjHhwuUiZDRDKW6Hh0JF',
+            d: 'EPWJ60ww3O5HxhdB2QGSXIV9W2mXHJ0hHjJU_nEDYei6',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            p: 'ENwwMpAuZ3NaZqqeydm3G18EDZFWuHzeJMfzfwNkb99N',
+            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
+            p: 'ELm3X5SkBDpwziA8h-NvHdHoxYv0H5866t6xPleWYjqo',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/admit',
-            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: { m: '', i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k' },
+            a: { m: '' },
             e: {},
         });
 
         assert.deepStrictEqual(asigs, [
-            'AABqIUE6czxB5BotjxFUZT9Gu8tkFkAx7bOYQzWD422r-HS8z_6gaNuIlpnABHjxlX7PEXFDTj8WnoGVW197XlQP',
+            'AAA1kd_dmMUnS_NxB374EvglDitBScf8xil-sBg_5p1OHW9NEPKjGqKLaPNKv4FV0DxiDYinK182FXQQNeDAD4AI',
         ]);
 
         await ipex.submitAdmit('multisig', admit, asigs, aend, [holder]);
@@ -780,19 +864,16 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(offer.ked, {
-            v: 'KERI10JSON00032a_',
+            v: 'KERI10JSON0002f7_',
             t: 'exn',
-            d: 'EFmPdhVnJIrMZ0b6Nyk-4s2NP1InR3wgvBGcbxl2Cd8i',
+            d: 'EEBczFRrhu2JfGkG4_T4Md69mwoekXKb0i3LECwHzdYe',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
+            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             p: '',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/offer',
-            rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: {
-                m: 'Offering this',
-                i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
-            },
+            a: { m: 'Offering this' },
             e: {
                 acdc: {
                     v: 'ACDC10JSON000197_',
@@ -812,7 +893,7 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(offerSigs, [
-            'AACeQZ8RAcD2qFbkGXiUAQRJpZL4qanNH50a0LnkrflOC9JB2UJo3vvy3buiOSLoo0z9uMNhqa79ToXwVCAxg9MK',
+            'AACUanMkgK-5YL1M7FEJdx20swK2x1f0MNSeQmE23Y9zGFSb-tlYASC_lUfCfPyz1lg_ErYJR7fw9xx5ig4iWrcC',
         ]);
         assert.equal(offerEnd, '');
 
