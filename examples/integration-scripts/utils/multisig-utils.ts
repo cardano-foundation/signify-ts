@@ -280,10 +280,11 @@ export async function createRegistryMultisig(
             recp
         );
 
-    const ancSn: number = anc.sn;
+    const ancSn: number = parseInt(anc.ked['s']);
     const ancDig: string = anc.ked['d'];
+    const regk: string = serder.pre;
 
-    return { op, ancSn, ancDig };
+    return { op, ancSn, ancDig, regk };
 }
 
 export async function delegateMultisig(

@@ -26,20 +26,17 @@ const { vleiServerUrl, witnessIds } = resolveEnvironment();
 const QVI_SCHEMA_SAID = 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao';
 const QVI_SCHEMA_URL = `${vleiServerUrl}/oobi/${QVI_SCHEMA_SAID}`;
 
-test('multisig issuance with explicit anchorPoint', async () => {
-    const [clientIssuer1, clientIssuer2, clientHolder1, clientHolder2] =
-        await getOrCreateClients(4);
+test('multisig issuance with out-of-order registry', async () => {
+    const [clientIssuer1, clientIssuer2] = await getOrCreateClients(2);
 
     const kargsWitnessed: CreateIdentiferArgs = {
         toad: witnessIds.length,
         wits: witnessIds,
     };
 
-    const [aidIssuer1, aidIssuer2, aidHolder1, aidHolder2] = await Promise.all([
+    const [aidIssuer1, aidIssuer2] = await Promise.all([
         getOrCreateAID(clientIssuer1, 'issuer1', kargsWitnessed),
         getOrCreateAID(clientIssuer2, 'issuer2', kargsWitnessed),
-        getOrCreateAID(clientHolder1, 'holder1', {}),
-        getOrCreateAID(clientHolder2, 'holder2', {}),
     ]);
 
     const [oobiIssuer1, oobiIssuer2] = await Promise.all([
@@ -120,70 +117,56 @@ test('multisig issuance with explicit anchorPoint', async () => {
         ...endRoleOps2.map((op) => waitOperation(clientIssuer2, op)),
     ]);
 
+    // Member 1 creates registry then issues both credentials without waiting for member 2.
+    // All three anchor to the same ixn event via anchorPoint chaining.
     const nonce = randomNonce();
-    const { op: registryOp1 } = await createRegistryMultisig(
-        clientIssuer1,
-        aidIssuer1,
-        [aidIssuer2],
-        aidGroup,
-        'issuerRegistry',
-        nonce,
-        true
-    );
-    const { op: registryOp2 } = await createRegistryMultisig(
-        clientIssuer2,
-        aidIssuer2,
-        [aidIssuer1],
-        aidGroup,
-        'issuerRegistry',
-        nonce
-    );
-    await Promise.all([
-        waitOperation(clientIssuer1, registryOp1),
-        waitOperation(clientIssuer2, registryOp2),
-    ]);
-
-    const [regsByIssuer1, regsByIssuer2] = await Promise.all([
-        clientIssuer1.registries().list(aidGroup.name),
-        clientIssuer2.registries().list(aidGroup.name),
-    ]);
-    assert.equal(regsByIssuer1[0].regk, regsByIssuer2[0].regk);
-    const registry = regsByIssuer1[0];
+    const { op: registryOp1, ancSn: regAncSn, ancDig: regAncDig, regk } =
+        await createRegistryMultisig(
+            clientIssuer1,
+            aidIssuer1,
+            [aidIssuer2],
+            aidGroup,
+            'issuerRegistry',
+            nonce,
+            true
+        );
 
     const dt1 = createTimestamp();
     const dt2 = createTimestamp();
-
     const cred1Data: CredentialData = {
         i: aidGroup.prefix,
-        ri: registry.regk,
+        ri: regk,
         s: QVI_SCHEMA_SAID,
         a: {
-            i: aidHolder1.prefix,
+            i: aidIssuer1.prefix,
             dt: dt1,
             LEI: '254900OPPU84GM83MG36',
         } as CredentialSubject,
     };
     const cred2Data: CredentialData = {
         i: aidGroup.prefix,
-        ri: registry.regk,
+        ri: regk,
         s: QVI_SCHEMA_SAID,
         a: {
-            i: aidHolder2.prefix,
+            i: aidIssuer1.prefix,
             dt: dt2,
             LEI: '875500ELOZEL05BVXV37',
         } as CredentialSubject,
     };
 
-    const { op: cred1OpIssuer1, anc: ancA } = await issueCredentialMultisig(
+    const regAnchor: AnchorPoint = { sn: regAncSn, d: regAncDig };
+
+    const { op: cred1OpIssuer1, anc: ancCred1 } = await issueCredentialMultisig(
         clientIssuer1,
         aidIssuer1,
         [aidIssuer2],
         'issuerGroup',
         cred1Data,
-        true
+        true,
+        regAnchor
     );
 
-    const anchorForCredB: AnchorPoint = { sn: ancA.sn, d: ancA.d };
+    const anchorForCred2: AnchorPoint = { sn: ancCred1.sn, d: ancCred1.d };
 
     const { op: cred2OpIssuer1 } = await issueCredentialMultisig(
         clientIssuer1,
@@ -192,8 +175,22 @@ test('multisig issuance with explicit anchorPoint', async () => {
         'issuerGroup',
         cred2Data,
         true,
-        anchorForCredB
+        anchorForCred2
     );
+
+    // Member 2 joins all three activities sequentially after member 1 is done.
+    const { op: registryOp2, ancSn: reg2AncSn, ancDig: reg2AncDig } =
+        await createRegistryMultisig(
+            clientIssuer2,
+            aidIssuer2,
+            [aidIssuer1],
+            aidGroup,
+            'issuerRegistry',
+            nonce,
+            false
+        );
+
+    const reg2Anchor: AnchorPoint = { sn: reg2AncSn, d: reg2AncDig };
 
     const { op: cred1OpIssuer2 } = await issueCredentialMultisig(
         clientIssuer2,
@@ -201,7 +198,8 @@ test('multisig issuance with explicit anchorPoint', async () => {
         [aidIssuer1],
         'issuerGroup',
         cred1Data,
-        false
+        false,
+        reg2Anchor
     );
 
     const { op: cred2OpIssuer2 } = await issueCredentialMultisig(
@@ -211,43 +209,36 @@ test('multisig issuance with explicit anchorPoint', async () => {
         'issuerGroup',
         cred2Data,
         false,
-        anchorForCredB
+        anchorForCred2
     );
 
     await Promise.all([
+        waitOperation(clientIssuer1, registryOp1),
         waitOperation(clientIssuer1, cred1OpIssuer1),
         waitOperation(clientIssuer1, cred2OpIssuer1),
+        waitOperation(clientIssuer2, registryOp2),
         waitOperation(clientIssuer2, cred1OpIssuer2),
         waitOperation(clientIssuer2, cred2OpIssuer2),
     ]);
 
-    const cred1List = await clientIssuer1.credentials().list({
+    const credList = await clientIssuer1.credentials().list({
         filter: {
             '-i': { $eq: aidGroup.prefix },
             '-s': { $eq: QVI_SCHEMA_SAID },
-            '-a-i': { $eq: aidHolder1.prefix },
-        },
-    });
-    const cred2List = await clientIssuer1.credentials().list({
-        filter: {
-            '-i': { $eq: aidGroup.prefix },
-            '-s': { $eq: QVI_SCHEMA_SAID },
-            '-a-i': { $eq: aidHolder2.prefix },
+            '-a-i': { $eq: aidIssuer1.prefix },
         },
     });
 
-    assert(cred1List.length > 0, 'cred1 should be issued');
-    assert(cred2List.length > 0, 'cred2 should be issued');
-    const cred1 = cred1List[0];
-    const cred2 = cred2List[0];
+    assert(credList.length >= 2, 'both credentials should be issued');
+    const [cred1, cred2] = credList;
 
     assert.notEqual(cred1.sad.d, cred2.sad.d, 'two distinct credentials');
     assert.equal(cred1.sad.s, QVI_SCHEMA_SAID);
     assert.equal(cred2.sad.s, QVI_SCHEMA_SAID);
     assert.equal(cred1.sad.i, aidGroup.prefix);
     assert.equal(cred2.sad.i, aidGroup.prefix);
-    assert.equal(cred1.sad.a.i, aidHolder1.prefix);
-    assert.equal(cred2.sad.a.i, aidHolder2.prefix);
+    assert.equal(cred1.sad.a.i, aidIssuer1.prefix);
+    assert.equal(cred2.sad.a.i, aidIssuer1.prefix);
     assert.equal(cred1.status.s, '0', 'cred1 should be active');
     assert.equal(cred2.status.s, '0', 'cred2 should be active');
 
