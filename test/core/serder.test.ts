@@ -6,7 +6,6 @@ import { Diger } from '../../src/keri/core/diger';
 import { Serder } from '../../src/keri/core/serder';
 import libsodium from 'libsodium-wrappers-sumo';
 import { Prefixer } from '../../src/keri/core/prefixer.ts';
-import { CesrNumber } from '../../src/keri/core/number.ts';
 
 describe('deversify', () => {
     it('should parse a KERI event version string', async () => {
