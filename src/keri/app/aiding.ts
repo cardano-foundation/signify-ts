@@ -85,6 +85,14 @@ export interface IdentifierInfo {
     name: string;
 }
 
+/**
+ * Metadata for a managed identifier
+ */
+export interface IdentifierMetadata {
+    id?: string;
+    [key: string]: unknown;
+}
+
 export interface LocSchemeArgs {
     url: string;
     scheme?: string;
@@ -157,6 +165,23 @@ export class Identifier {
         const path = `/identifiers/${name}`;
         const method = 'PUT';
         const res = await this.client.fetch(path, method, info);
+        return await res.json();
+    }
+
+    /**
+     * Update metadata for a managed identifier
+     * @async
+     * @param {string} name Prefix or alias of the identifier
+     * @param {IdentifierMetadata} metadata Metadata object to create/update. Use empty object {} to delete metadata
+     * @returns {Promise<IdentifierMetadata>} A promise to the metadata object with id field (identifier prefix)
+     */
+    async updateMetadata(
+        name: string,
+        metadata: IdentifierMetadata
+    ): Promise<IdentifierMetadata> {
+        const path = `/identifiers/${name}/metadata`;
+        const method = 'PUT';
+        const res = await this.client.fetch(path, method, metadata);
         return await res.json();
     }
 

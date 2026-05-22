@@ -79,6 +79,7 @@ export interface HabState {
     state: State;
     windexes: unknown[];
     icp_dt: string;
+    metadata?: Record<string, unknown>;
     [Algos.salty]?: SaltyState;
     [Algos.randy]?: RandyState;
     [Algos.group]?: GroupState;
