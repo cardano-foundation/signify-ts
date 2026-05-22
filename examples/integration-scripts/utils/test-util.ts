@@ -467,13 +467,9 @@ export async function waitAndMarkNotification(
 ) {
     const notes = await waitForNotifications(client, route);
 
-    await Promise.all(
-        notes.map(async (note) => {
-            await markNotification(client, note);
-        })
-    );
+    await markNotification(client, notes[0]);
 
-    return notes[notes.length - 1]?.a.d ?? '';
+    return notes[0]?.a.d ?? '';
 }
 
 export async function waitForNotifications(

@@ -487,7 +487,7 @@ test('multisig-vlei-issuance', async function run() {
     ]);
     if (gedaRegistrybyGAR1.length == 0 && gedaRegistrybyGAR2.length == 0) {
         const nonce = randomNonce();
-        const registryOp1 = await createRegistryMultisig(
+        const { op: registryOp1 } = await createRegistryMultisig(
             clientGAR1,
             aidGAR1,
             [aidGAR2],
@@ -496,7 +496,7 @@ test('multisig-vlei-issuance', async function run() {
             nonce,
             true
         );
-        const registryOp2 = await createRegistryMultisig(
+        const { op: registryOp2 } = await createRegistryMultisig(
             clientGAR2,
             aidGAR2,
             [aidGAR1],
@@ -547,7 +547,7 @@ test('multisig-vlei-issuance', async function run() {
             s: QVI_SCHEMA_SAID,
             a: kargsSub,
         };
-        const IssOp1 = await issueCredentialMultisig(
+        const { op: IssOp1 } = await issueCredentialMultisig(
             clientGAR1,
             aidGAR1,
             [aidGAR2],
@@ -555,7 +555,7 @@ test('multisig-vlei-issuance', async function run() {
             kargsIss,
             true
         );
-        const IssOp2 = await issueCredentialMultisig(
+        const { op: IssOp2 } = await issueCredentialMultisig(
             clientGAR2,
             aidGAR2,
             [aidGAR1],
@@ -811,7 +811,7 @@ test('multisig-vlei-issuance', async function run() {
         qviRegistrybyQAR3.length == 0
     ) {
         const nonce = randomNonce();
-        const registryOp1 = await createRegistryMultisig(
+        const { op: registryOp1 } = await createRegistryMultisig(
             clientQAR1,
             aidQAR1,
             [aidQAR2, aidQAR3],
@@ -820,7 +820,7 @@ test('multisig-vlei-issuance', async function run() {
             nonce,
             true
         );
-        const registryOp2 = await createRegistryMultisig(
+        const { op: registryOp2 } = await createRegistryMultisig(
             clientQAR2,
             aidQAR2,
             [aidQAR1, aidQAR3],
@@ -828,7 +828,7 @@ test('multisig-vlei-issuance', async function run() {
             'qviRegistry',
             nonce
         );
-        const registryOp3 = await createRegistryMultisig(
+        const { op: registryOp3 } = await createRegistryMultisig(
             clientQAR3,
             aidQAR3,
             [aidQAR1, aidQAR2],
@@ -900,7 +900,7 @@ test('multisig-vlei-issuance', async function run() {
             e: leCredSource,
             r: LE_RULES,
         };
-        const IssOp1 = await issueCredentialMultisig(
+        const { op: IssOp1 } = await issueCredentialMultisig(
             clientQAR1,
             aidQAR1,
             [aidQAR2, aidQAR3],
@@ -908,14 +908,14 @@ test('multisig-vlei-issuance', async function run() {
             kargsIss,
             true
         );
-        const IssOp2 = await issueCredentialMultisig(
+        const { op: IssOp2 } = await issueCredentialMultisig(
             clientQAR2,
             aidQAR2,
             [aidQAR1, aidQAR3],
             aidQVI.name,
             kargsIss
         );
-        const IssOp3 = await issueCredentialMultisig(
+        const { op: IssOp3 } = await issueCredentialMultisig(
             clientQAR3,
             aidQAR3,
             [aidQAR1, aidQAR2],
@@ -1055,7 +1055,7 @@ test('multisig-vlei-issuance', async function run() {
         leRegistrybyLAR3.length == 0
     ) {
         const nonce = randomNonce();
-        const registryOp1 = await createRegistryMultisig(
+        const { op: registryOp1 } = await createRegistryMultisig(
             clientLAR1,
             aidLAR1,
             [aidLAR2, aidLAR3],
@@ -1064,7 +1064,7 @@ test('multisig-vlei-issuance', async function run() {
             nonce,
             true
         );
-        const registryOp2 = await createRegistryMultisig(
+        const { op: registryOp2 } = await createRegistryMultisig(
             clientLAR2,
             aidLAR2,
             [aidLAR1, aidLAR3],
@@ -1072,7 +1072,7 @@ test('multisig-vlei-issuance', async function run() {
             'leRegistry',
             nonce
         );
-        const registryOp3 = await createRegistryMultisig(
+        const { op: registryOp3 } = await createRegistryMultisig(
             clientLAR3,
             aidLAR3,
             [aidLAR1, aidLAR2],
@@ -1148,7 +1148,7 @@ test('multisig-vlei-issuance', async function run() {
             r: ECR_RULES,
         };
 
-        const IssOp1 = await issueCredentialMultisig(
+        const { op: IssOp1 } = await issueCredentialMultisig(
             clientLAR1,
             aidLAR1,
             [aidLAR2, aidLAR3],
@@ -1156,14 +1156,14 @@ test('multisig-vlei-issuance', async function run() {
             kargsIss,
             true
         );
-        const IssOp2 = await issueCredentialMultisig(
+        const { op: IssOp2 } = await issueCredentialMultisig(
             clientLAR2,
             aidLAR2,
             [aidLAR1, aidLAR3],
             aidLE.name,
             kargsIss
         );
-        const IssOp3 = await issueCredentialMultisig(
+        const { op: IssOp3 } = await issueCredentialMultisig(
             clientLAR3,
             aidLAR3,
             [aidLAR1, aidLAR2],
