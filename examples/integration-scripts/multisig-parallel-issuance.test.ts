@@ -25,6 +25,7 @@ const { vleiServerUrl, witnessIds } = resolveEnvironment();
 
 const QVI_SCHEMA_SAID = 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao';
 const QVI_SCHEMA_URL = `${vleiServerUrl}/oobi/${QVI_SCHEMA_SAID}`;
+const CREDENTIAL_ISSUEE_AID = 'EBgew7O4yp8SBle0FU-wwN3GtnaroI0BQfBGAj33QiIG';
 
 test('multisig issuance with out-of-order registry', async () => {
     const [clientIssuer1, clientIssuer2] = await getOrCreateClients(2);
@@ -138,7 +139,7 @@ test('multisig issuance with out-of-order registry', async () => {
         ri: regk,
         s: QVI_SCHEMA_SAID,
         a: {
-            i: aidIssuer1.prefix,
+            i: CREDENTIAL_ISSUEE_AID,
             dt: dt1,
             LEI: '254900OPPU84GM83MG36',
         } as CredentialSubject,
@@ -148,7 +149,7 @@ test('multisig issuance with out-of-order registry', async () => {
         ri: regk,
         s: QVI_SCHEMA_SAID,
         a: {
-            i: aidIssuer1.prefix,
+            i: CREDENTIAL_ISSUEE_AID,
             dt: dt2,
             LEI: '875500ELOZEL05BVXV37',
         } as CredentialSubject,
@@ -225,7 +226,7 @@ test('multisig issuance with out-of-order registry', async () => {
         filter: {
             '-i': { $eq: aidGroup.prefix },
             '-s': { $eq: QVI_SCHEMA_SAID },
-            '-a-i': { $eq: aidIssuer1.prefix },
+            '-a-i': { $eq: CREDENTIAL_ISSUEE_AID },
         },
     });
 
@@ -237,8 +238,8 @@ test('multisig issuance with out-of-order registry', async () => {
     assert.equal(cred2.sad.s, QVI_SCHEMA_SAID);
     assert.equal(cred1.sad.i, aidGroup.prefix);
     assert.equal(cred2.sad.i, aidGroup.prefix);
-    assert.equal(cred1.sad.a.i, aidIssuer1.prefix);
-    assert.equal(cred2.sad.a.i, aidIssuer1.prefix);
+    assert.equal(cred1.sad.a.i, CREDENTIAL_ISSUEE_AID);
+    assert.equal(cred2.sad.a.i, CREDENTIAL_ISSUEE_AID);
     assert.equal(cred1.status.s, '0', 'cred1 should be active');
     assert.equal(cred2.status.s, '0', 'cred2 should be active');
 
