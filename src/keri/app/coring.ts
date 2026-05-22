@@ -327,7 +327,6 @@ export class Replies {
         this.client = client;
     }
 
-
     async submitRpy(rec: string, rpy: string): Promise<void> {
         const path = `/replies`;
         const data = {

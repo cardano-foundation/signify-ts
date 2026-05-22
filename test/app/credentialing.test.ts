@@ -2,8 +2,6 @@ import { strict as assert } from 'assert';
 import { SignifyClient } from '../../src/keri/app/clienting';
 import { Tier } from '../../src/keri/core/salter';
 import libsodium from 'libsodium-wrappers-sumo';
-import jsFetchMock from 'jest-fetch-mock';
-import 'whatwg-fetch';
 import {
     d,
     Ident,
@@ -15,187 +13,13 @@ import {
     serializeIssExnAttachment,
     Serials,
     versify,
-} from '../../src';
+} from '../../src/index';
+import { createMockFetch, mockCredential } from './test-utils';
 
-jsFetchMock.enableMocks();
+const fetchMock = createMockFetch();
 
 const url = 'http://127.0.0.1:3901';
 const boot_url = 'http://127.0.0.1:3903';
-
-const mockConnect = {
-    agent: {
-        vn: [1, 0],
-        i: 'EEXekkGu9IAzav6pZVJhkLnjtjM5v3AcyA-pdKUcaGei',
-        s: '0',
-        p: '',
-        d: 'EEXekkGu9IAzav6pZVJhkLnjtjM5v3AcyA-pdKUcaGei',
-        f: '0',
-        dt: '2023-08-19T21:04:57.948863+00:00',
-        et: 'dip',
-        kt: '1',
-        k: ['DMZh_y-H5C3cSbZZST-fqnsmdNTReZxIh0t2xSTOJQ8a'],
-        nt: '1',
-        n: ['EM9M2EQNCBK0MyAhVYBvR98Q0tefpvHgE-lHLs82XgqC'],
-        bt: '0',
-        b: [],
-        c: [],
-        ee: {
-            s: '0',
-            d: 'EEXekkGu9IAzav6pZVJhkLnjtjM5v3AcyA-pdKUcaGei',
-            br: [],
-            ba: [],
-        },
-        di: 'ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose',
-    },
-    controller: {
-        state: {
-            vn: [1, 0],
-            i: 'ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose',
-            s: '0',
-            p: '',
-            d: 'ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose',
-            f: '0',
-            dt: '2023-08-19T21:04:57.959047+00:00',
-            et: 'icp',
-            kt: '1',
-            k: ['DAbWjobbaLqRB94KiAutAHb_qzPpOHm3LURA_ksxetVc'],
-            nt: '1',
-            n: ['EIFG_uqfr1yN560LoHYHfvPAhxQ5sN6xZZT_E3h7d2tL'],
-            bt: '0',
-            b: [],
-            c: [],
-            ee: {
-                s: '0',
-                d: 'ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose',
-                br: [],
-                ba: [],
-            },
-            di: '',
-        },
-        ee: {
-            v: 'KERI10JSON00012b_',
-            t: 'icp',
-            d: 'ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose',
-            i: 'ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose',
-            s: '0',
-            kt: '1',
-            k: ['DAbWjobbaLqRB94KiAutAHb_qzPpOHm3LURA_ksxetVc'],
-            nt: '1',
-            n: ['EIFG_uqfr1yN560LoHYHfvPAhxQ5sN6xZZT_E3h7d2tL'],
-            bt: '0',
-            b: [],
-            c: [],
-            a: [],
-        },
-    },
-    ridx: 0,
-    pidx: 0,
-};
-const mockGetAID = {
-    name: 'aid1',
-    prefix: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-    salty: {
-        sxlt: '1AAHnNQTkD0yxOC9tSz_ukbB2e-qhDTStH18uCsi5PCwOyXLONDR3MeKwWv_AVJKGKGi6xiBQH25_R1RXLS2OuK3TN3ovoUKH7-A',
-        pidx: 0,
-        kidx: 0,
-        stem: 'signify:aid',
-        tier: 'low',
-        dcode: 'E',
-        icodes: ['A'],
-        ncodes: ['A'],
-        transferable: true,
-    },
-    transferable: true,
-    state: {
-        vn: [1, 0],
-        i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-        s: '0',
-        p: '',
-        d: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-        f: '0',
-        dt: '2023-08-21T22:30:46.473545+00:00',
-        et: 'icp',
-        kt: '1',
-        k: ['DPmhSfdhCPxr3EqjxzEtF8TVy0YX7ATo0Uc8oo2cnmY9'],
-        nt: '1',
-        n: ['EAORnRtObOgNiOlMolji-KijC_isa3lRDpHCsol79cOc'],
-        bt: '0',
-        b: [],
-        c: [],
-        ee: {
-            s: '0',
-            d: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            br: [],
-            ba: [],
-        },
-        di: '',
-    },
-    windexes: [],
-};
-
-const mockCredential = {
-    sad: {
-        v: 'ACDC10JSON000197_',
-        d: 'EMwcsEMUEruPXVwPCW7zmqmN8m0I3CihxolBm-RDrsJo',
-        i: 'EMQQpnSkgfUOgWdzQTWfrgiVHKIDAhvAZIPQ6z3EAfz1',
-        ri: 'EGK216v1yguLfex4YRFnG7k1sXRjh3OKY7QqzdKsx7df',
-        s: 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao',
-        a: {
-            d: 'EK0GOjijKd8_RLYz9qDuuG29YbbXjU8yJuTQanf07b6P',
-            i: 'EKvn1M6shPLnXTb47bugVJblKMuWC0TcLIePP8p98Bby',
-            dt: '2023-08-23T15:16:07.553000+00:00',
-            LEI: '5493001KJTIIGC8Y1R17',
-        },
-    },
-    pre: 'EMQQpnSkgfUOgWdzQTWfrgiVHKIDAhvAZIPQ6z3EAfz1',
-    sadsigers: [
-        {
-            path: '-',
-            pre: 'EMQQpnSkgfUOgWdzQTWfrgiVHKIDAhvAZIPQ6z3EAfz1',
-            sn: 0,
-            d: 'EMQQpnSkgfUOgWdzQTWfrgiVHKIDAhvAZIPQ6z3EAfz1',
-        },
-    ],
-    sadcigars: [],
-    chains: [],
-    status: {
-        v: 'KERI10JSON000135_',
-        i: 'EMwcsEMUEruPXVwPCW7zmqmN8m0I3CihxolBm-RDrsJo',
-        s: '0',
-        d: 'ENf3IEYwYtFmlq5ZzoI-zFzeR7E3ZNRN2YH_0KAFbdJW',
-        ri: 'EGK216v1yguLfex4YRFnG7k1sXRjh3OKY7QqzdKsx7df',
-        ra: {},
-        a: { s: 2, d: 'EIpgyKVF0z0Pcn2_HgbWhEKmJhOXFeD4SA62SrxYXOLt' },
-        dt: '2023-08-23T15:16:07.553000+00:00',
-        et: 'iss',
-    },
-};
-
-const fetchMock = jest
-    .spyOn(SignifyClient.prototype, 'fetch')
-    .mockImplementation(async (rurl) => {
-        const body = rurl.startsWith('/credentials')
-            ? mockCredential
-            : mockGetAID;
-
-        return Promise.resolve(
-            new Response(JSON.stringify(body), {
-                status: 202,
-            })
-        );
-    });
-jsFetchMock.mockResponse((req) => {
-    if (req.url.startsWith(url + '/agent')) {
-        return Promise.resolve({
-            body: JSON.stringify(mockConnect),
-            init: { status: 202 },
-        });
-    } else if (req.url == boot_url + '/boot') {
-        return Promise.resolve({ body: '', init: { status: 202 } });
-    } else {
-        throw new Error('Wrong fetch used');
-    }
-});
 
 describe('Credentialing', () => {
     it('Credentials', async () => {
@@ -214,26 +38,27 @@ describe('Credentialing', () => {
                 '-i': { $eq: 'EP10ooRj0DJF0HWZePEYMLPl-arMV-MAoTKK-o3DXbgX' },
             },
             sort: [{ '-s': 1 }],
-            limit: 25,
             skip: 5,
+            limit: 25,
         };
         await credentials.list(kargs);
         let lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        let lastBody = lastCall[2];
-        assert.equal(lastCall[0], '/credentials/query');
-        assert.equal(lastCall[1], 'POST');
-        assert.deepEqual(lastBody, kargs);
+        assert(lastCall[0] instanceof Request);
+        assert.equal(lastCall[0].url, url + '/credentials/query');
+        assert.equal(lastCall[0].method, 'POST');
+        assert.deepEqual(await lastCall[0].text(), JSON.stringify(kargs));
 
         await credentials.get(
             'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao',
             true
         );
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
+        assert(lastCall[0] instanceof Request);
         assert.equal(
-            lastCall[0],
-            '/credentials/EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao'
+            lastCall[0].url,
+            url + '/credentials/EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao'
         );
-        assert.equal(lastCall[1], 'GET');
+        assert.equal(lastCall[0].method, 'GET');
 
         const registry = 'EP10ooRj0DJF0HWZePEYMLPl-arMV-MAoTKK-o3DXbgX';
         const schema = 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao';
@@ -244,9 +69,10 @@ describe('Credentialing', () => {
             a: { i: isuee, LEI: '1234' },
         });
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        lastBody = lastCall[2];
-        assert.equal(lastCall[0], '/identifiers/aid1/credentials');
-        assert.equal(lastCall[1], 'POST');
+        assert(lastCall[0] instanceof Request);
+        let lastBody = JSON.parse(await lastCall[0].text());
+        assert.equal(lastCall[0].url, url + '/identifiers/aid1/credentials');
+        assert.equal(lastCall[0].method, 'POST');
         assert.equal(lastBody.acdc.ri, registry);
         assert.equal(lastBody.acdc.s, schema);
         assert.equal(lastBody.acdc.a.i, isuee);
@@ -261,16 +87,16 @@ describe('Credentialing', () => {
         assert.equal(lastBody.sigs[0].substring(0, 2), 'AA');
         assert.equal(lastBody.sigs[0].length, 88);
 
-        console.log(`lastbbody is ${JSON.stringify(lastBody, null, 2)}`);
         const credential = lastBody.acdc.i;
         await credentials.revoke('aid1', credential);
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        lastBody = lastCall[2];
+        assert(lastCall[0] instanceof Request);
+        lastBody = JSON.parse(await lastCall[0].text());
         assert.equal(
-            lastCall[0],
-            '/identifiers/aid1/credentials/' + credential
+            lastCall[0].url,
+            url + '/identifiers/aid1/credentials/' + credential
         );
-        assert.equal(lastCall[1], 'DELETE');
+        assert.equal(lastCall[0].method, 'DELETE');
         assert.equal(lastBody.rev.s, '1');
         assert.equal(lastBody.rev.t, 'rev');
         assert.equal(
@@ -295,21 +121,24 @@ describe('Credentialing', () => {
 
         await credentials.state(mockCredential.sad.ri, mockCredential.sad.d);
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
+        assert(lastCall[0] instanceof Request);
         assert.equal(
-            lastCall[0]!,
-            '/registries/EGK216v1yguLfex4YRFnG7k1sXRjh3OKY7QqzdKsx7df/EMwcsEMUEruPXVwPCW7zmqmN8m0I3CihxolBm-RDrsJo'
+            lastCall[0].url,
+            url +
+                '/registries/EGK216v1yguLfex4YRFnG7k1sXRjh3OKY7QqzdKsx7df/EMwcsEMUEruPXVwPCW7zmqmN8m0I3CihxolBm-RDrsJo'
         );
-        assert.equal(lastCall[1], 'GET');
-        assert.equal(lastCall[2], null);
+        assert.equal(lastCall[0].method, 'GET');
+        assert.equal(lastCall[0].body, null);
 
         await credentials.delete(mockCredential.sad.d);
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
+        assert(lastCall[0] instanceof Request);
         assert.equal(
-            lastCall[0],
-            '/credentials/EMwcsEMUEruPXVwPCW7zmqmN8m0I3CihxolBm-RDrsJo'
+            lastCall[0].url,
+            url + '/credentials/EMwcsEMUEruPXVwPCW7zmqmN8m0I3CihxolBm-RDrsJo'
         );
-        assert.equal(lastCall[1], 'DELETE');
-        assert.equal(lastCall[2], undefined);
+        assert.equal(lastCall[0].method, 'DELETE');
+        assert.equal(lastCall[0].body, null);
     });
 });
 
@@ -361,16 +190,16 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(grant.ked, {
-            v: 'KERI10JSON0004e5_',
+            v: 'KERI10JSON0004b2_',
             t: 'exn',
-            d: 'EPVuNFwXTG56BvNtGjeyxncY-MfZMXOAgEtsmIvktkdb',
+            d: 'EFYfsW_8h3Tg8p8k4PyPpgTaz81K4g0oZoQhElcp9svD',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
             p: '',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/grant',
             rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: { m: '', i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k' },
+            a: { m: '' },
             e: {
                 acdc: {
                     v: 'ACDC10JSON000197_',
@@ -408,7 +237,7 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(gsigs, [
-            'AADGVl57V4gcKYPO_Dn4UuYIdHI62vEQP--U3pnsl8oCqiqQbRqjw2E_7PHBy5-U78de5rhfF4UZQBFeub5evO8M',
+            'AACeaOv4L2DshEfm0Bz7A7M7N25-P3GW7dqgC8Gm_7BCesEdPXgI7nl5QbfVc-iXvJsErD-FNTqDFHLDRnbinRED',
         ]);
         assert.equal(
             end,
@@ -438,7 +267,11 @@ describe('Ipex', () => {
 
         await ipex.submitGrant('multisig', ng, ngsigs, ngend, [holder]);
         let lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        assert.equal(lastCall[0], '/identifiers/multisig/ipex/grant');
+        assert(lastCall[0] instanceof Request);
+        assert.equal(
+            lastCall[0].url,
+            'http://127.0.0.1:3901/identifiers/multisig/ipex/grant'
+        );
 
         const [admit, asigs, aend] = await ipex.admit({
             senderName: 'holder',
@@ -449,26 +282,30 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(admit.ked, {
-            v: 'KERI10JSON000178_',
+            v: 'KERI10JSON000145_',
             t: 'exn',
-            d: 'EJrfQsTZhkHC6vDEwkbWISpbBk9HFLO3NuI5uByYw8tH',
+            d: 'EHynwUZNfo3GCW2AkAyu7B8XGc_Uw4f8YuXU4xtf7k5t',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            p: 'EPVuNFwXTG56BvNtGjeyxncY-MfZMXOAgEtsmIvktkdb',
+            p: 'EFYfsW_8h3Tg8p8k4PyPpgTaz81K4g0oZoQhElcp9svD',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/admit',
             rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: { m: '', i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k' },
+            a: { m: '' },
             e: {},
         });
 
         assert.deepStrictEqual(asigs, [
-            'AAC4MTRQR-U8_3Hf53f2nJuh3n93lauXSHUkF1Yk2diTHwF-qkcBHn_jd-6pgRnRtBV2CInfwZyOsSL2CrRyuNEN',
+            'AADvfvY47Q97U2OBiDHOY4ZXSFQZp077vBd8PVQZqDNX9CV5NtneWerbzdgQ7bvdsKUl75x0y5iXAsRRzLrVrT0B',
         ]);
 
         await ipex.submitAdmit('multisig', admit, asigs, aend, [holder]);
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        assert.equal(lastCall[0], '/identifiers/multisig/ipex/admit');
+        assert(lastCall[0] instanceof Request);
+        assert.equal(
+            lastCall[0].url,
+            'http://127.0.0.1:3901/identifiers/multisig/ipex/admit'
+        );
 
         assert.equal(aend, '');
     });
@@ -519,9 +356,9 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(apply.ked, {
-            v: 'KERI10JSON0001aa_',
+            v: 'KERI10JSON000177_',
             t: 'exn',
-            d: 'ELjIE5cr_M2r7oUYw2pwcdNY_ZBuEgRlefaP0zSs_bXL',
+            d: 'EDFeDvVMgLiDm3zV_A9fDk7gY4tEDFfQupScvNgABBXw',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
             p: '',
             dt: '2023-08-23T15:16:07.553000+00:00',
@@ -530,7 +367,6 @@ describe('Ipex', () => {
             q: {},
             a: {
                 m: 'Applying',
-                i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
                 s: 'EBfdlu8R27Fbx-ehrqwImnK-8Cm79sqbAQ4MmvEAYqao',
                 a: { LEI: '5493001KJTIIGC8Y1R17' },
             },
@@ -538,14 +374,18 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(applySigs, [
-            'AADJYSkOTxd8KfH4YUKWWjkNynAH4fm3wcKOPmepLiI_iuNPV9TL-sIRxLeCBG5rQmqXtnSP0Wi6jgI7sHC9PBgF',
+            'AABdbLeRZ6RlWhiyCobCcg8FXhVCPZ3A0XlOKM5a6s1ZhI88cNlcHVzQGTGV4bB-y3ySeMGczzKQVCyf4lg1ZJQA',
         ]);
 
         assert.equal(applyEnd, '');
 
         await ipex.submitApply('multisig', apply, applySigs, [holder]);
         let lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        assert.equal(lastCall[0], '/identifiers/multisig/ipex/apply');
+        assert(lastCall[0] instanceof Request);
+        assert.equal(
+            lastCall[0].url,
+            'http://127.0.0.1:3901/identifiers/multisig/ipex/apply'
+        );
 
         const [offer, offerSigs, offerEnd] = await ipex.offer({
             senderName: 'multisig',
@@ -557,18 +397,17 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(offer.ked, {
-            v: 'KERI10JSON000357_',
+            v: 'KERI10JSON000324_',
             t: 'exn',
-            d: 'EBkyi_fhfnDWJXi4FW6t_o4F7Oep3PvSZ6E-qT716kfU',
+            d: 'EDocl1gyKIfm7Cj3gjoUkwLjl6KrB6l2HrkPLEMMBlig',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            p: 'ELjIE5cr_M2r7oUYw2pwcdNY_ZBuEgRlefaP0zSs_bXL',
+            p: 'EDFeDvVMgLiDm3zV_A9fDk7gY4tEDFfQupScvNgABBXw',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/offer',
             rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
             a: {
                 m: 'How about this',
-                i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             },
             e: {
                 acdc: {
@@ -589,7 +428,7 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(offerSigs, [
-            'AADUeKpUxTKVS1DYRuHC3YDM8T4YMREnQLi00QiJH2Q_WjtMZTd7rBLH12xAJkt8h4KEOn4U_c-jpHdj9S9qKXsO',
+            'AABPcf_WNQISpvPj5CI9QekftQenP_R_St8P2rpWwPJXY4NCCQsHUwAZomPN28ujDDGxYU3x1a1JbLIUyZylhE0I',
         ]);
         assert.equal(offerEnd, '');
 
@@ -597,7 +436,11 @@ describe('Ipex', () => {
             holder,
         ]);
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        assert.equal(lastCall[0], '/identifiers/multisig/ipex/offer');
+        assert(lastCall[0] instanceof Request);
+        assert.equal(
+            lastCall[0].url,
+            'http://127.0.0.1:3901/identifiers/multisig/ipex/offer'
+        );
 
         const [agree, agreeSigs, agreeEnd] = await ipex.agree({
             senderName: 'multisig',
@@ -608,30 +451,33 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(agree.ked, {
-            v: 'KERI10JSON00017b_',
+            v: 'KERI10JSON000148_',
             t: 'exn',
-            d: 'EDLk56nlLrPHzhy3-5BHkhBNi-7tWUseWL_83I5QRmZ8',
+            d: 'EFBg4k0ICOSB_kSYtVQ6HymynENxShlJxB6e4kLCrRTd',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            p: 'EBkyi_fhfnDWJXi4FW6t_o4F7Oep3PvSZ6E-qT716kfU',
+            p: 'EDocl1gyKIfm7Cj3gjoUkwLjl6KrB6l2HrkPLEMMBlig',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/agree',
             rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
             a: {
                 m: 'OK!',
-                i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             },
             e: {},
         });
 
         assert.deepStrictEqual(agreeSigs, [
-            'AADgFlQVwRU7PF_gi4_o-wEgh3lZxzDtiwnIr9XFBrLOxhR6nBJNhrHZ_MkagCQcFHMpFkD9Vhxgq8HkV2gssPcO',
+            'AADy0GdBWaL_9fU8zD-UFC5c2tV8ejfCHncK_sBltryo2VfkSHkyf8SroAwxmXJgrUVJRvoC68dLa_PzuaYf9pYG',
         ]);
         assert.equal(agreeEnd, '');
 
         await ipex.submitAgree('multisig', agree, agreeSigs, [holder]);
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        assert.equal(lastCall[0], '/identifiers/multisig/ipex/agree');
+        assert(lastCall[0] instanceof Request);
+        assert.equal(
+            lastCall[0].url,
+            'http://127.0.0.1:3901/identifiers/multisig/ipex/agree'
+        );
 
         const [grant, gsigs, end] = await ipex.grant({
             senderName: 'multisig',
@@ -645,16 +491,16 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(grant.ked, {
-            v: 'KERI10JSON000511_',
+            v: 'KERI10JSON0004de_',
             t: 'exn',
-            d: 'ENwwMpAuZ3NaZqqeydm3G18EDZFWuHzeJMfzfwNkb99N',
+            d: 'ELm3X5SkBDpwziA8h-NvHdHoxYv0H5866t6xPleWYjqo',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            p: 'EDLk56nlLrPHzhy3-5BHkhBNi-7tWUseWL_83I5QRmZ8',
+            p: 'EFBg4k0ICOSB_kSYtVQ6HymynENxShlJxB6e4kLCrRTd',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/grant',
             rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: { m: '', i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k' },
+            a: { m: '' },
             e: {
                 acdc: {
                     v: 'ACDC10JSON000197_',
@@ -691,9 +537,9 @@ describe('Ipex', () => {
             },
         });
 
-        assert.deepStrictEqual(gsigs, [
-            'AAB61_g8jLGO1vx8Fadd6UrDItNACwFAiuAvWGrm_szxWWNZwT21V0N79Q7bRHNdVzZudgAKVUhNUHhnwrUW6jsK',
-        ]);
+        assert.equal(gsigs.length, 1);
+        assert.equal(gsigs[0].substring(0, 2), 'AA');
+        assert.equal(gsigs[0].length, 88);
         assert.equal(
             end,
             '-LAg4AACA-e-acdc-IABEMwcsEMUEruPXVwPCW7zmqmN8m0I3CihxolBm-RDrsJo0AAAAAAAAAAAAAAAAAAAAAAAENf3IEYwYtFmlq5Zz' +
@@ -723,7 +569,11 @@ describe('Ipex', () => {
 
         await ipex.submitGrant('multisig', ng, ngsigs, ngend, [holder]);
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        assert.equal(lastCall[0], '/identifiers/multisig/ipex/grant');
+        assert(lastCall[0] instanceof Request);
+        assert.equal(
+            lastCall[0].url,
+            'http://127.0.0.1:3901/identifiers/multisig/ipex/grant'
+        );
 
         const [admit, asigs, aend] = await ipex.admit({
             senderName: 'holder',
@@ -734,26 +584,30 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(admit.ked, {
-            v: 'KERI10JSON000178_',
+            v: 'KERI10JSON000145_',
             t: 'exn',
-            d: 'EPcEK9tPuLOHbLiPm_FETkIVLjHhwuUiZDRDKW6Hh0JF',
+            d: 'EPWJ60ww3O5HxhdB2QGSXIV9W2mXHJ0hHjJU_nEDYei6',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
-            p: 'ENwwMpAuZ3NaZqqeydm3G18EDZFWuHzeJMfzfwNkb99N',
+            p: 'ELm3X5SkBDpwziA8h-NvHdHoxYv0H5866t6xPleWYjqo',
             dt: '2023-08-23T15:16:07.553000+00:00',
             r: '/ipex/admit',
             rp: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             q: {},
-            a: { m: '', i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k' },
+            a: { m: '' },
             e: {},
         });
 
         assert.deepStrictEqual(asigs, [
-            'AABqIUE6czxB5BotjxFUZT9Gu8tkFkAx7bOYQzWD422r-HS8z_6gaNuIlpnABHjxlX7PEXFDTj8WnoGVW197XlQP',
+            'AAA1kd_dmMUnS_NxB374EvglDitBScf8xil-sBg_5p1OHW9NEPKjGqKLaPNKv4FV0DxiDYinK182FXQQNeDAD4AI',
         ]);
 
         await ipex.submitAdmit('multisig', admit, asigs, aend, [holder]);
         lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        assert.equal(lastCall[0], '/identifiers/multisig/ipex/admit');
+        assert(lastCall[0] instanceof Request);
+        assert.equal(
+            lastCall[0].url,
+            'http://127.0.0.1:3901/identifiers/multisig/ipex/admit'
+        );
 
         assert.equal(aend, '');
     });
@@ -780,9 +634,9 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(offer.ked, {
-            v: 'KERI10JSON00032a_',
+            v: 'KERI10JSON0002f7_',
             t: 'exn',
-            d: 'EFmPdhVnJIrMZ0b6Nyk-4s2NP1InR3wgvBGcbxl2Cd8i',
+            d: 'EEBczFRrhu2JfGkG4_T4Md69mwoekXKb0i3LECwHzdYe',
             i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
             p: '',
             dt: '2023-08-23T15:16:07.553000+00:00',
@@ -791,7 +645,6 @@ describe('Ipex', () => {
             q: {},
             a: {
                 m: 'Offering this',
-                i: 'ELjSFdrTdCebJlmvbFNX9-TLhR2PO0_60al1kQp5_e6k',
             },
             e: {
                 acdc: {
@@ -812,7 +665,7 @@ describe('Ipex', () => {
         });
 
         assert.deepStrictEqual(offerSigs, [
-            'AACeQZ8RAcD2qFbkGXiUAQRJpZL4qanNH50a0LnkrflOC9JB2UJo3vvy3buiOSLoo0z9uMNhqa79ToXwVCAxg9MK',
+            'AACUanMkgK-5YL1M7FEJdx20swK2x1f0MNSeQmE23Y9zGFSb-tlYASC_lUfCfPyz1lg_ErYJR7fw9xx5ig4iWrcC',
         ]);
         assert.equal(offerEnd, '');
 
@@ -820,6 +673,10 @@ describe('Ipex', () => {
             holder,
         ]);
         const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
-        assert.equal(lastCall[0], '/identifiers/multisig/ipex/offer');
+        assert(lastCall[0] instanceof Request);
+        assert.equal(
+            lastCall[0].url,
+            'http://127.0.0.1:3901/identifiers/multisig/ipex/offer'
+        );
     });
 });

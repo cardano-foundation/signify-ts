@@ -1,6 +1,8 @@
 import signify, {
+    AuthMode,
     CreateIdentiferArgs,
     EventResult,
+    ExternalModule,
     Operation,
     randomPasscode,
     ready,
@@ -167,13 +169,26 @@ export async function getOrCreateAID(
  * Connect or boot a SignifyClient instance
  */
 export async function getOrCreateClient(
-    bran: string | undefined = undefined
+    bran: string | undefined = undefined,
+    externalModule: ExternalModule[] = []
 ): Promise<SignifyClient> {
     const env = resolveEnvironment();
+    const authMode =
+        process.env.TEST_AUTH_MODE === 'essr'
+            ? AuthMode.ESSR
+            : AuthMode.SignedHeaders;
+
     await ready();
     bran ??= randomPasscode();
     bran = bran.padEnd(21, '_');
-    const client = new SignifyClient(env.url, bran, Tier.low, env.bootUrl);
+    const client = new SignifyClient(
+        env.url,
+        bran,
+        Tier.low,
+        env.bootUrl,
+        externalModule,
+        authMode
+    );
     try {
         await client.connect();
     } catch {

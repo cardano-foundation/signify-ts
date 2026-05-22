@@ -471,7 +471,7 @@ export function messagize(
         );
 
         wigers.forEach((wiger) => {
-            if (wiger.verfer && !(NonTransDex.has(wiger.verfer.code))) {
+            if (wiger.verfer && !NonTransDex.has(wiger.verfer.code)) {
                 throw new Error(
                     `Attempt to use tranferable prefix=${wiger.verfer.qb64} for receipt.`
                 );
@@ -490,7 +490,7 @@ export function messagize(
         );
 
         cigars.forEach((cigar) => {
-            if (cigar.verfer && !(NonTransDex.has(cigar.verfer.code))) {
+            if (cigar.verfer && !NonTransDex.has(cigar.verfer.code)) {
                 throw new Error(
                     `Attempt to use tranferable prefix=${cigar.verfer.qb64} for receipt.`
                 );
