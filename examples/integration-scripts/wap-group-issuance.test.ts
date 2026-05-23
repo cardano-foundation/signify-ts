@@ -381,6 +381,9 @@ describe("WAP group issuance E2E", () => {
         const m1Ops: any[] = [];
         const m2Ops: any[] = [];
         let ackExn1Said: string | null = null;
+        let m1AckExn: any = null;
+        let m1AckSigs: string[] = [];
+        let m2AckSigs: string[] = [];
 
         const m1Flow = async (): Promise<void> => {
             // Phase 1: create VCP and send to M2
@@ -430,28 +433,25 @@ describe("WAP group issuance E2E", () => {
                     issEmbed, [m2Hab.prefix]
                 );
                 console.log("[M1] sent /multisig/iss[%d]", i);
-
-                // Wait for M2 to co-sign this iss op before continuing chain
-                await waitOperation(m1Client, issResult.op);
-                console.log("[M1] iss[%d] op complete", i);
+                // Don't wait for the ISS op here: while KERIA processes M2's co-sign
+                // exchange on M1's agent, operations().get() can block on an internal
+                // lock. The ACK exchange doesn't reference any credential SAID, so M1
+                // can proceed to Phase 3 without waiting. M2's co-sign completes the
+                // op in the background.
 
                 anchor = { sn: issResult.anc.sn, d: issResult.anc.ked.d };
             }
 
-            // Phase 3: send /multisig/exn (ACK wrapper)
-            const [ackExn1, , ackAtc1] = await m1Client.exchanges().createExchangeMessage(
+            // Phase 3: collect M1's ACK sig (combined submission happens after Promise.all)
+            const [ackExn1, ackSigs1] = await m1Client.exchanges().createExchangeMessage(
                 g1HabM1, "/wap/iss/ack",
                 { r: "/wap/iss/ack", p: m1RequestExn.exn.d },
                 {}, m1RequestExn.exn.i, m1RequestExn.exn.dt, m1RequestExn.exn.d
             );
             ackExn1Said = ackExn1.ked.d;
-            await m1Client.exchanges().send(
-                "m1", "multisig", m1Hab, "/multisig/exn",
-                { gid: g1Prefix },
-                { exn: [ackExn1, ackAtc1] },
-                [m2Hab.prefix]
-            );
-            console.log("[M1] sent /multisig/exn (ACK): ackSaid=%s", ackExn1.ked.d);
+            m1AckExn = ackExn1;
+            m1AckSigs = ackSigs1;
+            console.log("[M1] ACK sig ready: said=%s", ackExn1.ked.d);
             await m1Client.notifications().mark(m1Note.i);
         };
 
@@ -533,21 +533,15 @@ describe("WAP group issuance E2E", () => {
                 console.log("[M2] iss[%d] op complete", i);
             }
 
-            // Phase 3: send /multisig/exn (ACK wrapper) — same dt/prior as M1
+            // Phase 3: collect M2's ACK sig (combined submission happens after Promise.all)
             console.log("[M2] building ACK exn...");
-            const [ackExn2, , ackAtc2] = await m2Client.exchanges().createExchangeMessage(
+            const [ackExn2, ackSigs2] = await m2Client.exchanges().createExchangeMessage(
                 g1HabM2, "/wap/iss/ack",
                 { r: "/wap/iss/ack", p: m1RequestExn.exn.d },
                 {}, m1RequestExn.exn.i, m1RequestExn.exn.dt, m1RequestExn.exn.d
             );
-            console.log("[M2] ACK exn built: said=%s — sending /multisig/exn...", ackExn2.ked.d);
-            await m2Client.exchanges().send(
-                "m2", "multisig", m2Hab, "/multisig/exn",
-                { gid: g1Prefix },
-                { exn: [ackExn2, ackAtc2] },
-                [m1Hab.prefix]
-            );
-            console.log("[M2] sent /multisig/exn (ACK): ackSaid=%s", ackExn2.ked.d);
+            m2AckSigs = ackSigs2;
+            console.log("[M2] ACK sig ready: said=%s", ackExn2.ked.d);
             if (ackExn1Said !== null) {
                 expect(ackExn2.ked.d).toBe(ackExn1Said); // deterministic SAID
             }
@@ -556,6 +550,17 @@ describe("WAP group issuance E2E", () => {
         console.log("[TEST] Running M1 and M2 flows in parallel...");
         await Promise.all([m1Flow(), m2Flow()]);
         console.log("[TEST] Both flows complete. m1Ops=%d m2Ops=%d", m1Ops.length, m2Ops.length);
+
+        // Submit ACK with both sigs from M1's agent. KERIA sees 2/2 threshold met
+        // immediately → exchange in exns → WapackSender fires (M1 is lead: index 0).
+        await m1Client.exchanges().sendFromEvents(
+            "G1v2", "wap",
+            m1AckExn,
+            [...m1AckSigs, ...m2AckSigs],
+            "",
+            [csHab.prefix]
+        );
+        console.log("[M1] submitted ACK with both sigs: said=%s", m1AckExn.ked.d);
 
         // ── Verify CS receives ACK ────────────────────────────────────────────
         // Diagnostic: check CS notifs before waiting
