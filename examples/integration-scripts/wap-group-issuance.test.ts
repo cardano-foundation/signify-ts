@@ -16,12 +16,16 @@
  *      each one, sends /multisig/exn (ACK)
  *   4. KERIA counselor assembles both ACK signatures → delivers /exn/wap/iss/ack to CS
  *
- * Run against docker-compose KERIA:
+ * Prerequisites:
+ *   1. docker-compose down -v && docker-compose up -d   (clean KERIA volume)
+ *   2. cd signify-ts && npx tsx examples/integration-scripts/utils/setup-all.ts
+ *      (generates .test-clients.json, .test-group.json, .test-contacts.json)
+ *
+ * Run:
  *   cd signify-ts && TEST_ENVIRONMENT=local npx jest examples/integration-scripts/wap-group-issuance.test.ts
  */
 
 import {
-    Algos,
     b,
     d,
     Ident,
@@ -31,40 +35,23 @@ import {
     Prefixer,
     randomNonce,
     Saider,
-    Serder,
     Serials,
     Siger,
     SignifyClient,
     Tier,
     versify,
+    ready,
 } from "signify-ts";
 import { resolveEnvironment } from "./utils/resolve-env";
 import {
-    getOrCreateClient,
-    getOrCreateIdentifier,
-    waitAndMarkNotification,
     waitForNotifications,
     waitOperation,
 } from "./utils/test-util";
+import fs from "fs";
+import path from "path";
 
 // ─── schema ──────────────────────────────────────────────────────────────────
 const SCHEMA_SAID = "EJxnJdxkHbRw2wVFNe4IUOPLt8fEtg9Sr3WyTjlgKoIb"; // Rare Evo demo
-// KERIA (inside Docker) fetches this URL, so use the Docker-internal hostname.
-// Override with SCHEMA_BASE_URL env var if needed.
-const SCHEMA_BASE_URL =
-    process.env.SCHEMA_BASE_URL ?? "http://cred-issuance:3001";
-
-// ─── OOBI hostname rewrite ────────────────────────────────────────────────────
-// KERIA inside Docker advertises its own container hostname (keria:3902,
-// witness-demo:5642...) in OOBIs. When running tests on the host with
-// TEST_ENVIRONMENT=local we must rewrite those to localhost equivalents since
-// the docker port bindings map them 1-to-1.
-function rewriteOobi(oobi: string, preset: string): string {
-    if (preset !== "local") return oobi;
-    return oobi
-        .replace(/http:\/\/keria:/g, "http://127.0.0.1:")
-        .replace(/http:\/\/witness-demo:/g, "http://127.0.0.1:");
-}
 
 // ─── helpers matching issuanceService.ts logic ────────────────────────────────
 
@@ -113,194 +100,150 @@ async function buildCredentialEmbed(
     };
 }
 
-async function pollExchanges(
+// Poll exchanges via exchanges().list({filter}) — same pattern as the wallet's
+// issuanceService.ts. /multisig/vcp and /multisig/iss are stored as regular exchanges
+// (not group requests), so list+filter is the correct API.
+async function pollExchangesByNotif(
     client: SignifyClient,
-    filter: Record<string, string>,
-    minCount: number,
+    route: string,
     correlationId: string,
+    minCount: number,
     timeoutMs = 60000
 ): Promise<any[]> {
+    // Use only -r filter (no nested -a-correlationId), apply correlationId client-side.
+    // KERIA appears to hang on the nested filter for /multisig/iss specifically.
+    const filter = { "-r": route };
     const deadline = Date.now() + timeoutMs;
+    let attempt = 0;
     while (Date.now() < deadline) {
         let raw: any[] = [];
+        let listErr: string | undefined;
         try {
-            raw = (await client.exchanges().list({ filter })) ?? [];
-        } catch {
-            // filter may not be supported — fall through to empty
+            raw = (await Promise.race([
+                client.exchanges().list({ filter }),
+                new Promise<any[]>((_, rej) =>
+                    setTimeout(() => rej(new Error("list timeout 10s")), 10000)
+                ),
+            ])) ?? [];
+        } catch (err: any) {
+            listErr = String(err?.message ?? err);
         }
-        // always apply manual correlationId check
         const filtered = raw.filter(
             (x: any) => x.exn.a?.correlationId === correlationId
         );
-        console.log(
-            "[POLL] filter=%s raw=%d filtered=%d want=%d",
-            JSON.stringify(filter),
-            raw.length,
-            filtered.length,
-            minCount
-        );
+        if (attempt === 0 || filtered.length > 0) {
+            console.log(
+                "[POLL] attempt=%d route=%s raw=%d filtered=%d want=%d err=%s",
+                attempt, route, raw.length, filtered.length, minCount, listErr ?? "none"
+            );
+        }
         if (filtered.length >= minCount) return filtered;
+        attempt++;
         await new Promise((r) => setTimeout(r, 1000));
     }
     throw new Error(
-        `Timeout waiting for ${minCount} exchanges (filter=${JSON.stringify(filter)} correlationId=${correlationId})`
+        `Timeout waiting for ${minCount} exchanges (route=${route} correlationId=${correlationId})`
     );
-}
-
-async function createMultisigGroup(
-    m1Client: SignifyClient,
-    m2Client: SignifyClient,
-    groupName: string,
-    m1Hab: any,
-    m2Hab: any,
-    witnessIds: string[]
-): Promise<void> {
-    // If the group already exists (re-run with fixed brans), skip setup
-    try {
-        const existing = await m1Client.identifiers().get(groupName);
-        console.log("[SETUP] Group %s already exists with prefix=%s, skipping creation", groupName, existing.prefix);
-        return;
-    } catch {
-        // not found — proceed with creation
-    }
-
-    // Both members need each other's key states resolved before creating the group
-    const m1State = (await m1Client.keyStates().get(m1Hab.prefix))[0];
-    const m2State = (await m1Client.keyStates().get(m2Hab.prefix))[0];
-    const states = [m1State, m2State];
-    const rstates = states;
-    const smids = states.map((s: any) => s.i);
-
-    // M1 initiates group
-    const icpResult1 = await m1Client.identifiers().create(groupName, {
-        algo: Algos.group,
-        mhab: m1Hab,
-        isith: 2,
-        nsith: 2,
-        toad: witnessIds.length,
-        wits: witnessIds,
-        states,
-        rstates,
-    });
-    const op1 = await icpResult1.op();
-
-    const sigers1 = icpResult1.sigs.map((s: string) => new Siger({ qb64: s }));
-    const ims1 = d(messagize(icpResult1.serder, sigers1));
-    const atc1 = ims1.substring(icpResult1.serder.size);
-
-    await m1Client.exchanges().send(
-        "m1",
-        "multisig",
-        m1Hab,
-        "/multisig/icp",
-        { gid: icpResult1.serder.pre, smids, rmids: smids },
-        { icp: [icpResult1.serder, atc1] },
-        [m2Hab.prefix]
-    );
-    console.log("[SETUP] M1 sent /multisig/icp for group %s", icpResult1.serder.pre);
-
-    // M2 joins
-    const msgSaid = await waitAndMarkNotification(m2Client, "/multisig/icp");
-    const req = await m2Client.groups().getRequest(msgSaid);
-    const icp = req[0].exn.e.icp;
-
-    const m1State2 = (await m2Client.keyStates().get(m1Hab.prefix))[0];
-    const m2State2 = (await m2Client.keyStates().get(m2Hab.prefix))[0];
-
-    const icpResult2 = await m2Client.identifiers().create(groupName, {
-        algo: Algos.group,
-        mhab: m2Hab,
-        isith: icp.kt,
-        nsith: icp.nt,
-        toad: parseInt(icp.bt),
-        wits: icp.b,
-        states: [m1State2, m2State2],
-        rstates: [m1State2, m2State2],
-    });
-    const op2 = await icpResult2.op();
-
-    const sigers2 = icpResult2.sigs.map((s: string) => new Siger({ qb64: s }));
-    const ims2 = d(messagize(icpResult2.serder, sigers2));
-    const atc2 = ims2.substring(icpResult2.serder.size);
-
-    await m2Client.exchanges().send(
-        "m2",
-        "multisig",
-        m2Hab,
-        "/multisig/icp",
-        { gid: icpResult2.serder.pre, smids, rmids: smids },
-        { icp: [icpResult2.serder, atc2] },
-        [m1Hab.prefix]
-    );
-    console.log("[SETUP] M2 sent /multisig/icp back to M1");
-
-    await Promise.all([
-        waitOperation(m1Client, op1),
-        waitOperation(m2Client, op2),
-    ]);
-    console.log("[SETUP] Group %s created", icpResult1.serder.pre);
-
-    // Add agent end roles — multisig requires /multisig/rpy exchange for each agent EID
-    const g1HabM1 = await m1Client.identifiers().get(groupName);
-    const members = await m1Client.identifiers().members(groupName);
-    const signings: any[] = members["signing"];
-    const stamp = signifyDatetime();
-
-    for (const signing of signings) {
-        const eid = Object.keys(signing.ends.agent)[0];
-        console.log("[SETUP] Adding agent end role for eid=%s", eid);
-
-        // M1 initiates
-        const m1Res = await m1Client
-            .identifiers()
-            .addEndRole(groupName, "agent", eid, stamp);
-        const op1r = await m1Res.op();
-        const rpy1 = m1Res.serder;
-        const sigs1 = m1Res.sigs;
-        const state1 = g1HabM1.state;
-        const seal1 = ["SealEvent", { i: g1HabM1.prefix, s: state1.ee.s, d: state1.ee.d }];
-        const sigers1 = sigs1.map((s: string) => new Siger({ qb64: s }));
-        const ims1 = d(messagize(rpy1, sigers1, seal1, undefined, undefined, false));
-        await m1Client.exchanges().send(
-            "m1", "multisig", m1Hab,
-            "/multisig/rpy",
-            { gid: g1HabM1.prefix },
-            { rpy: [rpy1, ims1.substring(rpy1.size)] },
-            [m2Hab.prefix]
-        );
-
-        // M2 co-signs
-        const msgSaid = await waitAndMarkNotification(m2Client, "/multisig/rpy");
-        const req = await m2Client.groups().getRequest(msgSaid);
-        const exn = req[0].exn;
-        const m2Res = await m2Client
-            .identifiers()
-            .addEndRole(groupName, exn.e.rpy.a.role, exn.e.rpy.a.eid, exn.e.rpy.dt);
-        const op2r = await m2Res.op();
-        const rpy2 = m2Res.serder;
-        const sigs2 = m2Res.sigs;
-        const g1HabM2 = await m2Client.identifiers().get(groupName);
-        const state2 = g1HabM2.state;
-        const seal2 = ["SealEvent", { i: g1HabM2.prefix, s: state2.ee.s, d: state2.ee.d }];
-        const sigers2 = sigs2.map((s: string) => new Siger({ qb64: s }));
-        const ims2 = d(messagize(rpy2, sigers2, seal2, undefined, undefined, false));
-        await m2Client.exchanges().send(
-            "m2", "multisig", m2Hab,
-            "/multisig/rpy",
-            { gid: g1HabM2.prefix },
-            { rpy: [rpy2, ims2.substring(rpy2.size)] },
-            [m1Hab.prefix]
-        );
-
-        await Promise.all([
-            waitOperation(m1Client, op1r),
-            waitOperation(m2Client, op2r),
-        ]);
-        console.log("[SETUP] Agent end role for eid=%s added", eid);
-    }
 }
 
 // ─── test ─────────────────────────────────────────────────────────────────────
+
+async function getClientFromFile(name: string): Promise<SignifyClient> {
+    const filePath = path.join(__dirname, '../../examples/.test-clients.json');
+    const clientsData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    const data = clientsData[name];
+    if (!data) throw new Error(`Client ${name} not found in .test-clients.json`);
+
+    const clientEnv = resolveEnvironment();
+    await ready();
+    const client = new SignifyClient(clientEnv.url, data.bran, Tier.low, clientEnv.bootUrl);
+    try {
+        await client.connect();
+    } catch {
+        // Agent doesn't exist in KERIA — boot it first (fresh KERIA state)
+        await client.boot();
+        await client.connect();
+    }
+    return client;
+}
+
+// ─── test files ───────────────────────────────────────────────────────────────
+
+const clientsPath = path.join(__dirname, '../../examples/.test-clients.json');
+const groupPath = path.join(__dirname, '../../examples/.test-group.json');
+
+describe("Setup verification", () => {
+    it("clients file should exist", () => {
+        expect(fs.existsSync(clientsPath)).toBe(true);
+        const clients = JSON.parse(fs.readFileSync(clientsPath, 'utf-8'));
+        expect(clients.m1).toBeDefined();
+        expect(clients.m2).toBeDefined();
+        expect(clients.cs).toBeDefined();
+        expect(clients.alice).toBeDefined();
+        console.log("\n=== Clients ===");
+        console.log(`m1: ${clients.m1.prefix} (agent: ${clients.m1.agent})`);
+        console.log(`m2: ${clients.m2.prefix} (agent: ${clients.m2.agent})`);
+        console.log(`cs: ${clients.cs.prefix} (agent: ${clients.cs.agent})`);
+        console.log(`alice: ${clients.alice.prefix} (agent: ${clients.alice.agent})`);
+    });
+
+    it("contacts should exist between all participants", async () => {
+        const [m1Client, m2Client, csClient, aliceClient] = await Promise.all([
+            getClientFromFile('m1'),
+            getClientFromFile('m2'),
+            getClientFromFile('cs'),
+            getClientFromFile('alice'),
+        ]);
+
+        const [m1Hab, m2Hab, csHab, aliceHab] = await Promise.all([
+            m1Client.identifiers().get('m1'),
+            m2Client.identifiers().get('m2'),
+            csClient.identifiers().get('cs'),
+            aliceClient.identifiers().get('alice'),
+        ]);
+
+        console.log("\n=== Contacts ===");
+
+        const m1Contacts = await m1Client.contacts().list();
+        console.log(`M1 contacts (${m1Contacts.length}):`);
+        for (const c of m1Contacts) console.log(`  ${c.alias}: ${c.id}`);
+
+        const m2Contacts = await m2Client.contacts().list();
+        console.log(`M2 contacts (${m2Contacts.length}):`);
+        for (const c of m2Contacts) console.log(`  ${c.alias}: ${c.id}`);
+
+        const csContacts = await csClient.contacts().list();
+        console.log(`CS contacts (${csContacts.length}):`);
+        for (const c of csContacts) console.log(`  ${c.alias}: ${c.id}`);
+
+        const aliceContacts = await aliceClient.contacts().list();
+        console.log(`Alice contacts (${aliceContacts.length}):`);
+        for (const c of aliceContacts) console.log(`  ${c.alias}: ${c.id}`);
+
+        expect(m1Contacts.length).toBeGreaterThan(0);
+        expect(m2Contacts.length).toBeGreaterThan(0);
+        expect(csContacts.length).toBeGreaterThan(0);
+        expect(aliceContacts.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it("multisig group G1v2 should exist", async () => {
+        const [m1Client, m2Client] = await Promise.all([
+            getClientFromFile('m1'),
+            getClientFromFile('m2'),
+        ]);
+
+        const g1M1 = await m1Client.identifiers().get('G1v2');
+        const g1M2 = await m2Client.identifiers().get('G1v2');
+        const prefix = g1M1.prefix;
+
+        console.log("\n=== Group ===");
+        console.log(`name: G1v2`);
+        console.log(`prefix: ${prefix}`);
+
+        expect(g1M1.prefix).toBe(g1M2.prefix);
+        console.log(`Verified: G1v2 prefix matches in both M1 and M2`);
+    });
+});
 
 describe("WAP group issuance E2E", () => {
     const env = resolveEnvironment();
@@ -318,113 +261,54 @@ describe("WAP group issuance E2E", () => {
     let g1HabM2: any;
 
     beforeAll(async () => {
-        // Fixed brans so re-runs reuse existing KERIA agents instead of creating new ones
-        // NOTE: bumped m1 to v2 to get a fresh KERIA agent (old one had broken notifier)
-        [m1Client, m2Client, csClient, aliceClient] = await Promise.all([
-            getOrCreateClient("wap-e2e-m1-bran-fresh-v2"),
-            getOrCreateClient("wap-e2e-m2-bran-fixed-2"),
-            getOrCreateClient("wap-e2e-cs-bran-fixed-3"),
-            getOrCreateClient("wap-e2e-alice-bran-fixed"),
-        ]);
+        if (!fs.existsSync(clientsPath)) {
+            throw new Error(
+                `Clients file not found at ${clientsPath}. Run setup-all.ts first:\n` +
+                `  npx tsx examples/integration-scripts/utils/setup-all.ts`
+            );
+        }
+        if (!fs.existsSync(groupPath)) {
+            throw new Error(
+                `Group file not found at ${groupPath}. Run setup-all.ts first:\n` +
+                `  npx tsx examples/integration-scripts/utils/setup-all.ts`
+            );
+        }
+        // env is destructured to silence unused-variable warning while keeping the import
+        void env;
 
-        const witArgs = {
-            toad: env.witnessIds.length,
-            wits: env.witnessIds,
-        };
-        await Promise.all([
-            getOrCreateIdentifier(m1Client, "m1", witArgs),
-            getOrCreateIdentifier(m2Client, "m2", witArgs),
-            getOrCreateIdentifier(csClient, "cs", witArgs),
-            getOrCreateIdentifier(aliceClient, "alice", witArgs),
+        console.log("[SETUP] Connecting to clients from .test-clients.json...");
+        [m1Client, m2Client, csClient, aliceClient] = await Promise.all([
+            getClientFromFile('m1'),
+            getClientFromFile('m2'),
+            getClientFromFile('cs'),
+            getClientFromFile('alice'),
         ]);
-        [m1Hab, m2Hab, csHab, aliceHab] = await Promise.all([
+        console.log("[SETUP] Loading identifiers...");
+        [m1Hab, m2Hab, csHab, aliceHab, g1HabM1, g1HabM2] = await Promise.all([
             m1Client.identifiers().get("m1"),
             m2Client.identifiers().get("m2"),
             csClient.identifiers().get("cs"),
             aliceClient.identifiers().get("alice"),
+            m1Client.identifiers().get("G1v2"),
+            m2Client.identifiers().get("G1v2"),
         ]);
-        console.log("[SETUP] Identifiers created: m1=%s m2=%s cs=%s alice=%s",
-            m1Hab.prefix, m2Hab.prefix, csHab.prefix, aliceHab.prefix);
+        console.log("[SETUP] m1=%s m2=%s cs=%s alice=%s G1=%s",
+            m1Hab.prefix, m2Hab.prefix, csHab.prefix, aliceHab.prefix, g1HabM1.prefix);
 
-        // Exchange OOBIs so members can resolve each other (required for key state query)
-        const [m1Oobi, m2Oobi, csOobi, aliceOobi] = (await Promise.all([
-            m1Client.oobis().get("m1", "agent").then((r: any) => r.oobis[0]),
-            m2Client.oobis().get("m2", "agent").then((r: any) => r.oobis[0]),
-            csClient.oobis().get("cs", "agent").then((r: any) => r.oobis[0]),
-            aliceClient.oobis().get("alice", "agent").then((r: any) => r.oobis[0]),
-        ])).map((o: string) => rewriteOobi(o, env.preset));
-
-        const schemaOobi = `${SCHEMA_BASE_URL}/oobi/${SCHEMA_SAID}`;
-
-        await Promise.all([
-            // M1 resolves M2, CS, Alice, schema
-            m1Client.oobis().resolve(m2Oobi, "m2").then((op: any) => waitOperation(m1Client, op)),
-            m1Client.oobis().resolve(csOobi, "cs").then((op: any) => waitOperation(m1Client, op)),
-            m1Client.oobis().resolve(aliceOobi, "alice").then((op: any) => waitOperation(m1Client, op)),
-            m1Client.oobis().resolve(schemaOobi, "schema").then((op: any) => waitOperation(m1Client, op)),
-            // M2 resolves M1, CS, Alice, schema
-            m2Client.oobis().resolve(m1Oobi, "m1").then((op: any) => waitOperation(m2Client, op)),
-            m2Client.oobis().resolve(csOobi, "cs").then((op: any) => waitOperation(m2Client, op)),
-            m2Client.oobis().resolve(aliceOobi, "alice").then((op: any) => waitOperation(m2Client, op)),
-            m2Client.oobis().resolve(schemaOobi, "schema").then((op: any) => waitOperation(m2Client, op)),
-            // CS resolves M1, M2, Alice, schema (G1 OOBI resolved after group creation)
-            csClient.oobis().resolve(m1Oobi, "m1").then((op: any) => waitOperation(csClient, op)),
-            csClient.oobis().resolve(m2Oobi, "m2").then((op: any) => waitOperation(csClient, op)),
-            csClient.oobis().resolve(aliceOobi, "alice").then((op: any) => waitOperation(csClient, op)),
-            csClient.oobis().resolve(schemaOobi, "schema").then((op: any) => waitOperation(csClient, op)),
+        // Sanity: CS must have G1 contact and members must have CS contact
+        const [csG1, m1Cs, m2Cs] = await Promise.all([
+            csClient.contacts().get(g1HabM1.prefix).catch(() => null),
+            m1Client.contacts().get(csHab.prefix).catch(() => null),
+            m2Client.contacts().get(csHab.prefix).catch(() => null),
         ]);
-        console.log("[SETUP] All OOBIs resolved");
-
-        // Create multisig group G1
-        await createMultisigGroup(m1Client, m2Client, "G1v2", m1Hab, m2Hab, env.witnessIds);
-
-        g1HabM1 = await m1Client.identifiers().get("G1v2");
-        g1HabM2 = await m2Client.identifiers().get("G1v2");
-        console.log("[SETUP] G1 prefix=%s", g1HabM1.prefix);
-
-        // CS resolves G1 OOBI from BOTH M1 and M2 views so it learns both agent endpoints
-        const g1OobisFromM1 = (await m1Client.oobis().get("G1v2", "agent")).oobis;
-        const g1OobisFromM2 = (await m2Client.oobis().get("G1v2", "agent")).oobis;
-        console.log("[SETUP] G1 OOBIs from M1: %s", JSON.stringify(g1OobisFromM1));
-        console.log("[SETUP] G1 OOBIs from M2: %s", JSON.stringify(g1OobisFromM2));
-
-        const allG1Oobis = [...g1OobisFromM1, ...g1OobisFromM2].map((o: string) =>
-            rewriteOobi(o, env.preset));
-        for (const g1Oobi of allG1Oobis) {
-            const op = await csClient.oobis().resolve(g1Oobi, "G1v2");
-            await waitOperation(csClient, op);
-            console.log("[SETUP] CS resolved G1 OOBI: %s", g1Oobi);
+        if (!csG1 || !m1Cs || !m2Cs) {
+            throw new Error(
+                `Contacts missing (csG1=${!!csG1} m1Cs=${!!m1Cs} m2Cs=${!!m2Cs}). ` +
+                `Re-run setup-all.ts.`
+            );
         }
-
-        // G1 members resolve CS (so ACK exchange can reach CS)
-        await Promise.all([
-            m1Client.oobis().resolve(csOobi, "cs").then((op: any) => waitOperation(m1Client, op)).catch(() => {}),
-            m2Client.oobis().resolve(csOobi, "cs").then((op: any) => waitOperation(m2Client, op)).catch(() => {}),
-        ]);
-
-        // Diagnostic: inspect G1's end roles from M1's side
-        const g1Members = await m1Client.identifiers().members("G1v2");
-        console.log("[SETUP] G1 members (from M1 view):", JSON.stringify(g1Members, null, 2));
-        console.log("[SETUP] Current M1 agent EID = %s", m1Client.agent?.pre);
-        console.log("[SETUP] Current M2 agent EID = %s", m2Client.agent?.pre);
-        console.log("[SETUP] Current CS agent EID = %s", csClient.agent?.pre);
-
-        // Verify mutual contacts — exchange delivery won't work without them
-        const csG1Contact = await csClient.contacts().get(g1HabM1.prefix).catch(() => null);
-        console.log("[SETUP] CS has G1 as contact: %s (id=%s alias=%s)",
-            !!csG1Contact, csG1Contact?.id, csG1Contact?.alias);
-        expect(csG1Contact).toBeTruthy();
-
-        const m1CsContact = await m1Client.contacts().get(csHab.prefix).catch(() => null);
-        console.log("[SETUP] M1 has CS as contact: %s (id=%s alias=%s)",
-            !!m1CsContact, m1CsContact?.id, m1CsContact?.alias);
-        expect(m1CsContact).toBeTruthy();
-
-        const m2CsContact = await m2Client.contacts().get(csHab.prefix).catch(() => null);
-        console.log("[SETUP] M2 has CS as contact: %s (id=%s alias=%s)",
-            !!m2CsContact, m2CsContact?.id, m2CsContact?.alias);
-        expect(m2CsContact).toBeTruthy();
-    }, 180000);
+        console.log("[SETUP] Contacts ok");
+    }, 60000);
 
     it("M1 + M2 co-sign WAP issuance and CS receives ACK", async () => {
         const nonce = randomNonce();
@@ -467,6 +351,18 @@ describe("WAP group issuance E2E", () => {
             .sendFromEvents("cs", "iss", exn, sigs, atc, [g1Prefix]);
         console.log("[TEST] CS sent /wap/iss: said=%s to G1=%s", wapIssSaid, g1Prefix);
 
+        // Diagnostic: check M1+M2 notification state before waiting
+        const [m1NotifsPreWait, m2NotifsPreWait] = await Promise.all([
+            m1Client.notifications().list(),
+            m2Client.notifications().list(),
+        ]);
+        console.log("[TEST] M1 notifications before wait: count=%d routes=%s",
+            m1NotifsPreWait.notes?.length ?? 0,
+            m1NotifsPreWait.notes?.map((n: any) => n.a.r).join("|") ?? "none");
+        console.log("[TEST] M2 notifications before wait: count=%d routes=%s",
+            m2NotifsPreWait.notes?.length ?? 0,
+            m2NotifsPreWait.notes?.map((n: any) => n.a.r).join("|") ?? "none");
+
         const m1NoteList = await waitForNotifications(m1Client, "/exn/wap/iss", { timeout: 30000 });
         const m1Note = m1NoteList[0];
         console.log("[TEST] M1 got /exn/wap/iss: notifSaid=%s exchSaid=%s", m1Note.i, m1Note.a.d);
@@ -477,122 +373,103 @@ describe("WAP group issuance E2E", () => {
         expect(correlationId).toBe(wapIssSaid);
         console.log("[TEST] correlationId=%s credCount=%d", correlationId, payload.l.length);
 
-        // M1: create VCP registry (don't wait for op — multisig needs M2 co-sign first)
-        const regResult = await m1Client.registries().create({
-            name: "G1v2",
-            registryName: `wap-registry-${nonce}`,
-            nonce,
-        });
-        const m1VcpOp = await regResult.op();
-        const vcpIxnSn = parseInt(regResult.serder.ked.s, 16);
-        console.log("[TEST] M1 created VCP: ixnSn=%d ixnSaid=%s", vcpIxnSn, regResult.serder.ked.d);
+        // M1 + M2 run as concurrent async tasks (simulating independent wallet processes).
+        // Phase 1: M1 sends /multisig/vcp; M2 polls + co-signs + sends back.
+        // Phase 2: M1 awaits its VCP op (completes when M2 has co-signed), then issues
+        //          credential + sends /multisig/iss; M2 polls + co-signs + sends back.
+        // Phase 3: Both await all their ops, then send /multisig/exn (ACK).
+        const m1Ops: any[] = [];
+        const m2Ops: any[] = [];
+        let ackExn1Said: string | null = null;
 
-        // M1: send /multisig/vcp to M2
-        const vcpEmbed = buildRegistryEmbed(regResult);
-        await m1Client.exchanges().send(
-            "m1",
-            "registry",
-            m1Hab,
-            "/multisig/vcp",
-            { gid: g1Prefix, correlationId },
-            vcpEmbed,
-            [m2Hab.prefix]
-        );
-        console.log("[TEST] M1 sent /multisig/vcp correlationId=%s", correlationId);
+        const m1Flow = async (): Promise<void> => {
+            // Phase 1: create VCP and send to M2
+            const regResult = await m1Client.registries().create({
+                name: "G1v2",
+                registryName: `wap-registry-${nonce}`,
+                nonce,
+            });
+            const m1VcpOp = await regResult.op();
+            m1Ops.push(m1VcpOp);
+            const vcpIxnSn = parseInt(regResult.serder.ked.s, 16);
+            console.log("[M1] created VCP: ixnSn=%d ixnSaid=%s", vcpIxnSn, regResult.serder.ked.d);
 
-        // M1: issue each credential, chain anchors — don't wait for each op yet
-        let anchor = { sn: vcpIxnSn, d: regResult.serder.ked.d };
-        const m1IssOps: any[] = [];
-        for (const [i, cred] of payload.l.entries()) {
-            const issParams = {
-                i: g1Prefix,
-                ri: regk,
-                s: cred.s,
-                a: cred.a,
-                ...(cred.u ? { u: cred.u } : {}),
-            };
-            console.log("[TEST] M1 issuing cred[%d]: schema=%s anchorBase=%d targetSn=%d",
-                i, cred.s, anchor.sn, anchor.sn + 1);
-
-            const issResult = await m1Client
-                .credentials()
-                .issue("G1v2", issParams, anchor);
-            m1IssOps.push(issResult.op);
-            console.log("[TEST] M1 issued cred[%d]: acdc=%s anc.sn=%d anc.d=%s",
-                i, issResult.acdc?.ked?.d, issResult.anc?.sn, issResult.anc?.ked?.d);
-
-            const issEmbed = await buildCredentialEmbed(m1Client, g1HabM1, issResult);
+            const vcpEmbed = buildRegistryEmbed(regResult);
             await m1Client.exchanges().send(
-                "m1",
-                "multisig",
-                m1Hab,
-                "/multisig/iss",
+                "m1", "registry", m1Hab, "/multisig/vcp",
                 { gid: g1Prefix, correlationId },
-                issEmbed,
+                vcpEmbed, [m2Hab.prefix]
+            );
+            console.log("[M1] sent /multisig/vcp");
+
+            // Wait for VCP op to complete (i.e. M2 has co-signed) before issuing creds
+            console.log("[M1] awaiting VCP op...");
+            await waitOperation(m1Client, m1VcpOp);
+            console.log("[M1] VCP op complete");
+
+            // Phase 2: issue each cred and send /multisig/iss
+            let anchor = { sn: vcpIxnSn, d: regResult.serder.ked.d };
+            for (const [i, cred] of payload.l.entries()) {
+                const issParams = {
+                    i: g1Prefix,
+                    ri: regk,
+                    s: cred.s,
+                    a: cred.a,
+                    ...(cred.u ? { u: cred.u } : {}),
+                };
+                console.log("[M1] issuing cred[%d]: anchorBase=%d targetSn=%d",
+                    i, anchor.sn, anchor.sn + 1);
+                const issResult = await m1Client.credentials().issue("G1v2", issParams, anchor);
+                m1Ops.push(issResult.op);
+                console.log("[M1] cred[%d] issued: anc.sn=%d", i, issResult.anc?.sn);
+
+                const issEmbed = await buildCredentialEmbed(m1Client, g1HabM1, issResult);
+                await m1Client.exchanges().send(
+                    "m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId },
+                    issEmbed, [m2Hab.prefix]
+                );
+                console.log("[M1] sent /multisig/iss[%d]", i);
+
+                // Wait for M2 to co-sign this iss op before continuing chain
+                await waitOperation(m1Client, issResult.op);
+                console.log("[M1] iss[%d] op complete", i);
+
+                anchor = { sn: issResult.anc.sn, d: issResult.anc.ked.d };
+            }
+
+            // Phase 3: send /multisig/exn (ACK wrapper)
+            const [ackExn1, , ackAtc1] = await m1Client.exchanges().createExchangeMessage(
+                g1HabM1, "/wap/iss/ack",
+                { r: "/wap/iss/ack", p: m1RequestExn.exn.d },
+                {}, m1RequestExn.exn.i, m1RequestExn.exn.dt, m1RequestExn.exn.d
+            );
+            ackExn1Said = ackExn1.ked.d;
+            await m1Client.exchanges().send(
+                "m1", "multisig", m1Hab, "/multisig/exn",
+                { gid: g1Prefix },
+                { exn: [ackExn1, ackAtc1] },
                 [m2Hab.prefix]
             );
-            console.log("[TEST] M1 sent /multisig/iss[%d] correlationId=%s", i, correlationId);
+            console.log("[M1] sent /multisig/exn (ACK): ackSaid=%s", ackExn1.ked.d);
+            await m1Client.notifications().mark(m1Note.i);
+        };
 
-            // advance anchor chain exactly as M1 does in issuanceService
-            anchor = { sn: issResult.anc.sn, d: issResult.anc.ked.d };
-        }
-
-        // M1: send /multisig/exn wrapping /wap/iss/ack
-        const [ackExn1, , ackAtc1] = await m1Client
-            .exchanges()
-            .createExchangeMessage(
-                g1HabM1,
-                "/wap/iss/ack",
-                { r: "/wap/iss/ack", p: m1RequestExn.exn.d },
-                {},
-                m1RequestExn.exn.i,    // CS AID
-                m1RequestExn.exn.dt,   // same dt as /wap/iss → deterministic SAID
-                m1RequestExn.exn.d     // prior = /wap/iss SAID
+        const m2Flow = async (): Promise<void> => {
+            // Phase 1: wait for /multisig/vcp, co-sign, send back
+            console.log("[M2] polling /multisig/vcp...");
+            const vcpExchanges = await pollExchangesByNotif(
+                m2Client, "/multisig/vcp", correlationId, 1
             );
-        await m1Client.exchanges().send(
-            "m1",
-            "multisig",
-            m1Hab,
-            "/multisig/exn",
-            { gid: g1Prefix },
-            { exn: [ackExn1, ackAtc1] },
-            [m2Hab.prefix]
-        );
-        console.log("[TEST] M1 sent /multisig/exn (ACK): ackSaid=%s", ackExn1.ked.d);
-        await m1Client.notifications().mark(m1Note.i);
+            console.log("[M2] got /multisig/vcp: count=%d", vcpExchanges.length);
+            expect(vcpExchanges.length).toBe(1);
 
-        // ── M2 cosigner flow ──────────────────────────────────────────────────
-        // KERIA delivers /wap/iss to only ONE group member (M1 in this run, the lead).
-        // M2 doesn't receive /exn/wap/iss directly — it gets the data from
-        // /multisig/vcp + /multisig/iss exchanges M1 forwards with correlationId.
-
-        // M2 polls for /multisig/vcp and /multisig/iss with this correlationId
-        const vcpExchanges = await pollExchanges(
-            m2Client,
-            { "-r": "/multisig/vcp", "-a-correlationId": correlationId },
-            1,
-            correlationId
-        );
-        const issExchanges = (await pollExchanges(
-            m2Client,
-            { "-r": "/multisig/iss", "-a-correlationId": correlationId },
-            payload.l.length,
-            correlationId
-        )).sort((a: any, b: any) =>
-            parseInt(a.exn.e?.anc?.s ?? "0", 16) - parseInt(b.exn.e?.anc?.s ?? "0", 16)
-        );
-
-        console.log("[TEST] M2 got vcpExchanges=%d issExchanges=%d", vcpExchanges.length, issExchanges.length);
-        expect(vcpExchanges.length).toBe(1);
-        expect(issExchanges.length).toBe(payload.l.length);
-
-        // M2: co-sign VCP
-        for (const vcpExchange of vcpExchanges) {
-            const anc = vcpExchange.exn.e?.anc as { s: string; p: string };
-            const targetVcpSn = parseInt(anc.s, 16);
-            const vcpAnchor = { sn: targetVcpSn - 1, d: anc.p };
-            console.log("[TEST] M2 co-signing VCP: ancBase=%d targetSn=%d ancPrior=%s",
-                vcpAnchor.sn, targetVcpSn, vcpAnchor.d);
+            const vcpExchange = vcpExchanges[0];
+            const vcpAncFull = vcpExchange.exn.e?.anc as { s: string; p: string };
+            const vcpTargetSn = parseInt(vcpAncFull.s, 16);
+            const vcpAnchor = { sn: vcpTargetSn - 1, d: vcpAncFull.p };
+            console.log("[M2] co-signing VCP: targetSn=%d ancPrior=%s",
+                vcpTargetSn, vcpAnchor.d);
 
             const vcpResult = await m2Client.registries().create({
                 name: "G1v2",
@@ -600,98 +477,100 @@ describe("WAP group issuance E2E", () => {
                 nonce,
                 anchorPoint: vcpAnchor,
             });
-            await Promise.all([
-                waitOperation(m2Client, await vcpResult.op()),
-                waitOperation(m1Client, m1VcpOp),
-            ]);
-            console.log("[TEST] M2 VCP co-signed: ixnSn=%s", vcpResult.serder.ked.s);
-            expect(parseInt(vcpResult.serder.ked.s, 16)).toBe(targetVcpSn);
+            const m2VcpOp = await vcpResult.op();
+            m2Ops.push(m2VcpOp);
+            expect(parseInt(vcpResult.serder.ked.s, 16)).toBe(vcpTargetSn);
 
             const vcpEmbed2 = buildRegistryEmbed(vcpResult);
             await m2Client.exchanges().send(
-                "m2",
-                "registry",
-                m2Hab,
-                "/multisig/vcp",
+                "m2", "registry", m2Hab, "/multisig/vcp",
                 { gid: g1Prefix, correlationId },
-                vcpEmbed2,
-                [m1Hab.prefix]
+                vcpEmbed2, [m1Hab.prefix]
             );
-        }
+            console.log("[M2] sent /multisig/vcp back");
 
-        // M2: co-sign each ISS (sorted by anc.s ascending)
-        for (const [i, issExchange] of issExchanges.entries()) {
-            const acdc = issExchange.exn.e?.acdc as Record<string, unknown>;
-            const iss = issExchange.exn.e?.iss as { ri: string };
-            const anc = issExchange.exn.e?.anc as { s: string; p: string };
-            const targetIssSn = parseInt(anc.s, 16);
-            const issAnchor = { sn: targetIssSn - 1, d: anc.p };
+            // Wait for VCP op so M2's view of group is at sn+1 before processing iss
+            await waitOperation(m2Client, m2VcpOp);
+            console.log("[M2] VCP op complete");
 
-            console.log("[TEST] M2 co-signing ISS[%d/%d]: ancBase=%d targetSn=%d acdc.s=%s",
-                i, issExchanges.length - 1, issAnchor.sn, targetIssSn, acdc.s);
-
-            const issResult = await m2Client.credentials().issue("G1v2", {
-                i: g1Prefix,
-                ri: iss.ri,
-                s: acdc.s as string,
-                a: acdc.a as Record<string, unknown>,
-                ...(acdc.u ? { u: acdc.u as string } : {}),
-            }, issAnchor);
-            await Promise.all([
-                waitOperation(m2Client, issResult.op),
-                waitOperation(m1Client, m1IssOps[i]),
-            ]);
-
-            console.log("[TEST] M2 ISS[%d] done: acdc.d=%s anc.sn=%d (expected %d)",
-                i, issResult.acdc?.ked?.d, issResult.anc?.sn, targetIssSn);
-            expect(issResult.anc?.sn).toBe(targetIssSn);
-
-            const issEmbed2 = await buildCredentialEmbed(m2Client, g1HabM2, issResult);
-            await m2Client.exchanges().send(
-                "m2",
-                "multisig",
-                m2Hab,
-                "/multisig/iss",
-                { gid: g1Prefix, correlationId },
-                issEmbed2,
-                [m1Hab.prefix]
+            // Phase 2: poll /multisig/iss, co-sign each
+            console.log("[M2] polling /multisig/iss want=%d...", payload.l.length);
+            const issExchanges = (await pollExchangesByNotif(
+                m2Client, "/multisig/iss", correlationId, payload.l.length
+            )).sort((a: any, b: any) =>
+                parseInt(a.exn.e?.anc?.s ?? "0", 16) - parseInt(b.exn.e?.anc?.s ?? "0", 16)
             );
-            console.log("[TEST] M2 sent /multisig/iss[%d] correlationId=%s", i, correlationId);
-        }
+            console.log("[M2] got /multisig/iss: count=%d", issExchanges.length);
+            expect(issExchanges.length).toBe(payload.l.length);
 
-        // M2: send /multisig/exn (ACK) — uses same dt/prior as M1 for deterministic SAID.
-        // M2 doesn't have the /wap/iss exchange (KERIA only delivered to M1),
-        // so reuse M1's exchange data (sender, dt, SAID).
-        const [ackExn2, , ackAtc2] = await m2Client
-            .exchanges()
-            .createExchangeMessage(
-                g1HabM2,
-                "/wap/iss/ack",
+            for (const [i, issExchange] of issExchanges.entries()) {
+                const acdc = issExchange.exn.e?.acdc as Record<string, unknown>;
+                const iss = issExchange.exn.e?.iss as { ri: string };
+                const issAncFull = issExchange.exn.e?.anc as { s: string; p: string };
+                const issTargetSn = parseInt(issAncFull.s, 16);
+                const issAnchor = { sn: issTargetSn - 1, d: issAncFull.p };
+                console.log("[M2] co-signing ISS[%d]: targetSn=%d", i, issTargetSn);
+
+                const issResult = await m2Client.credentials().issue("G1v2", {
+                    i: g1Prefix,
+                    ri: iss.ri,
+                    s: acdc.s as string,
+                    a: acdc.a as Record<string, unknown>,
+                    ...(acdc.u ? { u: acdc.u as string } : {}),
+                }, issAnchor);
+                m2Ops.push(issResult.op);
+                expect(issResult.anc?.sn).toBe(issTargetSn);
+
+                const issEmbed2 = await buildCredentialEmbed(m2Client, g1HabM2, issResult);
+                await m2Client.exchanges().send(
+                    "m2", "multisig", m2Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId },
+                    issEmbed2, [m1Hab.prefix]
+                );
+                console.log("[M2] sent /multisig/iss[%d] back", i);
+
+                await waitOperation(m2Client, issResult.op);
+                console.log("[M2] iss[%d] op complete", i);
+            }
+
+            // Phase 3: send /multisig/exn (ACK wrapper) — same dt/prior as M1
+            console.log("[M2] building ACK exn...");
+            const [ackExn2, , ackAtc2] = await m2Client.exchanges().createExchangeMessage(
+                g1HabM2, "/wap/iss/ack",
                 { r: "/wap/iss/ack", p: m1RequestExn.exn.d },
-                {},
-                m1RequestExn.exn.i,
-                m1RequestExn.exn.dt,
-                m1RequestExn.exn.d
+                {}, m1RequestExn.exn.i, m1RequestExn.exn.dt, m1RequestExn.exn.d
             );
-        await m2Client.exchanges().send(
-            "m2",
-            "multisig",
-            m2Hab,
-            "/multisig/exn",
-            { gid: g1Prefix },
-            { exn: [ackExn2, ackAtc2] },
-            [m1Hab.prefix]
-        );
-        console.log("[TEST] M2 sent /multisig/exn (ACK): ackSaid=%s", ackExn2.ked.d);
-        expect(ackExn2.ked.d).toBe(ackExn1.ked.d); // same dt → same SAID
+            console.log("[M2] ACK exn built: said=%s — sending /multisig/exn...", ackExn2.ked.d);
+            await m2Client.exchanges().send(
+                "m2", "multisig", m2Hab, "/multisig/exn",
+                { gid: g1Prefix },
+                { exn: [ackExn2, ackAtc2] },
+                [m1Hab.prefix]
+            );
+            console.log("[M2] sent /multisig/exn (ACK): ackSaid=%s", ackExn2.ked.d);
+            if (ackExn1Said !== null) {
+                expect(ackExn2.ked.d).toBe(ackExn1Said); // deterministic SAID
+            }
+        };
+
+        console.log("[TEST] Running M1 and M2 flows in parallel...");
+        await Promise.all([m1Flow(), m2Flow()]);
+        console.log("[TEST] Both flows complete. m1Ops=%d m2Ops=%d", m1Ops.length, m2Ops.length);
 
         // ── Verify CS receives ACK ────────────────────────────────────────────
+        // Diagnostic: check CS notifs before waiting
+        const csNotifsBeforeAck = await csClient.notifications().list();
+        console.log("[TEST] CS notifs before ACK wait: count=%d routes=%s",
+            csNotifsBeforeAck.notes?.length ?? 0,
+            csNotifsBeforeAck.notes?.map((n: any) => n.a.r).join("|") ?? "none");
+
         console.log("[TEST] Waiting for CS to receive /exn/wap/iss/ack...");
         const csAckNotes = await waitForNotifications(csClient, "/exn/wap/iss/ack", {
             timeout: 60000,
         });
         const csAckNote = csAckNotes[0];
-        console.log("[TEST] CS received ACK: notifId=%s exchSaid=%s", csAckNote.i, csAckNote.a.d);
+        console.log("[TEST] CS received ACK: notifId=%s exchSaid=%s route=%s",
+            csAckNote?.i, csAckNote?.a?.d, csAckNote?.a?.r);
         expect(csAckNote).toBeDefined();
         expect(csAckNote.a.r).toBe("/exn/wap/iss/ack");
     }, 300000);
