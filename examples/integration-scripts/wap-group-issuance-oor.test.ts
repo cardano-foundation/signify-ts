@@ -34,6 +34,26 @@
  * for ISS2(sn+4) → ISS1(sn+3) → cascade fires ISS2. M1 persists the chain to
  * examples/.test-oor3-chain.json to demonstrate offline pre-computation of sn+digest.
  *
+ * Test 4 — multi-cred OOR (one registry per credential): flow1 issues 1 cred, flow2 issues 3 creds:
+ * 8-event grouped chain — 4 VCPs (sn+1..sn+4) then 4 ISS (sn+5..sn+8). M1 pre-computes all 8
+ * sn+digest values, writes them to examples/.test-oor4-chain.json, then sends all VCPs in
+ * descending sn order (sn+4→sn+3→sn+2→sn+1) and all ISS in descending sn order
+ * (sn+8→sn+7→sn+6→sn+5). M2 co-signs in the same descending order per phase. KERIA holds
+ * sn+2..sn+4 in psces until sn+1 commits then cascades all 3; same for the ISS group.
+ * Demonstrates that KERIA can cascade a 4-deep escrow chain in both VCP and ISS phases.
+ *
+ * Test 5 — super-chaotic OOR: 1 shared registry per flow, VCPs and ISS fully interleaved:
+ * 2 flows × 3 creds = 2 VCPs + 6 ISS = 8 ixn events. Only 2 registries (one per flow); all
+ * credentials within a flow share that registry's ri. M1 pre-computes all 8 sn+digests, then
+ * sends in a fully chaotic order where VCPs and ISS are interleaved:
+ *   ISS_f2c2(sn+7) → VCP_f2(sn+2) → ISS_f1c3(sn+5) → ISS_f2c3(sn+8)
+ *   → VCP_f1(sn+1) → ISS_f1c2(sn+4) → ISS_f2c1(sn+6) → ISS_f1c1(sn+3)
+ * M2 filters VCPs out of the mixed exchange stream and co-signs them first (descending sn),
+ * waits for the VCP cascade to commit both registries, then co-signs ISS in zigzag order
+ * (alternating highest/lowest: sn+8→sn+3→sn+7→sn+4→sn+6→sn+5). The zigzag produces:
+ * two immediate commits (sn+3, sn+4) then sn+5 triggers a 3-deep cascade (sn+6→sn+7→sn+8).
+ * Chain state written to examples/.test-oor5-chain.json.
+ *
  * Prerequisites:
  *   docker-compose down -v && docker-compose up -d
  *   npm run test:wap-e2e:setup
@@ -1103,6 +1123,611 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     waitOperation(m2Client, m2Iss1.op),
                 ]);
                 console.log("[M2] all 4 ops done — cascade completed");
+            })(),
+        ]);
+
+        console.log("[TEST] all phases done — waiting before ACK");
+        await new Promise((r) => setTimeout(r, 3000));
+
+        // ── ACK both flows ─────────────────────────────────────────────────────
+        for (const [req, note] of [[req1, note1], [req2, note2]] as [any, any][]) {
+            const [[ackExn, ackSigs1], [, ackSigs2]] = await Promise.all([
+                m1Client.exchanges().createExchangeMessage(
+                    g1HabM1, "/wap/iss/ack",
+                    { r: "/wap/iss/ack", p: req.exn.d },
+                    {}, req.exn.i, req.exn.dt, req.exn.d
+                ),
+                m2Client.exchanges().createExchangeMessage(
+                    g1HabM2, "/wap/iss/ack",
+                    { r: "/wap/iss/ack", p: req.exn.d },
+                    {}, req.exn.i, req.exn.dt, req.exn.d
+                ),
+            ]);
+            await m1Client.exchanges().sendFromEvents(
+                "G1v2", "wap", ackExn, [...ackSigs1, ...ackSigs2], "", [csHab.prefix]
+            );
+            console.log("[M1] ACK submitted: said=%s corrId=...%s", ackExn.ked.d, req.exn.d.slice(-8));
+            await m1Client.notifications().mark(note.i);
+        }
+
+        // ── CS receives both /exn/wap/iss/ack ─────────────────────────────────
+        console.log("[TEST] Waiting for CS to receive 2x /exn/wap/iss/ack...");
+        const csAckNotes = await waitForNotificationsCount(csClient, "/exn/wap/iss/ack", 2, 90000);
+        console.log("[CS] received %d ACK(s)", csAckNotes.length);
+        expect(csAckNotes).toHaveLength(2);
+        for (const note of csAckNotes) {
+            expect(note.a.r).toBe("/exn/wap/iss/ack");
+            await csClient.notifications().mark(note.i);
+        }
+    }, 300000);
+
+    it("multi-cred OOR: flow1 issues 1 cred, flow2 issues 3 creds — M1 pre-computes 8-event chain, sends all VCPs reversed then all ISS reversed — KERIA cascades both groups of 4", async () => {
+        const [nonce1, nonce2, nonce3, nonce4] = [randomNonce(), randomNonce(), randomNonce(), randomNonce()];
+        const g1Prefix = g1HabM1.prefix;
+        const alicePrefix = aliceHab.prefix;
+        const regk1 = computeRegk(g1Prefix, nonce1);
+        const regk2 = computeRegk(g1Prefix, nonce2);
+        const regk3 = computeRegk(g1Prefix, nonce3);
+        const regk4 = computeRegk(g1Prefix, nonce4);
+
+        // ── CS builds ACDCs: flow1 has 1 cred, flow2 has 3 creds ─────────────
+        const dt1 = signifyDatetime();
+        const aBlock1 = Saider.saidify({ d: "", i: alicePrefix, dt: dt1, attendeeName: "Alice OOR4 Flow1 Cred1" })[1];
+        const acdcSad1 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk1, s: SCHEMA_SAID, a: aBlock1 })[1];
+
+        const dt2 = signifyDatetime();
+        const aBlock2 = Saider.saidify({ d: "", i: alicePrefix, dt: dt2, attendeeName: "Alice OOR4 Flow2 Cred1" })[1];
+        const acdcSad2 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk2, s: SCHEMA_SAID, a: aBlock2 })[1];
+
+        const dt3 = signifyDatetime();
+        const aBlock3 = Saider.saidify({ d: "", i: alicePrefix, dt: dt3, attendeeName: "Alice OOR4 Flow2 Cred2" })[1];
+        const acdcSad3 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk3, s: SCHEMA_SAID, a: aBlock3 })[1];
+
+        const dt4 = signifyDatetime();
+        const aBlock4 = Saider.saidify({ d: "", i: alicePrefix, dt: dt4, attendeeName: "Alice OOR4 Flow2 Cred3" })[1];
+        const acdcSad4 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk4, s: SCHEMA_SAID, a: aBlock4 })[1];
+
+        // ── CS sends two /wap/iss concurrently ────────────────────────────────
+        const wapIssDt1 = signifyDatetime();
+        const wapIssDt2 = signifyDatetime();
+        const [[csExn1, csSigs1, csAtc1], [csExn2, csSigs2, csAtc2]] = await Promise.all([
+            csClient.exchanges().createExchangeMessage(
+                csHab, "/wap/iss", { n: nonce1, l: [acdcSad1] }, {}, g1Prefix, wapIssDt1
+            ),
+            csClient.exchanges().createExchangeMessage(
+                csHab, "/wap/iss", { n: nonce2, l: [acdcSad2, acdcSad3, acdcSad4] }, {}, g1Prefix, wapIssDt2
+            ),
+        ]);
+        const csExn1Said = csExn1.ked.d;
+        const csExn2Said = csExn2.ked.d;
+        await Promise.all([
+            csClient.exchanges().sendFromEvents("cs", "iss", csExn1, csSigs1, csAtc1, [g1Prefix]),
+            csClient.exchanges().sendFromEvents("cs", "iss", csExn2, csSigs2, csAtc2, [g1Prefix]),
+        ]);
+        console.log("[CS] sent /wap/iss flow1(1 cred)=%s flow2(3 creds)=%s", csExn1Said, csExn2Said);
+
+        // ── M1 waits for both /exn/wap/iss notifications ──────────────────────
+        const m1Notes = await waitForNotificationsCount(m1Client, "/exn/wap/iss", 2, 30000);
+        const [exchA, exchB] = await Promise.all([
+            m1Client.exchanges().get(m1Notes[0].a.d!),
+            m1Client.exchanges().get(m1Notes[1].a.d!),
+        ]);
+        let req1: any, note1: any, req2: any, note2: any;
+        if (exchA.exn.d === csExn1Said) {
+            [req1, note1, req2, note2] = [exchA, m1Notes[0], exchB, m1Notes[1]];
+        } else {
+            [req1, note1, req2, note2] = [exchB, m1Notes[1], exchA, m1Notes[0]];
+        }
+        const corrId1: string = req1.exn.d;
+        const corrId2: string = req2.exn.d;
+        expect(corrId1).toBe(csExn1Said);
+        expect(corrId2).toBe(csExn2Said);
+
+        const payload1 = req1.exn.a as { n: string; l: any[] };
+        const payload2 = req2.exn.a as { n: string; l: any[] };
+        const [cred1] = payload1.l;
+        const [cred2, cred3, cred4] = payload2.l;
+        const issParams1 = { i: g1Prefix, ri: regk1, s: cred1.s, a: cred1.a, ...(cred1.u ? { u: cred1.u } : {}) };
+        const issParams2 = { i: g1Prefix, ri: regk2, s: cred2.s, a: cred2.a, ...(cred2.u ? { u: cred2.u } : {}) };
+        const issParams3 = { i: g1Prefix, ri: regk3, s: cred3.s, a: cred3.a, ...(cred3.u ? { u: cred3.u } : {}) };
+        const issParams4 = { i: g1Prefix, ri: regk4, s: cred4.s, a: cred4.a, ...(cred4.u ? { u: cred4.u } : {}) };
+
+        // ── M1 pre-computes 8-event grouped chain (no op waiting) ─────────────
+        // VCP(f1c1) sn+1 → VCP(f2c1) sn+2 → VCP(f2c2) sn+3 → VCP(f2c3) sn+4
+        // → ISS(f1c1) sn+5 → ISS(f2c1) sn+6 → ISS(f2c2) sn+7 → ISS(f2c3) sn+8
+        const rr1 = await m1Client.registries().create({ name: "G1v2", registryName: `wap-registry-${nonce1}`, nonce: nonce1 });
+        const [sn1, d1] = [parseInt(rr1.serder.ked.s, 16), rr1.serder.ked.d];
+
+        const rr2 = await m1Client.registries().create({ name: "G1v2", registryName: `wap-registry-${nonce2}`, nonce: nonce2, anchorPoint: { sn: sn1, d: d1 } });
+        const [sn2, d2] = [parseInt(rr2.serder.ked.s, 16), rr2.serder.ked.d];
+
+        const rr3 = await m1Client.registries().create({ name: "G1v2", registryName: `wap-registry-${nonce3}`, nonce: nonce3, anchorPoint: { sn: sn2, d: d2 } });
+        const [sn3, d3] = [parseInt(rr3.serder.ked.s, 16), rr3.serder.ked.d];
+
+        const rr4 = await m1Client.registries().create({ name: "G1v2", registryName: `wap-registry-${nonce4}`, nonce: nonce4, anchorPoint: { sn: sn3, d: d3 } });
+        const [sn4, d4] = [parseInt(rr4.serder.ked.s, 16), rr4.serder.ked.d];
+
+        const ir1 = await m1Client.credentials().issue("G1v2", issParams1, { sn: sn4, d: d4 });
+        const [sn5, d5] = [ir1.anc.sn, ir1.anc.ked.d];
+
+        const ir2 = await m1Client.credentials().issue("G1v2", issParams2, { sn: sn5, d: d5 });
+        const [sn6, d6] = [ir2.anc.sn, ir2.anc.ked.d];
+
+        const ir3 = await m1Client.credentials().issue("G1v2", issParams3, { sn: sn6, d: d6 });
+        const [sn7, d7] = [ir3.anc.sn, ir3.anc.ked.d];
+
+        const ir4 = await m1Client.credentials().issue("G1v2", issParams4, { sn: sn7, d: d7 });
+
+        console.log(
+            "[M1] 8-event chain: VCP(f1c1,sn=%d) VCP(f2c1,sn=%d) VCP(f2c2,sn=%d) VCP(f2c3,sn=%d) ISS(f1c1,sn=%d) ISS(f2c1,sn=%d) ISS(f2c2,sn=%d) ISS(f2c3,sn=%d)",
+            sn1, sn2, sn3, sn4, sn5, sn6, sn7, ir4.anc.sn
+        );
+
+        // Persist chain — all 8 sn+digest values computed before any exchange is sent
+        const chainPath = path.join(__dirname, "../../examples/.test-oor4-chain.json");
+        fs.writeFileSync(chainPath, JSON.stringify({
+            testRun: new Date().toISOString(),
+            g1Prefix,
+            flow1: { nCredentials: 1 },
+            flow2: { nCredentials: 3 },
+            sendOrder: ["VCP_f2c3", "VCP_f2c2", "VCP_f2c1", "VCP_f1c1", "ISS_f2c3", "ISS_f2c2", "ISS_f2c1", "ISS_f1c1"],
+            chain: [
+                { pos: 1, type: "VCP", flow: 1, cred: 1, regk: regk1, ixnSn: sn1, ixnSaid: d1 },
+                { pos: 2, type: "VCP", flow: 2, cred: 1, regk: regk2, ixnSn: sn2, ixnSaid: d2 },
+                { pos: 3, type: "VCP", flow: 2, cred: 2, regk: regk3, ixnSn: sn3, ixnSaid: d3 },
+                { pos: 4, type: "VCP", flow: 2, cred: 3, regk: regk4, ixnSn: sn4, ixnSaid: d4 },
+                { pos: 5, type: "ISS", flow: 1, cred: 1, regk: regk1, ixnSn: sn5, ixnSaid: d5 },
+                { pos: 6, type: "ISS", flow: 2, cred: 1, regk: regk2, ixnSn: sn6, ixnSaid: d6 },
+                { pos: 7, type: "ISS", flow: 2, cred: 2, regk: regk3, ixnSn: sn7, ixnSaid: d7 },
+                { pos: 8, type: "ISS", flow: 2, cred: 3, regk: regk4, ixnSn: ir4.anc.sn, ixnSaid: ir4.anc.ked.d },
+            ],
+        }, null, 2));
+        console.log("[M1] 8-event chain written to disk: %s", chainPath);
+
+        // Build all 8 embeds (local signing, no KERIA state needed)
+        const [vcpEmbed1, vcpEmbed2, vcpEmbed3, vcpEmbed4, issEmbed1, issEmbed2, issEmbed3, issEmbed4] =
+            await Promise.all([
+                Promise.resolve(buildRegistryEmbed(rr1)),
+                Promise.resolve(buildRegistryEmbed(rr2)),
+                Promise.resolve(buildRegistryEmbed(rr3)),
+                Promise.resolve(buildRegistryEmbed(rr4)),
+                buildCredentialEmbed(m1Client, g1HabM1, ir1),
+                buildCredentialEmbed(m1Client, g1HabM1, ir2),
+                buildCredentialEmbed(m1Client, g1HabM1, ir3),
+                buildCredentialEmbed(m1Client, g1HabM1, ir4),
+            ]);
+
+        console.log("[TEST] sending VCPs(sn=%d→%d→%d→%d) then ISS(sn=%d→%d→%d→%d)",
+            sn4, sn3, sn2, sn1, ir4.anc.sn, sn7, sn6, sn5);
+
+        await Promise.all([
+            // ── M1: VCPs reversed (sn+4→sn+3→sn+2→sn+1) then ISS reversed (sn+8→sn+7→sn+6→sn+5) ──
+            (async () => {
+                // VCPs: highest sn first — sn+4 sits in KERIA escrow waiting for sn+3, etc.
+                await m1Client.exchanges().send("m1", "registry", m1Hab, "/multisig/vcp",
+                    { gid: g1Prefix, correlationId: corrId2 }, vcpEmbed4, [m2Hab.prefix]);  // sn+4
+                await m1Client.exchanges().send("m1", "registry", m1Hab, "/multisig/vcp",
+                    { gid: g1Prefix, correlationId: corrId2 }, vcpEmbed3, [m2Hab.prefix]);  // sn+3
+                await m1Client.exchanges().send("m1", "registry", m1Hab, "/multisig/vcp",
+                    { gid: g1Prefix, correlationId: corrId2 }, vcpEmbed2, [m2Hab.prefix]);  // sn+2
+                await m1Client.exchanges().send("m1", "registry", m1Hab, "/multisig/vcp",
+                    { gid: g1Prefix, correlationId: corrId1 }, vcpEmbed1, [m2Hab.prefix]);  // sn+1 — cascade trigger
+                // ISS: highest sn first — sn+8 sits in escrow, sn+5 triggers 4-deep cascade
+                await m1Client.exchanges().send("m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId2 }, issEmbed4, [m2Hab.prefix]);  // sn+8
+                await m1Client.exchanges().send("m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId2 }, issEmbed3, [m2Hab.prefix]);  // sn+7
+                await m1Client.exchanges().send("m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId2 }, issEmbed2, [m2Hab.prefix]);  // sn+6
+                await m1Client.exchanges().send("m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId1 }, issEmbed1, [m2Hab.prefix]);  // sn+5 — cascade trigger
+                console.log("[M1] all 8 exchanges sent — waiting for ops");
+
+                await Promise.all([
+                    waitOperation(m1Client, await rr1.op()),
+                    waitOperation(m1Client, await rr2.op()),
+                    waitOperation(m1Client, await rr3.op()),
+                    waitOperation(m1Client, await rr4.op()),
+                    waitOperation(m1Client, ir1.op),
+                    waitOperation(m1Client, ir2.op),
+                    waitOperation(m1Client, ir3.op),
+                    waitOperation(m1Client, ir4.op),
+                ]);
+                console.log("[M1] all 8 ops done");
+            })(),
+
+            // ── M2: poll 8 exchanges, co-sign VCPs reversed then ISS reversed ──
+            // VCP phase: sn+4→sn+3→sn+2→sn+1 (sequential). KERIA holds sn+4..sn+2 in psces;
+            // sn+1 triggers 3-deep cascade → all 4 registries committed.
+            // ISS phase: sn+8→sn+7→sn+6→sn+5. Same cascade pattern → all 4 creds committed.
+            // M2 extracts the nonce from exchange.exn.e.vcp.n (VCP event has n field).
+            (async () => {
+                const allExchanges = await pollAllIncomingExchanges(
+                    m2Client, [corrId1, corrId2], m2Hab.prefix, 8
+                );
+
+                const ancOf = (exchange: any) => {
+                    const a = exchange.exn.e?.anc as { s: string; p: string };
+                    return { anchorPoint: { sn: parseInt(a.s, 16) - 1, d: a.p }, sn: parseInt(a.s, 16) };
+                };
+
+                const vcpExchanges = allExchanges
+                    .filter((e: any) => e.exn.r === "/multisig/vcp")
+                    .sort((a: any, b: any) =>
+                        parseInt(b.exn.e?.anc?.s ?? "0", 16) - parseInt(a.exn.e?.anc?.s ?? "0", 16)
+                    );
+                const issExchanges = allExchanges
+                    .filter((e: any) => e.exn.r === "/multisig/iss")
+                    .sort((a: any, b: any) =>
+                        parseInt(b.exn.e?.anc?.s ?? "0", 16) - parseInt(a.exn.e?.anc?.s ?? "0", 16)
+                    );
+
+                console.log(
+                    "[M2] got 8 exchanges — VCP order: %s — ISS order: %s",
+                    vcpExchanges.map((e: any) => parseInt(e.exn.e?.anc?.s ?? "0", 16)).join("→"),
+                    issExchanges.map((e: any) => parseInt(e.exn.e?.anc?.s ?? "0", 16)).join("→")
+                );
+
+                // VCP phase: descending sn (sn+4→sn+3→sn+2→sn+1)
+                const vcpOpPromises: Array<Promise<any>> = [];
+                for (const exchange of vcpExchanges) {
+                    const { anchorPoint, sn } = ancOf(exchange);
+                    const corrId = exchange.exn.a?.correlationId as string;
+                    const nonce = (exchange.exn.e?.vcp as any)?.n as string;
+
+                    const m2Reg = await m2Client.registries().create({
+                        name: "G1v2", registryName: `wap-registry-${nonce}`, nonce, anchorPoint,
+                    });
+                    await m2Client.exchanges().send(
+                        "m2", "registry", m2Hab, "/multisig/vcp",
+                        { gid: g1Prefix, correlationId: corrId },
+                        buildRegistryEmbed(m2Reg), [m1Hab.prefix]
+                    );
+                    console.log("[M2] VCP co-sign: sn=%d — KERIA holds until prior commits", sn);
+                    vcpOpPromises.push(m2Reg.op());
+                }
+
+                // Wait for all VCP ops — sn+1 commits last in submission but first in cascade,
+                // so sn+4 op completing means full 4-deep cascade finished
+                await Promise.all(vcpOpPromises.map(async (p) => waitOperation(m2Client, await p)));
+                console.log("[M2] VCP cascade complete — all 4 registries committed");
+
+                // ISS phase: descending sn (sn+8→sn+7→sn+6→sn+5)
+                const issOpPromises: Array<any> = [];
+                for (const exchange of issExchanges) {
+                    const { anchorPoint, sn } = ancOf(exchange);
+                    const corrId = exchange.exn.a?.correlationId as string;
+                    const acdc = exchange.exn.e?.acdc as Record<string, unknown>;
+                    const iss = exchange.exn.e?.iss as { ri: string };
+
+                    const m2Iss = await m2Client.credentials().issue("G1v2", {
+                        i: g1Prefix, ri: iss.ri,
+                        s: acdc.s as string, a: acdc.a as Record<string, unknown>,
+                        ...(acdc.u ? { u: acdc.u as string } : {}),
+                    }, anchorPoint);
+                    const issEmbed = await buildCredentialEmbed(m2Client, g1HabM2, m2Iss);
+                    await m2Client.exchanges().send(
+                        "m2", "multisig", m2Hab, "/multisig/iss",
+                        { gid: g1Prefix, correlationId: corrId },
+                        issEmbed, [m1Hab.prefix]
+                    );
+                    console.log("[M2] ISS co-sign: sn=%d — KERIA holds until prior commits", sn);
+                    issOpPromises.push(m2Iss.op);
+                }
+
+                await Promise.all(issOpPromises.map((op) => waitOperation(m2Client, op)));
+                console.log("[M2] ISS cascade complete — all 4 credentials committed");
+            })(),
+        ]);
+
+        console.log("[TEST] all phases done — waiting before ACK");
+        await new Promise((r) => setTimeout(r, 3000));
+
+        // ── ACK both flows ─────────────────────────────────────────────────────
+        for (const [req, note] of [[req1, note1], [req2, note2]] as [any, any][]) {
+            const [[ackExn, ackSigs1], [, ackSigs2]] = await Promise.all([
+                m1Client.exchanges().createExchangeMessage(
+                    g1HabM1, "/wap/iss/ack",
+                    { r: "/wap/iss/ack", p: req.exn.d },
+                    {}, req.exn.i, req.exn.dt, req.exn.d
+                ),
+                m2Client.exchanges().createExchangeMessage(
+                    g1HabM2, "/wap/iss/ack",
+                    { r: "/wap/iss/ack", p: req.exn.d },
+                    {}, req.exn.i, req.exn.dt, req.exn.d
+                ),
+            ]);
+            await m1Client.exchanges().sendFromEvents(
+                "G1v2", "wap", ackExn, [...ackSigs1, ...ackSigs2], "", [csHab.prefix]
+            );
+            console.log("[M1] ACK submitted: said=%s corrId=...%s", ackExn.ked.d, req.exn.d.slice(-8));
+            await m1Client.notifications().mark(note.i);
+        }
+
+        // ── CS receives both /exn/wap/iss/ack ─────────────────────────────────
+        console.log("[TEST] Waiting for CS to receive 2x /exn/wap/iss/ack...");
+        const csAckNotes = await waitForNotificationsCount(csClient, "/exn/wap/iss/ack", 2, 90000);
+        console.log("[CS] received %d ACK(s)", csAckNotes.length);
+        expect(csAckNotes).toHaveLength(2);
+        for (const note of csAckNotes) {
+            expect(note.a.r).toBe("/exn/wap/iss/ack");
+            await csClient.notifications().mark(note.i);
+        }
+    }, 300000);
+
+    it("super-chaotic OOR: 1 shared registry per flow, M1 interleaves VCPs and ISS freely — M2 zigzag ISS order triggers 3-deep cascade at sn+5", async () => {
+        const [nonce1, nonce2] = [randomNonce(), randomNonce()];
+        const g1Prefix = g1HabM1.prefix;
+        const alicePrefix = aliceHab.prefix;
+        // Only 2 registries: all creds within a flow share the same ri
+        const regk1 = computeRegk(g1Prefix, nonce1);
+        const regk2 = computeRegk(g1Prefix, nonce2);
+
+        // ── CS builds ACDCs: flow1 (3 creds, all ri=regk1), flow2 (3 creds, all ri=regk2) ───
+        const makeAcdc = (ri: string, name: string) => {
+            const dt = signifyDatetime();
+            const aBlock = Saider.saidify({ d: "", i: alicePrefix, dt, attendeeName: name })[1];
+            return Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri, s: SCHEMA_SAID, a: aBlock })[1];
+        };
+        const acdcSad_f1c1 = makeAcdc(regk1, "Alice OOR5 Flow1 Cred1");
+        const acdcSad_f1c2 = makeAcdc(regk1, "Alice OOR5 Flow1 Cred2");
+        const acdcSad_f1c3 = makeAcdc(regk1, "Alice OOR5 Flow1 Cred3");
+        const acdcSad_f2c1 = makeAcdc(regk2, "Alice OOR5 Flow2 Cred1");
+        const acdcSad_f2c2 = makeAcdc(regk2, "Alice OOR5 Flow2 Cred2");
+        const acdcSad_f2c3 = makeAcdc(regk2, "Alice OOR5 Flow2 Cred3");
+
+        // ── CS sends two /wap/iss: flow1 (3 creds, 1 registry), flow2 (3 creds, 1 registry) ──
+        const wapIssDt1 = signifyDatetime();
+        const wapIssDt2 = signifyDatetime();
+        const [[csExn1, csSigs1, csAtc1], [csExn2, csSigs2, csAtc2]] = await Promise.all([
+            csClient.exchanges().createExchangeMessage(
+                csHab, "/wap/iss",
+                { n: nonce1, l: [acdcSad_f1c1, acdcSad_f1c2, acdcSad_f1c3] },
+                {}, g1Prefix, wapIssDt1
+            ),
+            csClient.exchanges().createExchangeMessage(
+                csHab, "/wap/iss",
+                { n: nonce2, l: [acdcSad_f2c1, acdcSad_f2c2, acdcSad_f2c3] },
+                {}, g1Prefix, wapIssDt2
+            ),
+        ]);
+        const csExn1Said = csExn1.ked.d;
+        const csExn2Said = csExn2.ked.d;
+        await Promise.all([
+            csClient.exchanges().sendFromEvents("cs", "iss", csExn1, csSigs1, csAtc1, [g1Prefix]),
+            csClient.exchanges().sendFromEvents("cs", "iss", csExn2, csSigs2, csAtc2, [g1Prefix]),
+        ]);
+        console.log("[CS] sent flow1(3 creds, regk1)=%s flow2(3 creds, regk2)=%s", csExn1Said, csExn2Said);
+
+        // ── M1 waits for both /exn/wap/iss notifications ──────────────────────
+        const m1Notes = await waitForNotificationsCount(m1Client, "/exn/wap/iss", 2, 30000);
+        const [exchA, exchB] = await Promise.all([
+            m1Client.exchanges().get(m1Notes[0].a.d!),
+            m1Client.exchanges().get(m1Notes[1].a.d!),
+        ]);
+        let req1: any, note1: any, req2: any, note2: any;
+        if (exchA.exn.d === csExn1Said) {
+            [req1, note1, req2, note2] = [exchA, m1Notes[0], exchB, m1Notes[1]];
+        } else {
+            [req1, note1, req2, note2] = [exchB, m1Notes[1], exchA, m1Notes[0]];
+        }
+        const corrId1: string = req1.exn.d;
+        const corrId2: string = req2.exn.d;
+        expect(corrId1).toBe(csExn1Said);
+        expect(corrId2).toBe(csExn2Said);
+
+        const [cred_f1c1, cred_f1c2, cred_f1c3] = (req1.exn.a as { l: any[] }).l;
+        const [cred_f2c1, cred_f2c2, cred_f2c3] = (req2.exn.a as { l: any[] }).l;
+        const mkIss = (ri: string, c: any) => ({ i: g1Prefix, ri, s: c.s, a: c.a, ...(c.u ? { u: c.u } : {}) });
+        const issP_f1c1 = mkIss(regk1, cred_f1c1);
+        const issP_f1c2 = mkIss(regk1, cred_f1c2);
+        const issP_f1c3 = mkIss(regk1, cred_f1c3);
+        const issP_f2c1 = mkIss(regk2, cred_f2c1);
+        const issP_f2c2 = mkIss(regk2, cred_f2c2);
+        const issP_f2c3 = mkIss(regk2, cred_f2c3);
+
+        // ── M1 pre-computes 8-event grouped chain (no op waiting) ─────────────
+        // 2 VCPs (one per flow), then 6 ISS (3 per flow, all sharing their flow's registry)
+        // sn+1: VCP_f1   sn+2: VCP_f2
+        // sn+3: ISS_f1c1   sn+4: ISS_f1c2   sn+5: ISS_f1c3
+        // sn+6: ISS_f2c1   sn+7: ISS_f2c2   sn+8: ISS_f2c3
+        const rr1 = await m1Client.registries().create({ name: "G1v2", registryName: `wap-reg-${nonce1}`, nonce: nonce1 });
+        const [sn1, d1] = [parseInt(rr1.serder.ked.s, 16), rr1.serder.ked.d];
+
+        const rr2 = await m1Client.registries().create({ name: "G1v2", registryName: `wap-reg-${nonce2}`, nonce: nonce2, anchorPoint: { sn: sn1, d: d1 } });
+        const [sn2, d2] = [parseInt(rr2.serder.ked.s, 16), rr2.serder.ked.d];
+
+        const ir1 = await m1Client.credentials().issue("G1v2", issP_f1c1, { sn: sn2, d: d2 });
+        const [sn3, d3] = [ir1.anc.sn, ir1.anc.ked.d];
+
+        const ir2 = await m1Client.credentials().issue("G1v2", issP_f1c2, { sn: sn3, d: d3 });
+        const [sn4, d4] = [ir2.anc.sn, ir2.anc.ked.d];
+
+        const ir3 = await m1Client.credentials().issue("G1v2", issP_f1c3, { sn: sn4, d: d4 });
+        const [sn5, d5] = [ir3.anc.sn, ir3.anc.ked.d];
+
+        const ir4 = await m1Client.credentials().issue("G1v2", issP_f2c1, { sn: sn5, d: d5 });
+        const [sn6, d6] = [ir4.anc.sn, ir4.anc.ked.d];
+
+        const ir5 = await m1Client.credentials().issue("G1v2", issP_f2c2, { sn: sn6, d: d6 });
+        const [sn7, d7] = [ir5.anc.sn, ir5.anc.ked.d];
+
+        const ir6 = await m1Client.credentials().issue("G1v2", issP_f2c3, { sn: sn7, d: d7 });
+
+        console.log(
+            "[M1] 8-event chain: VCP_f1(sn=%d) VCP_f2(sn=%d) ISS_f1c1(sn=%d) ISS_f1c2(sn=%d) ISS_f1c3(sn=%d) ISS_f2c1(sn=%d) ISS_f2c2(sn=%d) ISS_f2c3(sn=%d)",
+            sn1, sn2, sn3, sn4, sn5, sn6, sn7, ir6.anc.sn
+        );
+
+        // Persist chain — 2 shared registries + 6 ISS, computed before any exchange is sent
+        const chainPath = path.join(__dirname, "../../examples/.test-oor5-chain.json");
+        fs.writeFileSync(chainPath, JSON.stringify({
+            testRun: new Date().toISOString(),
+            g1Prefix,
+            sharedRegistries: true,
+            flow1: { nCredentials: 3, regk: regk1 },
+            flow2: { nCredentials: 3, regk: regk2 },
+            m1SendOrder: [sn7, sn2, sn5, ir6.anc.sn, sn1, sn4, sn6, sn3],
+            m2IssZigzagOrder: [ir6.anc.sn, sn3, sn7, sn4, sn6, sn5],
+            chain: [
+                { pos: 1, type: "VCP", flow: 1, regk: regk1, ixnSn: sn1, ixnSaid: d1 },
+                { pos: 2, type: "VCP", flow: 2, regk: regk2, ixnSn: sn2, ixnSaid: d2 },
+                { pos: 3, type: "ISS", flow: 1, cred: 1, regk: regk1, ixnSn: sn3, ixnSaid: d3 },
+                { pos: 4, type: "ISS", flow: 1, cred: 2, regk: regk1, ixnSn: sn4, ixnSaid: d4 },
+                { pos: 5, type: "ISS", flow: 1, cred: 3, regk: regk1, ixnSn: sn5, ixnSaid: d5 },
+                { pos: 6, type: "ISS", flow: 2, cred: 1, regk: regk2, ixnSn: sn6, ixnSaid: d6 },
+                { pos: 7, type: "ISS", flow: 2, cred: 2, regk: regk2, ixnSn: sn7, ixnSaid: d7 },
+                { pos: 8, type: "ISS", flow: 2, cred: 3, regk: regk2, ixnSn: ir6.anc.sn, ixnSaid: ir6.anc.ked.d },
+            ],
+        }, null, 2));
+        console.log("[M1] chain written: %s", chainPath);
+
+        // Build all 8 embeds
+        const [vcpEmb1, vcpEmb2, issEmb1, issEmb2, issEmb3, issEmb4, issEmb5, issEmb6] =
+            await Promise.all([
+                Promise.resolve(buildRegistryEmbed(rr1)),
+                Promise.resolve(buildRegistryEmbed(rr2)),
+                buildCredentialEmbed(m1Client, g1HabM1, ir1),
+                buildCredentialEmbed(m1Client, g1HabM1, ir2),
+                buildCredentialEmbed(m1Client, g1HabM1, ir3),
+                buildCredentialEmbed(m1Client, g1HabM1, ir4),
+                buildCredentialEmbed(m1Client, g1HabM1, ir5),
+                buildCredentialEmbed(m1Client, g1HabM1, ir6),
+            ]);
+
+        // M1 super-chaotic send order: ISS_f2c2(sn+7)→VCP_f2(sn+2)→ISS_f1c3(sn+5)→ISS_f2c3(sn+8)
+        //                              →VCP_f1(sn+1)→ISS_f1c2(sn+4)→ISS_f2c1(sn+6)→ISS_f1c1(sn+3)
+        // VCPs and ISS are fully interleaved. KERIA holds every event in psces until VCP sn+1
+        // commits and cascades sn+2, then the ISS cascade resolves in two phases.
+        console.log("[TEST] M1 send order: %d→%d→%d→%d→%d→%d→%d→%d",
+            sn7, sn2, sn5, ir6.anc.sn, sn1, sn4, sn6, sn3);
+
+        await Promise.all([
+            // ── M1: fully interleaved send ────────────────────────────────────
+            (async () => {
+                await m1Client.exchanges().send("m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId2 }, issEmb5, [m2Hab.prefix]);  // ISS_f2c2 sn+7
+                await m1Client.exchanges().send("m1", "registry", m1Hab, "/multisig/vcp",
+                    { gid: g1Prefix, correlationId: corrId2 }, vcpEmb2, [m2Hab.prefix]);  // VCP_f2 sn+2
+                await m1Client.exchanges().send("m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId1 }, issEmb3, [m2Hab.prefix]);  // ISS_f1c3 sn+5
+                await m1Client.exchanges().send("m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId2 }, issEmb6, [m2Hab.prefix]);  // ISS_f2c3 sn+8
+                await m1Client.exchanges().send("m1", "registry", m1Hab, "/multisig/vcp",
+                    { gid: g1Prefix, correlationId: corrId1 }, vcpEmb1, [m2Hab.prefix]);  // VCP_f1 sn+1
+                await m1Client.exchanges().send("m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId1 }, issEmb2, [m2Hab.prefix]);  // ISS_f1c2 sn+4
+                await m1Client.exchanges().send("m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId2 }, issEmb4, [m2Hab.prefix]);  // ISS_f2c1 sn+6
+                await m1Client.exchanges().send("m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId1 }, issEmb1, [m2Hab.prefix]);  // ISS_f1c1 sn+3
+                console.log("[M1] all 8 exchanges sent in chaotic order — waiting for ops");
+
+                await Promise.all([
+                    waitOperation(m1Client, await rr1.op()),
+                    waitOperation(m1Client, await rr2.op()),
+                    waitOperation(m1Client, ir1.op),
+                    waitOperation(m1Client, ir2.op),
+                    waitOperation(m1Client, ir3.op),
+                    waitOperation(m1Client, ir4.op),
+                    waitOperation(m1Client, ir5.op),
+                    waitOperation(m1Client, ir6.op),
+                ]);
+                console.log("[M1] all 8 ops done");
+            })(),
+
+            // ── M2: filter VCPs from mixed stream, co-sign VCPs first, then ISS zigzag ──
+            // VCP phase (descending sn): sn+2 → sn+1.
+            //   sn+2 has 2/2 but prior sn+1 not committed → psces.
+            //   sn+1 commits → cascade sn+2. Both registries exist.
+            //
+            // ISS phase (zigzag — alternating highest/lowest sn from sorted list):
+            //   [sn+8, sn+3, sn+7, sn+4, sn+6, sn+5]
+            //   sn+8: 2/2, prior sn+7 not committed → psces
+            //   sn+3: 2/2, prior sn+2 committed → COMMITS → cascade: sn+4 not 2/2 yet → stop
+            //   sn+7: 2/2, prior sn+6 not committed → psces
+            //   sn+4: 2/2, prior sn+3 committed → COMMITS → cascade: sn+5 not 2/2 yet → stop
+            //   sn+6: 2/2, prior sn+5 not committed → psces
+            //   sn+5: 2/2, prior sn+4 committed → COMMITS → cascade: sn+6→sn+7→sn+8 (3-deep!)
+            (async () => {
+                const allExchanges = await pollAllIncomingExchanges(
+                    m2Client, [corrId1, corrId2], m2Hab.prefix, 8
+                );
+
+                const ancOf = (e: any) => {
+                    const a = e.exn.e?.anc as { s: string; p: string };
+                    return { anchorPoint: { sn: parseInt(a.s, 16) - 1, d: a.p }, sn: parseInt(a.s, 16) };
+                };
+                const getSn = (e: any) => parseInt(e.exn.e?.anc?.s ?? "0", 16);
+
+                // VCP phase: filter and sort descending
+                const vcpExchanges = allExchanges
+                    .filter((e: any) => e.exn.r === "/multisig/vcp")
+                    .sort((a: any, b: any) => getSn(b) - getSn(a));
+
+                console.log("[M2] VCP order (descending): %s",
+                    vcpExchanges.map((e: any) => getSn(e)).join("→"));
+
+                const vcpOpPromises: Array<Promise<any>> = [];
+                for (const exchange of vcpExchanges) {
+                    const { anchorPoint, sn } = ancOf(exchange);
+                    const corrId = exchange.exn.a?.correlationId as string;
+                    const nonce = (exchange.exn.e?.vcp as any)?.n as string;
+                    const m2Reg = await m2Client.registries().create({
+                        name: "G1v2", registryName: `wap-reg-${nonce}`, nonce, anchorPoint,
+                    });
+                    await m2Client.exchanges().send(
+                        "m2", "registry", m2Hab, "/multisig/vcp",
+                        { gid: g1Prefix, correlationId: corrId },
+                        buildRegistryEmbed(m2Reg), [m1Hab.prefix]
+                    );
+                    console.log("[M2] VCP co-sign: sn=%d — KERIA holds until prior commits", sn);
+                    vcpOpPromises.push(m2Reg.op());
+                }
+
+                await Promise.all(vcpOpPromises.map(async (p) => waitOperation(m2Client, await p)));
+                console.log("[M2] both registries committed (sn+1 cascade → sn+2)");
+
+                // ISS phase: zigzag order (alternating highest/lowest from sorted list)
+                // sorted asc: [sn+3, sn+4, sn+5, sn+6, sn+7, sn+8]
+                // zigzag:     [sn+8, sn+3, sn+7, sn+4, sn+6, sn+5]
+                const issAll = allExchanges
+                    .filter((e: any) => e.exn.r === "/multisig/iss")
+                    .sort((a: any, b: any) => getSn(a) - getSn(b));  // ascending
+                const issZigzag: any[] = [];
+                let lo = 0, hi = issAll.length - 1;
+                while (lo <= hi) {
+                    issZigzag.push(issAll[hi--]);
+                    if (lo <= hi) issZigzag.push(issAll[lo++]);
+                }
+
+                console.log("[M2] ISS zigzag order: %s",
+                    issZigzag.map((e: any) => getSn(e)).join("→"));
+
+                const issOpPromises: Array<any> = [];
+                for (const exchange of issZigzag) {
+                    const { anchorPoint, sn } = ancOf(exchange);
+                    const corrId = exchange.exn.a?.correlationId as string;
+                    const acdc = exchange.exn.e?.acdc as Record<string, unknown>;
+                    const iss = exchange.exn.e?.iss as { ri: string };
+
+                    const m2Iss = await m2Client.credentials().issue("G1v2", {
+                        i: g1Prefix, ri: iss.ri,
+                        s: acdc.s as string, a: acdc.a as Record<string, unknown>,
+                        ...(acdc.u ? { u: acdc.u as string } : {}),
+                    }, anchorPoint);
+                    const issEmbed = await buildCredentialEmbed(m2Client, g1HabM2, m2Iss);
+                    await m2Client.exchanges().send(
+                        "m2", "multisig", m2Hab, "/multisig/iss",
+                        { gid: g1Prefix, correlationId: corrId },
+                        issEmbed, [m1Hab.prefix]
+                    );
+                    console.log("[M2] ISS co-sign: sn=%d (ri=...%s)", sn, iss.ri.slice(-8));
+                    issOpPromises.push(m2Iss.op);
+                }
+
+                await Promise.all(issOpPromises.map((op) => waitOperation(m2Client, op)));
+                console.log("[M2] all 6 ISS ops done — 3-deep cascade from sn+5 completed");
             })(),
         ]);
 
