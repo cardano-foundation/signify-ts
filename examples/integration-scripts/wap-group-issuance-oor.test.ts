@@ -459,7 +459,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
             })(),
 
             // ── M2: wait for all 4 exchanges, co-sign VCPs concurrently, then ISS concurrently ──
-            // Two-phase because credentials().issue() requires the registry to be committed.
+            // Two-phase because M2's KERIA checks ri in Tevers when credentials().issue() is called —
+            // registry only exists there after VCP commits. M1 skips this: its KERIA tracks pending VCPs locally.
             // Within each phase, both co-signs fire simultaneously so KERIA may receive sn+2
             // before sn+1 is committed (genuine OOR) — KERIA's psces escrow handles this.
             (async () => {
@@ -497,7 +498,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     })
                 );
 
-                // Wait for both registries to commit before ISS phase (registry existence constraint)
+                // wait here — M2's KERIA must have ri in Tevers before credentials().issue() can be called
                 await Promise.all(vcpOps.map(async (p) => waitOperation(m2Client, await p)));
                 console.log("[M2] both VCPs committed — starting ISS phase");
 
@@ -733,8 +734,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
             // ── M2: wait for all 4, then co-sign in TWO REVERSED PHASES ──────
             // Phase 1 — VCPs reversed (VCP2→VCP1): KERIA escrows VCP2 until VCP1 commits
             //           → cascade commits both registries.
-            // Wait for both VCP ops before phase 2, because credentials().issue() checks
-            // that the target registry exists in KERIA at submission time.
+            // Wait for both VCP ops before phase 2 — M2's KERIA checks ri in Tevers when credentials().issue()
+            // is called, and the registry only exists there after VCP commits. M1 skips this.
             // Phase 2 — ISS reversed (ISS2→ISS1): KERIA escrows ISS2 until ISS1 commits
             //           → cascade commits ISS2.
             (async () => {
@@ -1080,7 +1081,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                 );
                 console.log("[M2] VCP1 co-sign: sn=%d → 2/2 → commits → cascade unescrows VCP2", vcp1Sn);
 
-                // Wait for VCP2 op — implies VCP1 committed + VCP2 cascaded → regk1+regk2 exist
+                // Wait for VCP2 op — implies VCP1 committed + VCP2 cascaded → regk1+regk2 exist.
+                // M2's KERIA checks ri in Tevers when credentials().issue() is called; M1 skips this.
                 await waitOperation(m2Client, await vcp2OpP);
                 console.log("[M2] VCP2 committed — regk1 and regk2 available");
 
@@ -1388,7 +1390,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                 }
 
                 // Wait for all VCP ops — sn+1 commits last in submission but first in cascade,
-                // so sn+4 op completing means full 4-deep cascade finished
+                // so sn+4 completing means full 4-deep cascade finished.
+                // M2's KERIA checks ri in Tevers when credentials().issue() is called; M1 skips this.
                 await Promise.all(vcpOpPromises.map(async (p) => waitOperation(m2Client, await p)));
                 console.log("[M2] VCP cascade complete — all 4 registries committed");
 
@@ -1685,6 +1688,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     vcpOpPromises.push(m2Reg.op());
                 }
 
+                // M2's KERIA checks ri in Tevers when credentials().issue() is called — registry only exists there after VCP commits. M1 skips this.
                 await Promise.all(vcpOpPromises.map(async (p) => waitOperation(m2Client, await p)));
                 console.log("[M2] both registries committed (sn+1 cascade → sn+2)");
 
