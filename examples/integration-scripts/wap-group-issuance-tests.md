@@ -19,6 +19,7 @@ Actors:
 - `examples/integration-scripts/wap-group-issuance.test.ts` — parallel test (M1+M2 flows run concurrently)
 - `examples/integration-scripts/wap-group-issuance-ordered.test.ts` — ordered test (VCP then ISS then ACK in strict sequence)
 - `examples/integration-scripts/wap-group-issuance-ordered-multi.test.ts` — multi-flow ordered test (CS sends two concurrent `/wap/iss`; M1 chains VCP1/ISS1/VCP2/ISS2 with explicit anchorPoints; CS receives two ACKs)
+- `examples/integration-scripts/wap-group-issuance-oor.test.ts` — two out-of-order tests using a grouped chain (VCP1→VCP2→ISS1→ISS2); test 1: M2 co-signs VCPs concurrently then ISS concurrently (KERIA may escrow higher-sn sigs); test 2: M1 sends sn=4..1 in strict reverse, M2 co-signs VCPs reversed then ISS reversed (explicit escrow test)
 
 ### Setup scripts (run before the tests)
 - `examples/integration-scripts/utils/create-test-clients.ts` — bootstraps 4 fresh agents with random brans
@@ -249,4 +250,5 @@ KERIA sees 2/2 threshold immediately → exchange in `exns` → `complete()=true
 | CS never receives `/exn/wap/iss/ack` | ACK submitted with only one sig | Both sigs must be submitted in one call from M1 (see gotcha 6) |
 | Multi test hangs at `pollNextUnprocessed` | M1 still waiting for op, exchange not sent yet | Normal — M1 sends each exchange after the previous op completes; M2 retries until it appears |
 | Multi test: second ACK never arrives at CS | First ACK consumed the only wapacks entry | Each flow's ACK has a distinct `p` field (corrId) → distinct SAID → separate wapacks entries |
+| OOR test: `credentials().issue()` returns 404 | Registry not committed when ISS is submitted | Use grouped chain (VCP1→VCP2 before ISS1→ISS2); wait for all VCP ops before calling `credentials().issue()` for any ISS |
 | `curl http://127.0.0.1:3901/spec.yaml` times out | KERIA HTTP API blocked by escrow loop | Wipe volume |
