@@ -18,6 +18,7 @@ Actors:
 ### Tests
 - `examples/integration-scripts/wap-group-issuance.test.ts` — parallel test (M1+M2 flows run concurrently)
 - `examples/integration-scripts/wap-group-issuance-ordered.test.ts` — ordered test (VCP then ISS then ACK in strict sequence)
+- `examples/integration-scripts/wap-group-issuance-ordered-multi.test.ts` — multi-flow ordered test (CS sends two concurrent `/wap/iss`; M1 chains VCP1/ISS1/VCP2/ISS2 with explicit anchorPoints; CS receives two ACKs)
 
 ### Setup scripts (run before the tests)
 - `examples/integration-scripts/utils/create-test-clients.ts` — bootstraps 4 fresh agents with random brans
@@ -42,9 +43,10 @@ sleep 10
 # 2. Generate setup state
 npm run test:wap-e2e:setup
 
-# 3. Run the test (parallel or ordered)
+# 3. Run the test (parallel, ordered, or multi-flow)
 npm run test:wap-e2e
 npm run test:wap-e2e:ordered
+npm run test:wap-e2e:multi
 ```
 
 ## When to wipe the volume
@@ -230,7 +232,8 @@ KERIA sees 2/2 threshold immediately → exchange in `exns` → `complete()=true
 {
   "test:wap-e2e:setup": "cd signify-ts && TEST_ENVIRONMENT=local npx tsx examples/integration-scripts/utils/setup-all.ts",
   "test:wap-e2e": "cd signify-ts && TEST_ENVIRONMENT=local npx jest examples/integration-scripts/wap-group-issuance.test.ts --testTimeout=300000 --verbose",
-  "test:wap-e2e:ordered": "cd signify-ts && TEST_ENVIRONMENT=local npx jest examples/integration-scripts/wap-group-issuance-ordered.test.ts --testTimeout=300000 --verbose"
+  "test:wap-e2e:ordered": "cd signify-ts && TEST_ENVIRONMENT=local npx jest examples/integration-scripts/wap-group-issuance-ordered.test.ts --testTimeout=300000 --verbose",
+  "test:wap-e2e:multi": "cd signify-ts && TEST_ENVIRONMENT=local npx jest examples/integration-scripts/wap-group-issuance-ordered-multi.test.ts --testTimeout=300000 --verbose"
 }
 ```
 
@@ -244,4 +247,6 @@ KERIA sees 2/2 threshold immediately → exchange in `exns` → `complete()=true
 | Test fails at `waitForNotifications /exn/wap/iss` (M1) | KERIA delivered to M2 instead | Verify `create-test-contacts.ts` used M1's agent EID for G1 OOBI |
 | Test fails at `pollExchangesByNotif /multisig/vcp` | M2 never received M1's exchange | Check M1 and M2 are mutual contacts; verify the test sees M2's `/multisig/vcp` notification |
 | CS never receives `/exn/wap/iss/ack` | ACK submitted with only one sig | Both sigs must be submitted in one call from M1 (see gotcha 6) |
+| Multi test hangs at `pollNextUnprocessed` | M1 still waiting for op, exchange not sent yet | Normal — M1 sends each exchange after the previous op completes; M2 retries until it appears |
+| Multi test: second ACK never arrives at CS | First ACK consumed the only wapacks entry | Each flow's ACK has a distinct `p` field (corrId) → distinct SAID → separate wapacks entries |
 | `curl http://127.0.0.1:3901/spec.yaml` times out | KERIA HTTP API blocked by escrow loop | Wipe volume |
