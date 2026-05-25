@@ -227,7 +227,7 @@ async function pollAllIncomingExchanges(
             let raw: any[] = [];
             try {
                 raw = (await Promise.race([
-                    client.exchanges().list({ filter: { "-r": route }, limit: 200 }),
+                    client.exchanges().list({ filter: { "-r": route }, limit: 2000 }),
                     new Promise<any[]>((_, rej) =>
                         setTimeout(() => rej(new Error("list timeout")), 10000)
                     ),
@@ -287,8 +287,12 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
             );
         }
         void env;
+    }, 10000);
 
-        console.log("[SETUP] Connecting clients...");
+    beforeEach(async () => {
+        // Fresh clients per test — prevents accumulated KERIA exchange state from
+        // one test's ops bleeding into another test's polls or notification reads.
+        console.log("[SETUP] Connecting fresh clients...");
         [m1Client, m2Client, csClient, holderClient] = await Promise.all([
             getClientFromFile("m1"),
             getClientFromFile("m2"),
@@ -316,31 +320,39 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
             );
         }
 
-        console.log("[SETUP] Contacts ok");
-    }, 60000);
-
-    // Mark any leftover unread notes before each test to prevent cross-test and cross-run pollution.
-    // Runs before EACH test so a first-test failure can't leak its unread notes into the second test.
-    beforeEach(async () => {
-        const [m1NotesAll, csNotesAll] = await Promise.all([
+        // Mark leftover unread notes so prior test failures don't pollute this test.
+        // CS routes /wap/iss to both M1 and M2 (both agent OOBIs resolved), so
+        // M2 also accumulates /exn/wap/iss notifications that need clearing.
+        // Holder can have leftover /exn/ipex/grant if test 6 failed mid-flow.
+        const [m1NotesAll, m2NotesAll, csNotesAll, holderNotesAll] = await Promise.all([
             m1Client.notifications().list(0, 1000),
+            m2Client.notifications().list(0, 1000),
             csClient.notifications().list(0, 1000),
+            holderClient.notifications().list(0, 1000),
         ]);
         const leftoverM1 = (m1NotesAll.notes ?? []).filter(
+            (n: any) => n.a.r === "/exn/wap/iss" && n.r === false
+        );
+        const leftoverM2 = (m2NotesAll.notes ?? []).filter(
             (n: any) => n.a.r === "/exn/wap/iss" && n.r === false
         );
         const leftoverCs = (csNotesAll.notes ?? []).filter(
             (n: any) => n.a.r === "/exn/wap/iss/ack" && n.r === false
         );
+        const leftoverHolder = (holderNotesAll.notes ?? []).filter(
+            (n: any) => n.a.r === "/exn/ipex/grant" && n.r === false
+        );
         await Promise.all([
             ...leftoverM1.map((n: any) => m1Client.notifications().mark(n.i)),
+            ...leftoverM2.map((n: any) => m2Client.notifications().mark(n.i)),
             ...leftoverCs.map((n: any) => csClient.notifications().mark(n.i)),
+            ...leftoverHolder.map((n: any) => holderClient.notifications().mark(n.i)),
         ]);
-        if (leftoverM1.length || leftoverCs.length) {
-            console.log("[BEFORE EACH] Cleared %d M1 notes, %d CS notes",
-                leftoverM1.length, leftoverCs.length);
+        if (leftoverM1.length || leftoverM2.length || leftoverCs.length || leftoverHolder.length) {
+            console.log("[BEFORE EACH] Cleared %d M1 notes, %d M2 notes, %d CS notes, %d holder notes",
+                leftoverM1.length, leftoverM2.length, leftoverCs.length, leftoverHolder.length);
         }
-    }, 30000);
+    }, 60000);
 
     it("out-of-order: all events submitted before any committed — CS receives two /exn/wap/iss/ack", async () => {
         const nonce1 = randomNonce();
@@ -505,81 +517,72 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                 console.log("[M1] all 4 ops done");
             })(),
 
-            // ── M2: wait for all 4 exchanges, co-sign VCPs concurrently, then ISS concurrently ──
-            // Two-phase because M2's KERIA rejects credentials().issue() with 404 if
-            // `regk not in agent.rgy.regs` (credentialing.py). regs only has the entry after
-            // VCP commits. M1 skips this: it pre-queues VCP+ISS before either commits.
-            // Within each phase, both co-signs fire simultaneously so KERIA may receive sn+2
-            // before sn+1 is committed (genuine OOR) — KERIA's psces escrow handles this.
+            // ── M2: two flows concurrently, within each flow VCP→ISS using VCP IXN anchor ──
+            // OOR: ISS IXN is submitted while VCP IXN may still be in psces — KERIA cascades.
+            // VCP HTTP response is awaited to get the IXN said before ISS is submitted.
+            // This is the same pattern M1 uses — no wait for VCP op between VCP and ISS.
             (async () => {
                 const allExchanges = await pollAllIncomingExchanges(
                     m2Client, [corrId1, corrId2], m2Hab.prefix, 4
                 );
 
-                const vcpExchanges = allExchanges.filter((e: any) => e.exn.r === "/multisig/vcp");
-                const issExchanges = allExchanges.filter((e: any) => e.exn.r === "/multisig/iss");
+                console.log("[M2] got all 4 exchanges — co-signing 2 flows concurrently");
 
-                console.log(
-                    "[M2] got all 4 exchanges: %d VCPs + %d ISS — co-signing concurrent per phase",
-                    vcpExchanges.length, issExchanges.length
-                );
-
-                // Phase 1: co-sign both VCPs concurrently (sn+2 may arrive before sn+1 commits → OOR)
-                const vcpOps = await Promise.all(
-                    vcpExchanges.map(async (exchange: any) => {
-                        const ancFull = exchange.exn.e?.anc as { s: string; p: string };
-                        const targetSn = parseInt(ancFull.s, 16);
-                        const anchorPoint = { sn: targetSn - 1, d: ancFull.p };
-                        const corrId = exchange.exn.a?.correlationId as string;
+                const allOps = await Promise.all(
+                    [corrId1, corrId2].map(async (corrId) => {
                         const nonce = corrId === corrId1 ? nonce1 : nonce2;
+                        const vcpExch = allExchanges.find(
+                            (e: any) => e.exn.r === "/multisig/vcp" && e.exn.a?.correlationId === corrId
+                        )!;
+                        const issExch = allExchanges.find(
+                            (e: any) => e.exn.r === "/multisig/iss" && e.exn.a?.correlationId === corrId
+                        )!;
 
+                        // VCP co-sign — await HTTP response to get IXN sn+said for ISS anchor
+                        const vcpAncFull = vcpExch.exn.e?.anc as { s: string; p: string };
+                        const vcpTargetSn = parseInt(vcpAncFull.s, 16);
                         const m2Reg = await m2Client.registries().create({
-                            name: "G1v2", registryName: `wap-registry-${nonce}`, nonce, anchorPoint,
+                            name: "G1v2", registryName: `wap-registry-${nonce}`, nonce,
+                            anchorPoint: { sn: vcpTargetSn - 1, d: vcpAncFull.p },
                         });
                         await m2Client.exchanges().send(
                             "m2", "registry", m2Hab, "/multisig/vcp",
                             { gid: g1Prefix, correlationId: corrId },
                             buildRegistryEmbed(m2Reg), [m1Hab.prefix]
                         );
-                        console.log("[M2] VCP co-sign queued: sn=%d (concurrent — KERIA may escrow)", targetSn);
-                        return m2Reg.op();
-                    })
-                );
+                        const vcpIxnSn = parseInt(m2Reg.serder.ked.s, 16);
+                        console.log("[M2] VCP co-sign sent (corrId=...%s), IXN sn=%d", corrId.slice(-6), vcpIxnSn);
 
-                // wait here — `regk not in agent.rgy.regs` guard (credentialing.py) rejects until VCP commits
-                await Promise.all(vcpOps.map(async (p) => waitOperation(m2Client, await p)));
-                console.log("[M2] both VCPs committed — starting ISS phase");
-
-                // Phase 2: co-sign both ISS concurrently (sn+4 may arrive before sn+3 commits → OOR)
-                const issOps = await Promise.all(
-                    issExchanges.map(async (exchange: any) => {
-                        const ancFull = exchange.exn.e?.anc as { s: string; p: string };
-                        const targetSn = parseInt(ancFull.s, 16);
-                        const anchorPoint = { sn: targetSn - 1, d: ancFull.p };
-                        const corrId = exchange.exn.a?.correlationId as string;
-                        const acdc = exchange.exn.e?.acdc as Record<string, unknown>;
-                        const iss = exchange.exn.e?.iss as { ri: string };
-
+                        // ISS co-sign — use M1's ISS IXN anchor from the embed.
+                        // M1 built a grouped chain: VCP1(N+1)→VCP2(N+2)→ISS1(N+3)→ISS2(N+4).
+                        // Using vcpIxnSn as anchor would place ISS at N+2, colliding with VCP2.
+                        // Reading issExch.exn.e.anc gives the correct target sn (N+3 or N+4).
+                        const issExn = issExch.exn.e as any;
+                        const issAncFull = issExn.anc as { s: string; p: string };
+                        const issTargetSn = parseInt(issAncFull.s, 16);
                         const m2Iss = await m2Client.credentials().issue("G1v2", {
                             i: g1Prefix,
-                            ri: iss.ri,
-                            s: acdc.s as string,
-                            a: acdc.a as Record<string, unknown>,
-                            ...(acdc.u ? { u: acdc.u as string } : {}),
-                        }, anchorPoint);
+                            ri: (issExn.iss as { ri: string }).ri,
+                            s: (issExn.acdc as Record<string, unknown>).s as string,
+                            a: (issExn.acdc as Record<string, unknown>).a as Record<string, unknown>,
+                            ...((issExn.acdc as Record<string, unknown>).u
+                                ? { u: (issExn.acdc as Record<string, unknown>).u as string }
+                                : {}),
+                        }, { sn: issTargetSn - 1, d: issAncFull.p });
                         const issEmbed = await buildCredentialEmbed(m2Client, g1HabM2, m2Iss);
                         await m2Client.exchanges().send(
                             "m2", "multisig", m2Hab, "/multisig/iss",
                             { gid: g1Prefix, correlationId: corrId },
                             issEmbed, [m1Hab.prefix]
                         );
-                        console.log("[M2] ISS co-sign queued: sn=%d (concurrent — KERIA may escrow)", targetSn);
-                        return m2Iss.op;
+                        console.log("[M2] ISS co-sign sent (corrId=...%s), IXN sn=%d — VCP2 may still be in psces", corrId.slice(-6), m2Iss.anc.sn);
+
+                        return [m2Reg.op(), m2Iss.op];
                     })
                 );
 
-                console.log("[M2] all co-signs sent — waiting for KERIA escrow cascade");
-                await Promise.all(issOps.map((op) => waitOperation(m2Client, op)));
+                console.log("[M2] all co-signs queued — waiting for KERIA escrow cascade");
+                await Promise.all(allOps.flat().map(async (p) => waitOperation(m2Client, await p)));
                 console.log("[M2] all 4 ops done");
             })(),
         ]);
@@ -765,13 +768,10 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                 console.log("[M1] all 4 ops done");
             })(),
 
-            // ── M2: wait for all 4, then co-sign in TWO REVERSED PHASES ──────
-            // Phase 1 — VCPs reversed (VCP2→VCP1): KERIA escrows VCP2 until VCP1 commits
-            //           → cascade commits both registries.
-            // Wait for both VCP ops before phase 2 — M2's KERIA rejects credentials().issue() with 404
-            // if `regk not in agent.rgy.regs` (credentialing.py); entry only exists after VCP commits.
-            // Phase 2 — ISS reversed (ISS2→ISS1): KERIA escrows ISS2 until ISS1 commits
-            //           → cascade commits ISS2.
+            // ── M2: co-sign all 4 in reversed order (VCP2→VCP1→ISS2→ISS1), no wait between ──
+            // VCPs reversed: KERIA escrows VCP2 until VCP1 commits → cascade.
+            // ISS reversed: KERIA escrows ISS2 until ISS1 commits → cascade.
+            // credentialing.py:664 guard removed — ISS submitted before VCP commits, KERIA escrows.
             (async () => {
                 const allExchanges = await pollAllIncomingExchanges(
                     m2Client, [corrId1, corrId2], m2Hab.prefix, 4
@@ -791,13 +791,13 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     );
 
                 console.log(
-                    "[M2] VCP phase (reversed): %s — ISS phase (reversed): %s",
+                    "[M2] VCP order: %s — ISS order: %s",
                     vcpExchanges.map((e: any) => parseInt(e.exn.e?.anc?.s ?? "0", 16)).join("→"),
                     issExchanges.map((e: any) => parseInt(e.exn.e?.anc?.s ?? "0", 16)).join("→")
                 );
 
-                // Phase 1: VCPs in reverse (VCP2 → VCP1), sequential
-                const vcpOps: Array<Promise<any>> = [];
+                const allOps: Array<any> = [];
+
                 for (const exchange of vcpExchanges) {
                     const ancFull = exchange.exn.e?.anc as { s: string; p: string };
                     const targetSn = parseInt(ancFull.s, 16);
@@ -816,16 +816,10 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                         { gid: g1Prefix, correlationId: corrId },
                         buildRegistryEmbed(m2Reg), [m1Hab.prefix]
                     );
-                    console.log("[M2] VCP co-sign submitted sn=%d (KERIA holds in escrow until prior commits)", targetSn);
-                    vcpOps.push(m2Reg.op());
+                    console.log("[M2] VCP co-sign queued: sn=%d", targetSn);
+                    allOps.push(m2Reg.op());
                 }
 
-                // Wait for both VCP ops — cascade from VCP1 ensures VCP2 commits too
-                await Promise.all(vcpOps.map(async (p) => waitOperation(m2Client, await p)));
-                console.log("[M2] both VCPs committed — registries available for ISS phase");
-
-                // Phase 2: ISS in reverse (ISS2 → ISS1), sequential
-                const issOps: Array<any> = [];
                 for (const exchange of issExchanges) {
                     const ancFull = exchange.exn.e?.anc as { s: string; p: string };
                     const targetSn = parseInt(ancFull.s, 16);
@@ -847,11 +841,11 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                         { gid: g1Prefix, correlationId: corrId },
                         issEmbed, [m1Hab.prefix]
                     );
-                    console.log("[M2] ISS co-sign submitted sn=%d (KERIA holds in escrow until prior commits)", targetSn);
-                    issOps.push(m2Iss.op);
+                    console.log("[M2] ISS co-sign queued: sn=%d", targetSn);
+                    allOps.push(m2Iss.op);
                 }
 
-                await Promise.all(issOps.map((op) => waitOperation(m2Client, op)));
+                await Promise.all(allOps.map(async (p) => waitOperation(m2Client, await p)));
                 console.log("[M2] all 4 ops done — cascade completed");
             })(),
         ]);
@@ -1086,7 +1080,6 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     buildRegistryEmbed(m2Reg2), [m1Hab.prefix]
                 );
                 console.log("[M2] VCP2 co-sign: sn=%d — KERIA holds (sn=%d not committed)", vcp2Sn, vcp2Sn - 1);
-                const vcp2OpP = m2Reg2.op();
 
                 // VCP1 (sn+1): 2/2 → commits → cascade unescrows VCP2 → both registries committed
                 const { anchorPoint: vcp1Ap, sn: vcp1Sn } = ancOf(vcp1Exch);
@@ -1101,11 +1094,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                 );
                 console.log("[M2] VCP1 co-sign: sn=%d → 2/2 → commits → cascade unescrows VCP2", vcp1Sn);
 
-                // Wait for VCP2 op — implies VCP1 committed + VCP2 cascaded → regk1+regk2 exist.
-                // M2's KERIA rejects credentials().issue() with 404 if `regk not in agent.rgy.regs`
-                // (credentialing.py); entry only exists after VCP commits.
-                await waitOperation(m2Client, await vcp2OpP);
-                console.log("[M2] VCP2 committed — regk1 and regk2 available");
+                // credentialing.py:664 guard removed — no wait needed before ISS
 
                 // ISS2 (sn+4): KERIA holds — prior (sn+3) not committed yet
                 const { anchorPoint: iss2Ap, sn: iss2Sn } = ancOf(iss2Exch);
@@ -1142,6 +1131,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                 console.log("[M2] ISS1 co-sign: sn=%d → 2/2 → commits → cascade unescrows ISS2", iss1Sn);
 
                 await Promise.all([
+                    waitOperation(m2Client, await m2Reg2.op()),
+                    waitOperation(m2Client, await m2Reg1.op()),
                     waitOperation(m2Client, m2Iss2.op),
                     waitOperation(m2Client, m2Iss1.op),
                 ]);
@@ -1396,12 +1387,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     vcpOpPromises.push(m2Reg.op());
                 }
 
-                // Wait for all VCP ops — sn+1 commits last in submission but first in cascade,
-                // so sn+4 completing means full 4-deep cascade finished.
-                // M2's KERIA rejects credentials().issue() with 404 if `regk not in agent.rgy.regs`
-                // (credentialing.py); entry only exists after VCP commits.
-                await Promise.all(vcpOpPromises.map(async (p) => waitOperation(m2Client, await p)));
-                console.log("[M2] VCP cascade complete — all 4 registries committed");
+                // credentialing.py:664 guard removed — ISS submitted without waiting for VCP ops
 
                 // ISS phase: descending sn (sn+8→sn+7→sn+6→sn+5)
                 const issOpPromises: Array<any> = [];
@@ -1426,8 +1412,11 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     issOpPromises.push(m2Iss.op);
                 }
 
-                await Promise.all(issOpPromises.map((op) => waitOperation(m2Client, op)));
-                console.log("[M2] ISS cascade complete — all 4 credentials committed");
+                await Promise.all([
+                    ...vcpOpPromises.map(async (p) => waitOperation(m2Client, await p)),
+                    ...issOpPromises.map((op) => waitOperation(m2Client, op)),
+                ]);
+                console.log("[M2] all 8 ops done");
             })(),
         ]);
 
@@ -1682,10 +1671,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     vcpOpPromises.push(m2Reg.op());
                 }
 
-                // M2's KERIA rejects credentials().issue() with 404 if `regk not in agent.rgy.regs`
-                // (credentialing.py); entry only exists after VCP commits.
-                await Promise.all(vcpOpPromises.map(async (p) => waitOperation(m2Client, await p)));
-                console.log("[M2] both registries committed (sn+1 cascade → sn+2)");
+                // credentialing.py:664 guard removed — ISS submitted without waiting for VCP ops
 
                 // ISS phase: zigzag order (alternating highest/lowest from sorted list)
                 // sorted asc: [sn+3, sn+4, sn+5, sn+6, sn+7, sn+8]
@@ -1725,8 +1711,11 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     issOpPromises.push(m2Iss.op);
                 }
 
-                await Promise.all(issOpPromises.map((op) => waitOperation(m2Client, op)));
-                console.log("[M2] all 6 ISS ops done — 3-deep cascade from sn+5 completed");
+                await Promise.all([
+                    ...vcpOpPromises.map(async (p) => waitOperation(m2Client, await p)),
+                    ...issOpPromises.map((op) => waitOperation(m2Client, op)),
+                ]);
+                console.log("[M2] all 8 ops done");
             })(),
         ]);
 
@@ -1855,7 +1844,9 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                 await m1Client.notifications().mark(m1Note.i);
             })(),
 
-            // ── M2: poll for both exchanges, co-sign VCP first then ISS ─────────
+            // ── M2: poll for both exchanges, co-sign VCP+ISS without waiting between ─
+            // guard in credentialing.py:664 commented out — testing if KERIA can escrow
+            // the ISS internally until VCP commits (same as M1's pattern)
             (async () => {
                 const allExchanges = await pollAllIncomingExchanges(
                     m2Client, [corrId], m2Hab.prefix, 2, 90000
@@ -1863,7 +1854,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                 const vcpExch = allExchanges.find((e: any) => e.exn.r === "/multisig/vcp")!;
                 const issExch = allExchanges.find((e: any) => e.exn.r === "/multisig/iss")!;
 
-                // Phase 1: co-sign VCP
+                // co-sign VCP (op NOT awaited)
                 const vcpAncFull = vcpExch.exn.e?.anc as { s: string; p: string };
                 const vcpTargetSn = parseInt(vcpAncFull.s, 16);
                 const m2Reg = await m2Client.registries().create({
@@ -1875,12 +1866,9 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     { gid: g1Prefix, correlationId: corrId },
                     buildRegistryEmbed(m2Reg), [m1Hab.prefix]
                 );
-                // M2's KERIA rejects credentials().issue() with 404 if `regk not in agent.rgy.regs`
-                // (credentialing.py); entry only exists after VCP commits.
-                await waitOperation(m2Client, await m2Reg.op());
-                console.log("[M2] VCP committed");
+                console.log("[M2] VCP co-sign queued (op NOT awaited)");
 
-                // Phase 2: co-sign ISS
+                // co-sign ISS immediately (no wait for VCP op)
                 const acdc = issExch.exn.e?.acdc as Record<string, unknown>;
                 const iss = issExch.exn.e?.iss as { ri: string };
                 const issAncFull = issExch.exn.e?.anc as { s: string; p: string };
@@ -1896,8 +1884,13 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     { gid: g1Prefix, correlationId: corrId },
                     m2IssEmbed, [m1Hab.prefix]
                 );
-                await waitOperation(m2Client, m2Iss.op);
-                console.log("[M2] ISS committed");
+                console.log("[M2] ISS co-sign queued");
+
+                await Promise.all([
+                    waitOperation(m2Client, await m2Reg.op()),
+                    waitOperation(m2Client, m2Iss.op),
+                ]);
+                console.log("[M2] VCP+ISS ops done");
             })(),
         ]);
 
@@ -1964,9 +1957,9 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
         console.log("[HOLDER] admitted credential");
 
         // KERIA stores the credential asynchronously — it first waits for G1's key state
-        // in Tevers (populated from witness queries). This can take up to ~60 seconds.
+        // in Tevers (populated from witness queries). On fresh KERIA this can exceed 60 seconds.
         let holderCred: any = null;
-        for (let attempt = 0; attempt < 90 && !holderCred; attempt++) {
+        for (let attempt = 0; attempt < 180 && !holderCred; attempt++) {
             await new Promise(r => setTimeout(r, 1000));
             const creds = await holderClient.credentials().list({ limit: 100 });
             holderCred = creds.find((c: any) => c.sad.d === credSaid);

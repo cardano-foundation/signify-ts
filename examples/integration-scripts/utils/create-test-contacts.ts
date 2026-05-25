@@ -88,32 +88,78 @@ async function main() {
     ]);
     console.log('Basic OOBIs resolved');
 
-    // Resolve G1 OOBI ONLY via M1's agent endpoint.
-    // KERIA last-write-wins: if we also resolved via M2's agent, /wap/iss would go to M2.
-    // oobis().get("G1v2", "agent") returns the last-registered agent (usually M2), so
-    // we construct M1's OOBI explicitly.
+    // Resolve G1 OOBI via both M1's and M2's agent endpoints.
+    // KERIA's ends DB key is (cid, role, eid) — both entries coexist and
+    // StreamPoster.sendDirect iterates all EIDs, so both agents receive the message.
     const m1AgentEid = m1Client.agent!.pre;
+    const m2AgentEid = m2Client.agent!.pre;
     const keriaBase = m1Oobi.split('/oobi/')[0];
     const g1OobiViaM1 = `${keriaBase}/oobi/${groupData.prefix}/agent/${m1AgentEid}`;
-    console.log(`\nResolving G1 OOBI via M1 agent: ${g1OobiViaM1}`);
-    try {
-        const op = await csClient.oobis().resolve(g1OobiViaM1, 'G1v2');
-        await Promise.race([
-            waitOperation(csClient, op),
-            new Promise<void>((_, rej) =>
-                setTimeout(() => rej(new Error('oobi waitOp timeout')), 30000)
-            ),
-        ]);
-        console.log('CS resolved G1 OOBI (M1 agent endpoint)');
-    } catch (err: any) {
-        console.log(`CS G1 OOBI warn: ${err?.message}`);
-    }
+    const g1OobiViaM2 = `${keriaBase}/oobi/${groupData.prefix}/agent/${m2AgentEid}`;
+    console.log(`\nResolving G1 OOBIs via M1 and M2 agents`);
+    await Promise.all([
+        (async () => {
+            try {
+                const op = await csClient.oobis().resolve(g1OobiViaM1, 'G1v2');
+                await Promise.race([
+                    waitOperation(csClient, op),
+                    new Promise<void>((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
+                ]);
+                console.log('CS resolved G1 OOBI (M1 agent)');
+            } catch (err: any) {
+                console.log(`CS G1 via M1 warn: ${err?.message}`);
+            }
+        })(),
+        (async () => {
+            try {
+                const op = await csClient.oobis().resolve(g1OobiViaM2, 'G1v2');
+                await Promise.race([
+                    waitOperation(csClient, op),
+                    new Promise<void>((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
+                ]);
+                console.log('CS resolved G1 OOBI (M2 agent)');
+            } catch (err: any) {
+                console.log(`CS G1 via M2 warn: ${err?.message}`);
+            }
+        })(),
+    ]);
 
     await Promise.all([
         m1Client.oobis().resolve(csOobi, 'cs').then((op: any) => waitOperation(m1Client, op)).catch(() => {}),
         m2Client.oobis().resolve(csOobi, 'cs').then((op: any) => waitOperation(m2Client, op)).catch(() => {}),
     ]);
     console.log('M1/M2 resolved CS OOBI');
+
+    // Holder also resolves G1 via both M1's and M2's agent endpoints so that
+    // KERIA's WitnessInquisitor routes telquery to M1/M2 agents (which have the
+    // TEL VCP+ISS events) instead of witnesses (which don't, since registry is NB).
+    console.log('\nHolder resolving G1 OOBIs via M1 and M2 agents');
+    await Promise.all([
+        (async () => {
+            try {
+                const op = await holderClient.oobis().resolve(g1OobiViaM1, 'G1v2');
+                await Promise.race([
+                    waitOperation(holderClient, op),
+                    new Promise<void>((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
+                ]);
+                console.log('Holder resolved G1 OOBI (M1 agent)');
+            } catch (err: any) {
+                console.log(`Holder G1 via M1 warn: ${err?.message}`);
+            }
+        })(),
+        (async () => {
+            try {
+                const op = await holderClient.oobis().resolve(g1OobiViaM2, 'G1v2');
+                await Promise.race([
+                    waitOperation(holderClient, op),
+                    new Promise<void>((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
+                ]);
+                console.log('Holder resolved G1 OOBI (M2 agent)');
+            } catch (err: any) {
+                console.log(`Holder G1 via M2 warn: ${err?.message}`);
+            }
+        })(),
+    ]);
 
     const contactsInfo = {
         m1Contacts: await listContacts(m1Client),
