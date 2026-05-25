@@ -11,6 +11,11 @@
  * Usage:
  *   cd signify-ts
  *   npx tsx examples/integration-scripts/utils/setup-all.ts
+ *
+ * Env vars (forwarded to children):
+ *   N_MEMBERS  number of multisig members (default 2)
+ *   THRESHOLD  signing threshold (default = N_MEMBERS for full N-of-N)
+ *   GROUP_NAME group identifier alias (default G1v2)
  */
 import { spawnSync } from 'child_process';
 import fs from 'fs';

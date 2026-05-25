@@ -38,135 +38,138 @@ async function getClientFromFile(name: string): Promise<SignifyClient> {
     return client;
 }
 
+interface MemberInfo {
+    name: string;
+    client: SignifyClient;
+    aid: string;
+    oobi: string;
+}
+
 async function main() {
     console.log('Creating contacts between clients...\n');
 
-    const [m1Client, m2Client, csClient, holderClient] = await Promise.all([
-        getClientFromFile('m1'),
-        getClientFromFile('m2'),
+    const clientsData = JSON.parse(fs.readFileSync(clientsPath, 'utf-8')) as any;
+    const memberNames: string[] = clientsData._meta?.memberNames ?? ['m1', 'm2'];
+    const groupData = JSON.parse(fs.readFileSync(groupPath, 'utf-8'));
+
+    const [csClient, holderClient] = await Promise.all([
         getClientFromFile('cs'),
         getClientFromFile('holder'),
     ]);
+    const memberClients = await Promise.all(memberNames.map((n) => getClientFromFile(n)));
 
-    const [m1Hab, m2Hab, csHab, holderHab] = await Promise.all([
-        m1Client.identifiers().get('m1'),
-        m2Client.identifiers().get('m2'),
+    const [csHab, holderHab, ...memberHabs] = await Promise.all([
         csClient.identifiers().get('cs'),
         holderClient.identifiers().get('holder'),
+        ...memberClients.map((c, i) => c.identifiers().get(memberNames[i])),
     ]);
 
-    console.log(`M1: ${m1Hab.prefix}`);
-    console.log(`M2: ${m2Hab.prefix}`);
     console.log(`CS: ${csHab.prefix}`);
     console.log(`Holder: ${holderHab.prefix}`);
+    for (let i = 0; i < memberNames.length; i++) {
+        console.log(`${memberNames[i]}: ${memberHabs[i].prefix}`);
+    }
 
-    const [m1Oobi, m2Oobi, csOobi, holderOobi] = (await Promise.all([
-        m1Client.oobis().get('m1', 'agent').then((r: any) => r.oobis[0]),
-        m2Client.oobis().get('m2', 'agent').then((r: any) => r.oobis[0]),
-        csClient.oobis().get('cs', 'agent').then((r: any) => r.oobis[0]),
-        holderClient.oobis().get('holder', 'agent').then((r: any) => r.oobis[0]),
-    ])).map((o: string) => rewriteOobi(o));
+    const members: MemberInfo[] = await Promise.all(
+        memberClients.map(async (client, i) => ({
+            name: memberNames[i],
+            client,
+            aid: memberHabs[i].prefix,
+            oobi: rewriteOobi((await client.oobis().get(memberNames[i], 'agent')).oobis[0]),
+        }))
+    );
 
-    const groupData = JSON.parse(fs.readFileSync(groupPath, 'utf-8'));
+    const csOobi = rewriteOobi((await csClient.oobis().get('cs', 'agent')).oobis[0]);
+    const holderOobi = rewriteOobi((await holderClient.oobis().get('holder', 'agent')).oobis[0]);
     const schemaOobi = `${SCHEMA_BASE_URL}/oobi/${SCHEMA_SAID}`;
 
-    console.log('\nResolving OOBIs...');
+    console.log('\nResolving member <-> external OOBIs...');
 
-    await Promise.all([
-        m1Client.oobis().resolve(m2Oobi, 'm2').then((op: any) => waitOperation(m1Client, op)),
-        m1Client.oobis().resolve(csOobi, 'cs').then((op: any) => waitOperation(m1Client, op)),
-        m1Client.oobis().resolve(holderOobi, 'holder').then((op: any) => waitOperation(m1Client, op)),
-        m1Client.oobis().resolve(schemaOobi, 'schema').then((op: any) => waitOperation(m1Client, op)),
-        m2Client.oobis().resolve(m1Oobi, 'm1').then((op: any) => waitOperation(m2Client, op)),
-        m2Client.oobis().resolve(csOobi, 'cs').then((op: any) => waitOperation(m2Client, op)),
-        m2Client.oobis().resolve(holderOobi, 'holder').then((op: any) => waitOperation(m2Client, op)),
-        m2Client.oobis().resolve(schemaOobi, 'schema').then((op: any) => waitOperation(m2Client, op)),
-        csClient.oobis().resolve(m1Oobi, 'm1').then((op: any) => waitOperation(csClient, op)),
-        csClient.oobis().resolve(m2Oobi, 'm2').then((op: any) => waitOperation(csClient, op)),
+    // Every member resolves cs, holder and the schema. cs and holder resolve
+    // every member.
+    const resolutions: Promise<unknown>[] = [];
+
+    for (const m of members) {
+        resolutions.push(
+            m.client.oobis().resolve(csOobi, 'cs').then((op: any) => waitOperation(m.client, op)),
+            m.client.oobis().resolve(holderOobi, 'holder').then((op: any) => waitOperation(m.client, op)),
+            m.client.oobis().resolve(schemaOobi, 'schema').then((op: any) => waitOperation(m.client, op)),
+        );
+        resolutions.push(
+            csClient.oobis().resolve(m.oobi, m.name).then((op: any) => waitOperation(csClient, op)),
+        );
+    }
+    resolutions.push(
         csClient.oobis().resolve(holderOobi, 'holder').then((op: any) => waitOperation(csClient, op)),
         csClient.oobis().resolve(schemaOobi, 'schema').then((op: any) => waitOperation(csClient, op)),
-    ]);
-    console.log('Basic OOBIs resolved');
+        // Holder also needs the schema cached locally so that after the IPEX
+        // admit, its KERIA can verify the ACDC against the schema.
+        holderClient.oobis().resolve(schemaOobi, 'schema').then((op: any) => waitOperation(holderClient, op)),
+    );
 
-    // Resolve G1 OOBI via both M1's and M2's agent endpoints.
-    // KERIA's ends DB key is (cid, role, eid) — both entries coexist and
-    // StreamPoster.sendDirect iterates all EIDs, so both agents receive the message.
-    const m1AgentEid = m1Client.agent!.pre;
-    const m2AgentEid = m2Client.agent!.pre;
-    const keriaBase = m1Oobi.split('/oobi/')[0];
-    const g1OobiViaM1 = `${keriaBase}/oobi/${groupData.prefix}/agent/${m1AgentEid}`;
-    const g1OobiViaM2 = `${keriaBase}/oobi/${groupData.prefix}/agent/${m2AgentEid}`;
-    console.log(`\nResolving G1 OOBIs via M1 and M2 agents`);
-    await Promise.all([
-        (async () => {
-            try {
-                const op = await csClient.oobis().resolve(g1OobiViaM1, 'G1v2');
-                await Promise.race([
-                    waitOperation(csClient, op),
-                    new Promise<void>((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
-                ]);
-                console.log('CS resolved G1 OOBI (M1 agent)');
-            } catch (err: any) {
-                console.log(`CS G1 via M1 warn: ${err?.message}`);
-            }
-        })(),
-        (async () => {
-            try {
-                const op = await csClient.oobis().resolve(g1OobiViaM2, 'G1v2');
-                await Promise.race([
-                    waitOperation(csClient, op),
-                    new Promise<void>((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
-                ]);
-                console.log('CS resolved G1 OOBI (M2 agent)');
-            } catch (err: any) {
-                console.log(`CS G1 via M2 warn: ${err?.message}`);
-            }
-        })(),
-    ]);
+    await Promise.all(resolutions);
+    console.log('External OOBIs resolved');
 
-    await Promise.all([
-        m1Client.oobis().resolve(csOobi, 'cs').then((op: any) => waitOperation(m1Client, op)).catch(() => {}),
-        m2Client.oobis().resolve(csOobi, 'cs').then((op: any) => waitOperation(m2Client, op)).catch(() => {}),
-    ]);
-    console.log('M1/M2 resolved CS OOBI');
+    // CS and holder both need the group AID's `agent` role endpoints for
+    // EVERY member, so that KERIA's WitnessInquisitor (used by the WAP iss
+    // exchange routing on CS side, and by the IPEX admit's TEL query on the
+    // holder side) can reach any member-agent. ends DB key is
+    // (cid, role, eid) so all entries coexist under Roles.agent.
+    const keriaBase = members[0].oobi.split('/oobi/')[0];
+    const groupOobis = members.map((m) => ({
+        memberName: m.name,
+        url: `${keriaBase}/oobi/${groupData.prefix}/agent/${m.client.agent!.pre}`,
+    }));
 
-    // Holder also resolves G1 via both M1's and M2's agent endpoints so that
-    // KERIA's WitnessInquisitor routes telquery to M1/M2 agents (which have the
-    // TEL VCP+ISS events) instead of witnesses (which don't, since registry is NB).
-    console.log('\nHolder resolving G1 OOBIs via M1 and M2 agents');
-    await Promise.all([
-        (async () => {
-            try {
-                const op = await holderClient.oobis().resolve(g1OobiViaM1, 'G1v2');
-                await Promise.race([
-                    waitOperation(holderClient, op),
-                    new Promise<void>((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
-                ]);
-                console.log('Holder resolved G1 OOBI (M1 agent)');
-            } catch (err: any) {
-                console.log(`Holder G1 via M1 warn: ${err?.message}`);
-            }
-        })(),
-        (async () => {
-            try {
-                const op = await holderClient.oobis().resolve(g1OobiViaM2, 'G1v2');
-                await Promise.race([
-                    waitOperation(holderClient, op),
-                    new Promise<void>((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
-                ]);
-                console.log('Holder resolved G1 OOBI (M2 agent)');
-            } catch (err: any) {
-                console.log(`Holder G1 via M2 warn: ${err?.message}`);
-            }
-        })(),
-    ]);
+    console.log(`\nResolving group OOBIs (${groupOobis.length}) on CS and holder`);
+    const groupResolutions: Promise<void>[] = [];
 
-    const contactsInfo = {
-        m1Contacts: await listContacts(m1Client),
-        m2Contacts: await listContacts(m2Client),
-        csContacts: await listContacts(csClient),
-        holderContacts: await listContacts(holderClient),
-    };
+    for (const g of groupOobis) {
+        groupResolutions.push(
+            (async () => {
+                try {
+                    const op = await csClient.oobis().resolve(g.url, groupData.name);
+                    await Promise.race([
+                        waitOperation(csClient, op),
+                        new Promise<void>((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
+                    ]);
+                    console.log(`CS resolved group OOBI via ${g.memberName} agent`);
+                } catch (err: any) {
+                    console.log(`CS group via ${g.memberName} warn: ${err?.message}`);
+                }
+            })(),
+            (async () => {
+                try {
+                    const op = await holderClient.oobis().resolve(g.url, groupData.name);
+                    await Promise.race([
+                        waitOperation(holderClient, op),
+                        new Promise<void>((_, rej) => setTimeout(() => rej(new Error('timeout')), 30000)),
+                    ]);
+                    console.log(`Holder resolved group OOBI via ${g.memberName} agent`);
+                } catch (err: any) {
+                    console.log(`Holder group via ${g.memberName} warn: ${err?.message}`);
+                }
+            })(),
+        );
+    }
+
+    await Promise.all(groupResolutions);
+
+    // Members resolve CS once more (they may need the contact for the WAP iss
+    // sender lookup). Tolerant of duplicates.
+    await Promise.all(
+        members.map((m) =>
+            m.client.oobis().resolve(csOobi, 'cs').then((op: any) => waitOperation(m.client, op)).catch(() => {})
+        )
+    );
+    console.log('Members re-confirmed CS contact');
+
+    const contactsInfo: Record<string, Record<string, any>> = {};
+    contactsInfo.csContacts = await listContacts(csClient);
+    contactsInfo.holderContacts = await listContacts(holderClient);
+    for (const m of members) {
+        contactsInfo[`${m.name}Contacts`] = await listContacts(m.client);
+    }
 
     fs.writeFileSync(contactsOutputPath, JSON.stringify(contactsInfo, null, 2));
     console.log(`\nContacts written to ${contactsOutputPath}`);

@@ -260,7 +260,17 @@ async function pollAllIncomingExchanges(
 const clientsPath = path.join(__dirname, "../../examples/.test-clients.json");
 const groupPath = path.join(__dirname, "../../examples/.test-group.json");
 
-describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
+// The OOR scenarios in the first describe block are written for a 2-of-2
+// group (m1 initiator + m2 sole cosigner). When the setup script created a
+// larger group (e.g. N_MEMBERS=3 THRESHOLD=2), KERIA needs sigs from peers
+// the OOR tests do not drive, so we skip them. The K-of-N describe block
+// further down still runs for any group size.
+const groupMembersCount = fs.existsSync(groupPath)
+    ? (JSON.parse(fs.readFileSync(groupPath, "utf-8")).members?.length ?? 2)
+    : 2;
+const oor2of2Describe = groupMembersCount === 2 ? describe : describe.skip;
+
+oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
     const env = resolveEnvironment();
 
     let m1Client: SignifyClient;
@@ -1972,4 +1982,443 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
             credSaid, g1Prefix, holderPrefix);
     }, 300000);
 
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// K-of-N IPEX grant/admit
+//
+// Replays the test 6 (2-of-2) IPEX grant/admit flow against an arbitrary
+// group size loaded from .test-group.json. Verifies that:
+//   - all N members receive /wap/iss (dual-OOBI / N-OOBI routing)
+//   - cosigner fan-out: every cosigner broadcasts its /multisig/vcp and
+//     /multisig/iss to every other member, KERIA accumulates sigs until the
+//     stored threshold is met
+//   - ACK: every member submits a partial /wap/iss/ack and broadcasts the
+//     /multisig/exn wrapper; WapackSender delivers a single ACK to CS once
+//     the threshold is reached
+//   - grant: every member builds the grant locally with the same grantDt
+//     (deterministic SAID); leader combines all sigs and submits
+//   - holder admit + TEL fetch via any member-agent endpoint (NB registry)
+//
+// Setup:
+//   docker-compose down -v && docker-compose up -d
+//   N_MEMBERS=3 THRESHOLD=3 npx tsx examples/integration-scripts/utils/setup-all.ts  # 3-of-3
+//   N_MEMBERS=3 THRESHOLD=2 npx tsx examples/integration-scripts/utils/setup-all.ts  # 2-of-3
+// ─────────────────────────────────────────────────────────────────────────────
+
+const groupSetupAvailable = fs.existsSync(groupPath) && fs.existsSync(clientsPath);
+const kOfNDescribe = groupSetupAvailable ? describe : describe.skip;
+
+interface MemberCtx {
+    name: string;            // m1, m2, ..., mN
+    client: SignifyClient;
+    hab: any;                // member's own hab
+    groupHab: any;           // group hab from this member's perspective
+}
+
+async function pollIncomingByRoute(
+    client: SignifyClient,
+    route: string,
+    corrId: string,
+    excludeSender: string,
+    timeoutMs = 90000
+): Promise<any> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        const raw = (await client
+            .exchanges()
+            .list({ filter: { "-r": route }, limit: 2000 })) ?? [];
+        const match = raw.find(
+            (x: any) =>
+                x.exn.a?.correlationId === corrId && x.exn.i !== excludeSender
+        );
+        if (match) return match;
+        await new Promise((r) => setTimeout(r, 1000));
+    }
+    throw new Error(`Timeout polling incoming ${route} for corrId=${corrId}`);
+}
+
+kOfNDescribe("WAP group issuance E2E — K-of-N IPEX grant/admit", () => {
+    const env = resolveEnvironment();
+    const groupData = groupSetupAvailable
+        ? JSON.parse(fs.readFileSync(groupPath, "utf-8"))
+        : { members: [], threshold: 0, name: "G1v2", prefix: "" };
+    const memberNames: string[] = groupData.members.map((m: any) => m.name);
+    const threshold: number = groupData.threshold ?? memberNames.length;
+    const groupName = groupData.name as string;
+    const g1Prefix = groupData.prefix as string;
+
+    let memberClients: SignifyClient[] = [];
+    let csClient: SignifyClient;
+    let holderClient: SignifyClient;
+    let csHab: any;
+    let holderHab: any;
+    let members: MemberCtx[] = [];
+
+    beforeAll(async () => {
+        if (!groupSetupAvailable) return;
+        console.log(
+            `[SETUP] ${threshold}-of-${memberNames.length} group ${groupName} prefix=${g1Prefix}`
+        );
+        void env;
+
+        memberClients = await Promise.all(memberNames.map((n) => getClientFromFile(n)));
+        [csClient, holderClient] = await Promise.all([
+            getClientFromFile("cs"),
+            getClientFromFile("holder"),
+        ]);
+        [csHab, holderHab] = await Promise.all([
+            csClient.identifiers().get("cs"),
+            holderClient.identifiers().get("holder"),
+        ]);
+
+        members = await Promise.all(
+            memberClients.map(async (client, idx) => {
+                const name = memberNames[idx];
+                const hab = await client.identifiers().get(name);
+                const groupHab = await client.identifiers().get(groupName);
+                return { name, client, hab, groupHab };
+            })
+        );
+    }, 60000);
+
+    it(`${groupData.threshold ?? memberNames.length}-of-${memberNames.length}: G1 grants issued credential to holder`, async () => {
+        const nonce = randomNonce();
+        const regk = computeRegk(g1Prefix, nonce);
+        const holderPrefix = holderHab.prefix;
+
+        // Clear stale notifications from any prior run.
+        const allClients = [...memberClients, csClient, holderClient];
+        for (const c of allClients) {
+            const notes = (await c.notifications().list(0, 1000)).notes ?? [];
+            for (const n of notes) {
+                if (n.r === false) await c.notifications().mark(n.i).catch(() => {});
+            }
+        }
+
+        // CS builds the ACDC and sends /wap/iss to the group prefix. Because CS
+        // resolved G1 via every member-agent endpoint, KERIA's StreamPoster
+        // delivers the exchange to all N members.
+        const credDt = signifyDatetime();
+        const aBlock = Saider.saidify({
+            d: "",
+            i: holderPrefix,
+            dt: credDt,
+            attendeeName: `Holder ${threshold}-of-${memberNames.length}`,
+        })[1];
+        const acdcSad = Saider.saidify({
+            v: "ACDC10JSON000000_",
+            d: "",
+            i: g1Prefix,
+            ri: regk,
+            s: SCHEMA_SAID,
+            a: aBlock,
+        })[1];
+        const credSaid = acdcSad.d as string;
+
+        const wapDt = signifyDatetime();
+        const [csExn, csSigs, csAtc] = await csClient
+            .exchanges()
+            .createExchangeMessage(
+                csHab,
+                "/wap/iss",
+                { n: nonce, l: [acdcSad] },
+                {},
+                g1Prefix,
+                wapDt
+            );
+        const csExnSaid = csExn.ked.d as string;
+        await csClient
+            .exchanges()
+            .sendFromEvents("cs", "iss", csExn, csSigs, csAtc, [g1Prefix]);
+        console.log(`[CS] sent /wap/iss said=${csExnSaid} cred=${credSaid}`);
+
+        // Every member receives /wap/iss.
+        const memberWapNotes = await Promise.all(
+            members.map((m) =>
+                waitForNotificationsCount(m.client, "/exn/wap/iss", 1, 30000).then(
+                    (notes) => notes[0]
+                )
+            )
+        );
+        const leaderNote = memberWapNotes[0];
+        const reqExn = await members[0].client.exchanges().get(leaderNote.a.d!);
+        expect(reqExn.exn.d).toBe(csExnSaid);
+        const corrId = reqExn.exn.d as string;
+        const cred = (reqExn.exn.a as any).l[0];
+        console.log(`[ALL] received /wap/iss corrId=${corrId}`);
+
+        const leader = members[0];
+        const cosigners = members.slice(1);
+        const otherAids = (self: MemberCtx) =>
+            members.filter((m) => m.hab.prefix !== self.hab.prefix).map((m) => m.hab.prefix);
+
+        // Leader creates VCP+ISS and fans them out to every cosigner.
+        const regResult = await leader.client.registries().create({
+            name: groupName,
+            registryName: `wap-reg-${nonce}`,
+            nonce,
+        });
+        const vcpIxnSn = parseInt(regResult.serder.ked.s, 16);
+        const vcpIxnSaid = regResult.serder.ked.d as string;
+        const issResult = await leader.client.credentials().issue(
+            groupName,
+            {
+                i: g1Prefix,
+                ri: regk,
+                s: cred.s,
+                a: cred.a,
+                ...(cred.u ? { u: cred.u } : {}),
+            },
+            { sn: vcpIxnSn, d: vcpIxnSaid }
+        );
+        const issEmbed = await buildCredentialEmbed(leader.client, leader.groupHab, issResult);
+
+        await leader.client.exchanges().send(
+            leader.name,
+            "registry",
+            leader.hab,
+            "/multisig/vcp",
+            { gid: g1Prefix, correlationId: corrId },
+            buildRegistryEmbed(regResult),
+            otherAids(leader)
+        );
+        await leader.client.exchanges().send(
+            leader.name,
+            "multisig",
+            leader.hab,
+            "/multisig/iss",
+            { gid: g1Prefix, correlationId: corrId },
+            issEmbed,
+            otherAids(leader)
+        );
+        console.log(`[${leader.name}] broadcast VCP+ISS to ${cosigners.length} peer(s)`);
+
+        // Every cosigner mirrors VCP+ISS locally and broadcasts to all other
+        // members. KERIA accumulates server-side until threshold sigs land.
+        const cosignerFlows = cosigners.map((co) =>
+            (async () => {
+                const vcpExch = await pollIncomingByRoute(
+                    co.client,
+                    "/multisig/vcp",
+                    corrId,
+                    co.hab.prefix
+                );
+                const vcpAnc = vcpExch.exn.e?.anc as { s: string; p: string };
+                const vcpTargetSn = parseInt(vcpAnc.s, 16);
+                const coReg = await co.client.registries().create({
+                    name: groupName,
+                    registryName: `wap-reg-${nonce}`,
+                    nonce,
+                    anchorPoint: { sn: vcpTargetSn - 1, d: vcpAnc.p },
+                });
+                await co.client.exchanges().send(
+                    co.name,
+                    "registry",
+                    co.hab,
+                    "/multisig/vcp",
+                    { gid: g1Prefix, correlationId: corrId },
+                    buildRegistryEmbed(coReg),
+                    otherAids(co)
+                );
+
+                const issExch = await pollIncomingByRoute(
+                    co.client,
+                    "/multisig/iss",
+                    corrId,
+                    co.hab.prefix
+                );
+                const issAcdc = issExch.exn.e?.acdc as Record<string, unknown>;
+                const issIss = issExch.exn.e?.iss as { ri: string };
+                const issAnc = issExch.exn.e?.anc as { s: string; p: string };
+                const issTargetSn = parseInt(issAnc.s, 16);
+                const coIss = await co.client.credentials().issue(
+                    groupName,
+                    {
+                        i: g1Prefix,
+                        ri: issIss.ri,
+                        s: issAcdc.s as string,
+                        a: issAcdc.a as Record<string, unknown>,
+                        ...(issAcdc.u ? { u: issAcdc.u as string } : {}),
+                    },
+                    { sn: issTargetSn - 1, d: issAnc.p }
+                );
+                const coIssEmbed = await buildCredentialEmbed(co.client, co.groupHab, coIss);
+                await co.client.exchanges().send(
+                    co.name,
+                    "multisig",
+                    co.hab,
+                    "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId },
+                    coIssEmbed,
+                    otherAids(co)
+                );
+
+                await Promise.all([
+                    waitOperation(co.client, await coReg.op()),
+                    waitOperation(co.client, coIss.op),
+                ]);
+                console.log(`[${co.name}] VCP+ISS cofirms committed`);
+            })()
+        );
+
+        await Promise.all([
+            Promise.all([
+                waitOperation(leader.client, await regResult.op()),
+                waitOperation(leader.client, issResult.op),
+            ]).then(() => console.log(`[${leader.name}] VCP+ISS committed`)),
+            ...cosignerFlows,
+        ]);
+
+        // Every member submits its partial ACK and broadcasts the wrapper.
+        // WapackSender accumulates server-side; CS receives exactly one ACK
+        // once `threshold` sigs land.
+        await Promise.all(
+            members.map((m) =>
+                (async () => {
+                    const note = memberWapNotes[members.indexOf(m)];
+                    const myReq = await m.client.exchanges().get(note.a.d!);
+                    const [ackExn, ackSigs, ackAtc] = await m.client
+                        .exchanges()
+                        .createExchangeMessage(
+                            m.groupHab,
+                            "/wap/iss/ack",
+                            { r: "/wap/iss/ack", p: myReq.exn.d },
+                            {},
+                            myReq.exn.i,
+                            myReq.exn.dt,
+                            myReq.exn.d
+                        );
+                    await m.client
+                        .exchanges()
+                        .sendFromEvents(groupName, "wap", ackExn, ackSigs, ackAtc, [
+                            csHab.prefix,
+                        ]);
+                    const seal = [
+                        "SealEvent",
+                        {
+                            i: m.groupHab.prefix,
+                            s: m.groupHab["state"]["ee"]["s"],
+                            d: m.groupHab["state"]["ee"]["d"],
+                        },
+                    ];
+                    const sigers = ackSigs.map(
+                        (sig: string) => new Siger({ qb64: sig })
+                    );
+                    const wrapIms = d(messagize(ackExn, sigers, seal));
+                    const embAtc = wrapIms.substring(ackExn.size) + ackAtc;
+                    await m.client.exchanges().send(
+                        m.name,
+                        "wap",
+                        m.hab,
+                        "/multisig/exn",
+                        { gid: m.groupHab.prefix },
+                        { exn: [ackExn, embAtc] },
+                        otherAids(m)
+                    );
+                    await m.client.notifications().mark(note.i);
+                })()
+            )
+        );
+        console.log("[ALL] ACK submitted + wrappers broadcast");
+
+        const csAckNotes = await waitForNotificationsCount(
+            csClient,
+            "/exn/wap/iss/ack",
+            1,
+            120000
+        );
+        expect(csAckNotes[0].a.r).toBe("/exn/wap/iss/ack");
+        for (const n of csAckNotes) {
+            await csClient.notifications().mark(n.i);
+        }
+        console.log(`[CS] received ACK for credential=${credSaid}`);
+
+        // Leader fetches the committed credential.
+        let leaderCred: any = null;
+        for (let attempt = 0; attempt < 60 && !leaderCred?.anc; attempt++) {
+            try {
+                leaderCred = await leader.client.credentials().get(credSaid);
+            } catch {
+                /* not yet */
+            }
+            if (!leaderCred?.anc) {
+                await new Promise((r) => setTimeout(r, 1000));
+            }
+        }
+        expect(leaderCred?.anc).toBeDefined();
+
+        // Every member builds the grant locally against shared args (same dt
+        // makes the SAID deterministic). For K-of-N with K<N the surplus sigs
+        // are harmless; KERIA validates by sig index.
+        const grantDt = signifyDatetime();
+        const grantArgs = {
+            senderName: groupName,
+            recipient: holderPrefix,
+            acdc: new Serder(leaderCred.sad),
+            iss: new Serder(leaderCred.iss),
+            anc: new Serder(leaderCred.anc),
+            acdcAttachment: leaderCred.atc,
+            issAttachment: leaderCred.issatc,
+            ancAttachment: leaderCred.ancatc,
+            datetime: grantDt,
+        };
+        const grantResults = await Promise.all(
+            members.map((m) => m.client.ipex().grant(grantArgs))
+        );
+        const grantExn = grantResults[0][0];
+        const combinedSigs: string[] = [];
+        for (const [, sigs] of grantResults) {
+            combinedSigs.push(...sigs);
+        }
+        const grantAtc = grantResults[0][2];
+
+        const grantOp = await leader.client
+            .ipex()
+            .submitGrant(groupName, grantExn, combinedSigs, grantAtc, [holderPrefix]);
+        console.log(`[${leader.name}] grant submitted said=${grantExn.ked.d}`);
+
+        // Holder admits.
+        const [holderGrantNote] = await waitForNotificationsCount(
+            holderClient,
+            "/exn/ipex/grant",
+            1,
+            90000
+        );
+        const admitDt = signifyDatetime();
+        const [admit, aSigs, aEnd] = await holderClient.ipex().admit({
+            senderName: "holder",
+            message: "",
+            grantSaid: holderGrantNote.a.d!,
+            recipient: g1Prefix,
+            datetime: admitDt,
+        });
+        const admitOp = await holderClient
+            .ipex()
+            .submitAdmit("holder", admit, aSigs, aEnd, [g1Prefix]);
+        await holderClient.notifications().mark(holderGrantNote.i);
+
+        await Promise.all([
+            waitOperation(leader.client, grantOp),
+            waitOperation(holderClient, admitOp),
+        ]);
+
+        // The holder's KERIA pulls the TEL via witq.telquery from any of the
+        // member agent endpoints (resolved via the N-OOBI setup). NB registries
+        // never publish TEL events to witnesses, so this is the only path that
+        // makes the credential land.
+        let holderCred: any = null;
+        for (let attempt = 0; attempt < 180 && !holderCred; attempt++) {
+            await new Promise((r) => setTimeout(r, 1000));
+            const creds = await holderClient.credentials().list({ limit: 100 });
+            holderCred = creds.find((c: any) => c.sad.d === credSaid);
+        }
+        expect(holderCred).toBeDefined();
+        expect(holderCred.sad.i).toBe(g1Prefix);
+        expect(holderCred.sad.a.i).toBe(holderPrefix);
+        expect(holderCred.status.s).toBe("0");
+        console.log(
+            `[HOLDER] verified credential said=${credSaid} issuer=${g1Prefix}`
+        );
+    }, 600000);
 });

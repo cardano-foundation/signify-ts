@@ -19,6 +19,10 @@ const env = {
 
 const OUTPUT_FILE = path.join(__dirname, '../../.test-clients.json');
 
+// N_MEMBERS = number of multisig members (m1..mN). Defaults to 2 so the
+// pre-existing 2-of-2 test setup is unchanged when no env var is provided.
+const N_MEMBERS = parseInt(process.env.N_MEMBERS ?? '2', 10);
+
 async function createClient(): Promise<SignifyClient> {
     await ready();
     const bran = randomPasscode().padEnd(21, '_');
@@ -51,21 +55,21 @@ async function waitOperation<T = any>(client: SignifyClient, op: any): Promise<a
 }
 
 async function main() {
-    console.log('Creating 4 test clients...\n');
+    if (N_MEMBERS < 2) {
+        throw new Error(`N_MEMBERS must be >= 2, got ${N_MEMBERS}`);
+    }
 
-    const clients = await Promise.all([
-        createClient(),
-        createClient(),
-        createClient(),
-        createClient(),
-    ]);
+    const memberNames = Array.from({ length: N_MEMBERS }, (_, i) => `m${i + 1}`);
+    const names = [...memberNames, 'cs', 'holder'];
+    console.log(`Creating ${names.length} test clients: ${names.join(', ')}\n`);
+
+    const clients = await Promise.all(names.map(() => createClient()));
 
     const witArgs = {
         toad: env.witnessIds.length,
         wits: env.witnessIds,
     };
 
-    const names = ['m1', 'm2', 'cs', 'holder'];
     const identifiers: any = {};
 
     for (let i = 0; i < clients.length; i++) {
@@ -105,10 +109,15 @@ async function main() {
         console.log(`  ${name} OOBI: ${oobi.oobis[0]}\n`);
     }
 
+    // Include a top-level memberNames array so downstream scripts know which
+    // entries belong to the multisig group without re-parsing the keys.
+    identifiers._meta = { memberNames };
+
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(identifiers, null, 2));
     console.log(`Clients written to ${OUTPUT_FILE}`);
     console.log('\nClient summary:');
     for (const [name, data] of Object.entries(identifiers)) {
+        if (name === '_meta') continue;
         console.log(`  ${name}: ${(data as any).prefix}`);
     }
 }
