@@ -1,7 +1,7 @@
 /**
  * E2E test: WAP group issuance — ordered sequential phases.
  *
- * Actors: same as wap-group-issuance.test.ts (M1, M2, G1, CS, Alice).
+ * Actors: same as wap-group-issuance.test.ts (M1, M2, G1, CS, Holder).
  *
  * Flow (phases run in order; within each phase M1+M2 run concurrently):
  *   1. CS sends /wap/iss to G1
@@ -158,12 +158,12 @@ describe("WAP group issuance E2E (ordered phases)", () => {
     let m1Client: SignifyClient;
     let m2Client: SignifyClient;
     let csClient: SignifyClient;
-    let aliceClient: SignifyClient;
+    let holderClient: SignifyClient;
 
     let m1Hab: any;
     let m2Hab: any;
     let csHab: any;
-    let aliceHab: any;
+    let holderHab: any;
     let g1HabM1: any;
     let g1HabM2: any;
 
@@ -181,17 +181,17 @@ describe("WAP group issuance E2E (ordered phases)", () => {
         void env;
 
         console.log("[SETUP] Connecting clients...");
-        [m1Client, m2Client, csClient, aliceClient] = await Promise.all([
+        [m1Client, m2Client, csClient, holderClient] = await Promise.all([
             getClientFromFile("m1"),
             getClientFromFile("m2"),
             getClientFromFile("cs"),
-            getClientFromFile("alice"),
+            getClientFromFile("holder"),
         ]);
-        [m1Hab, m2Hab, csHab, aliceHab, g1HabM1, g1HabM2] = await Promise.all([
+        [m1Hab, m2Hab, csHab, holderHab, g1HabM1, g1HabM2] = await Promise.all([
             m1Client.identifiers().get("m1"),
             m2Client.identifiers().get("m2"),
             csClient.identifiers().get("cs"),
-            aliceClient.identifiers().get("alice"),
+            holderClient.identifiers().get("holder"),
             m1Client.identifiers().get("G1v2"),
             m2Client.identifiers().get("G1v2"),
         ]);
@@ -210,19 +210,40 @@ describe("WAP group issuance E2E (ordered phases)", () => {
         console.log("[SETUP] Contacts ok");
     }, 60000);
 
+    beforeEach(async () => {
+        const [m1NotesAll, csNotesAll] = await Promise.all([
+            m1Client.notifications().list(),
+            csClient.notifications().list(),
+        ]);
+        const leftoverM1 = (m1NotesAll.notes ?? []).filter(
+            (n: any) => n.a.r === "/exn/wap/iss" && n.r === false
+        );
+        const leftoverCs = (csNotesAll.notes ?? []).filter(
+            (n: any) => n.a.r === "/exn/wap/iss/ack" && n.r === false
+        );
+        await Promise.all([
+            ...leftoverM1.map((n: any) => m1Client.notifications().mark(n.i)),
+            ...leftoverCs.map((n: any) => csClient.notifications().mark(n.i)),
+        ]);
+        if (leftoverM1.length || leftoverCs.length) {
+            console.log("[BEFORE EACH] Cleared %d M1 notes, %d CS notes",
+                leftoverM1.length, leftoverCs.length);
+        }
+    }, 30000);
+
     it("ordered phases: VCP then ISS then ACK — CS receives /exn/wap/iss/ack", async () => {
         const nonce = randomNonce();
         const g1Prefix = g1HabM1.prefix;
-        const alicePrefix = aliceHab.prefix;
+        const holderPrefix = holderHab.prefix;
         const regk = computeRegk(g1Prefix, nonce);
 
         // ── CS sends /wap/iss ─────────────────────────────────────────────────
         const dt = signifyDatetime();
         const aBlock = Saider.saidify({
             d: "",
-            i: alicePrefix,
+            i: holderPrefix,
             dt,
-            attendeeName: "Alice Test",
+            attendeeName: "Holder Test",
         })[1];
         const acdcSad = Saider.saidify({
             v: "ACDC10JSON000000_",

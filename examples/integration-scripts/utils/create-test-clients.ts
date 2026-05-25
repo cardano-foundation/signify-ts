@@ -65,7 +65,7 @@ async function main() {
         wits: env.witnessIds,
     };
 
-    const names = ['m1', 'm2', 'cs', 'alice'];
+    const names = ['m1', 'm2', 'cs', 'holder'];
     const identifiers: any = {};
 
     for (let i = 0; i < clients.length; i++) {

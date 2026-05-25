@@ -1,7 +1,7 @@
 /**
  * E2E test: WAP group issuance — two concurrent flows, ordered sequential processing.
  *
- * Actors: same as wap-group-issuance-ordered.test.ts (M1, M2, G1, CS, Alice).
+ * Actors: same as wap-group-issuance-ordered.test.ts (M1, M2, G1, CS, Holder).
  *
  * Flow:
  *   CS sends two concurrent /wap/iss requests (flow1, flow2).
@@ -202,12 +202,12 @@ describe("WAP group issuance E2E (ordered phases, two concurrent flows)", () => 
     let m1Client: SignifyClient;
     let m2Client: SignifyClient;
     let csClient: SignifyClient;
-    let aliceClient: SignifyClient;
+    let holderClient: SignifyClient;
 
     let m1Hab: any;
     let m2Hab: any;
     let csHab: any;
-    let aliceHab: any;
+    let holderHab: any;
     let g1HabM1: any;
     let g1HabM2: any;
 
@@ -225,17 +225,17 @@ describe("WAP group issuance E2E (ordered phases, two concurrent flows)", () => 
         void env;
 
         console.log("[SETUP] Connecting clients...");
-        [m1Client, m2Client, csClient, aliceClient] = await Promise.all([
+        [m1Client, m2Client, csClient, holderClient] = await Promise.all([
             getClientFromFile("m1"),
             getClientFromFile("m2"),
             getClientFromFile("cs"),
-            getClientFromFile("alice"),
+            getClientFromFile("holder"),
         ]);
-        [m1Hab, m2Hab, csHab, aliceHab, g1HabM1, g1HabM2] = await Promise.all([
+        [m1Hab, m2Hab, csHab, holderHab, g1HabM1, g1HabM2] = await Promise.all([
             m1Client.identifiers().get("m1"),
             m2Client.identifiers().get("m2"),
             csClient.identifiers().get("cs"),
-            aliceClient.identifiers().get("alice"),
+            holderClient.identifiers().get("holder"),
             m1Client.identifiers().get("G1v2"),
             m2Client.identifiers().get("G1v2"),
         ]);
@@ -254,18 +254,39 @@ describe("WAP group issuance E2E (ordered phases, two concurrent flows)", () => 
         console.log("[SETUP] Contacts ok");
     }, 60000);
 
+    beforeEach(async () => {
+        const [m1NotesAll, csNotesAll] = await Promise.all([
+            m1Client.notifications().list(),
+            csClient.notifications().list(),
+        ]);
+        const leftoverM1 = (m1NotesAll.notes ?? []).filter(
+            (n: any) => n.a.r === "/exn/wap/iss" && n.r === false
+        );
+        const leftoverCs = (csNotesAll.notes ?? []).filter(
+            (n: any) => n.a.r === "/exn/wap/iss/ack" && n.r === false
+        );
+        await Promise.all([
+            ...leftoverM1.map((n: any) => m1Client.notifications().mark(n.i)),
+            ...leftoverCs.map((n: any) => csClient.notifications().mark(n.i)),
+        ]);
+        if (leftoverM1.length || leftoverCs.length) {
+            console.log("[BEFORE EACH] Cleared %d M1 notes, %d CS notes",
+                leftoverM1.length, leftoverCs.length);
+        }
+    }, 30000);
+
     it("multi-flow ordered: VCP1/ISS1/VCP2/ISS2 chained — CS receives two /exn/wap/iss/ack", async () => {
         const nonce1 = randomNonce();
         const nonce2 = randomNonce();
         const g1Prefix = g1HabM1.prefix;
-        const alicePrefix = aliceHab.prefix;
+        const holderPrefix = holderHab.prefix;
         const regk1 = computeRegk(g1Prefix, nonce1);
         const regk2 = computeRegk(g1Prefix, nonce2);
 
         // ── CS sends two /wap/iss concurrently ────────────────────────────────
         const dt1 = signifyDatetime();
         const aBlock1 = Saider.saidify({
-            d: "", i: alicePrefix, dt: dt1, attendeeName: "Alice Flow1",
+            d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder Flow1",
         })[1];
         const acdcSad1 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk1,
@@ -274,7 +295,7 @@ describe("WAP group issuance E2E (ordered phases, two concurrent flows)", () => 
 
         const dt2 = signifyDatetime();
         const aBlock2 = Saider.saidify({
-            d: "", i: alicePrefix, dt: dt2, attendeeName: "Alice Flow2",
+            d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder Flow2",
         })[1];
         const acdcSad2 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk2,

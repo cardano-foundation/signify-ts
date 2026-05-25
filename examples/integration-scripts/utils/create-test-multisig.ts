@@ -228,18 +228,19 @@ async function main() {
         m1Client, m2Client, 'G1v2', m1Hab, m2Hab, [WAN, WIL, WES]
     );
 
-    const m1Oobis = (await m1Client.oobis().get('G1v2', 'agent')).oobis;
-    const m2Oobis = (await m2Client.oobis().get('G1v2', 'agent')).oobis;
+    const m1AgentEid = m1Client.agent!.pre;
+    const keriaBase = m1Oobi.split('/oobi/')[0];
+    const g1Oobi = `${keriaBase}/oobi/${groupData.prefix}/agent/${m1AgentEid}`;
 
+    const clientsData = JSON.parse(fs.readFileSync(clientsPath, 'utf-8')) as any;
     const groupInfo = {
         name: 'G1v2',
         prefix: groupData.prefix,
-        m1Bran: (JSON.parse(fs.readFileSync(clientsPath, 'utf-8')) as any).m1.bran,
-        m2Bran: (JSON.parse(fs.readFileSync(clientsPath, 'utf-8')) as any).m2.bran,
-        oobis: {
-            m1: m1Oobis,
-            m2: m2Oobis,
-        },
+        members: [
+            { bran: clientsData.m1.bran, prefix: m1Hab.prefix },
+            { bran: clientsData.m2.bran, prefix: m2Hab.prefix },
+        ],
+        oobi: g1Oobi,
     };
 
     fs.writeFileSync(groupOutputPath, JSON.stringify(groupInfo, null, 2));

@@ -69,6 +69,7 @@ import {
     Prefixer,
     randomNonce,
     Saider,
+    Serder,
     Serials,
     Siger,
     SignifyClient,
@@ -153,7 +154,7 @@ async function waitForNotificationsCount(
 ): Promise<any[]> {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
-        const res = await client.notifications().list();
+        const res = await client.notifications().list(0, 1000);
         const notes = (res.notes ?? []).filter(
             (n: any) => n.a.r === route && n.r === false
         );
@@ -180,7 +181,7 @@ async function pollAllIncomingExchanges(
             let raw: any[] = [];
             try {
                 raw = (await Promise.race([
-                    client.exchanges().list({ filter: { "-r": route } }),
+                    client.exchanges().list({ filter: { "-r": route }, limit: 200 }),
                     new Promise<any[]>((_, rej) =>
                         setTimeout(() => rej(new Error("list timeout")), 10000)
                     ),
@@ -219,12 +220,12 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
     let m1Client: SignifyClient;
     let m2Client: SignifyClient;
     let csClient: SignifyClient;
-    let aliceClient: SignifyClient;
+    let holderClient: SignifyClient;
 
     let m1Hab: any;
     let m2Hab: any;
     let csHab: any;
-    let aliceHab: any;
+    let holderHab: any;
     let g1HabM1: any;
     let g1HabM2: any;
 
@@ -242,17 +243,17 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
         void env;
 
         console.log("[SETUP] Connecting clients...");
-        [m1Client, m2Client, csClient, aliceClient] = await Promise.all([
+        [m1Client, m2Client, csClient, holderClient] = await Promise.all([
             getClientFromFile("m1"),
             getClientFromFile("m2"),
             getClientFromFile("cs"),
-            getClientFromFile("alice"),
+            getClientFromFile("holder"),
         ]);
-        [m1Hab, m2Hab, csHab, aliceHab, g1HabM1, g1HabM2] = await Promise.all([
+        [m1Hab, m2Hab, csHab, holderHab, g1HabM1, g1HabM2] = await Promise.all([
             m1Client.identifiers().get("m1"),
             m2Client.identifiers().get("m2"),
             csClient.identifiers().get("cs"),
-            aliceClient.identifiers().get("alice"),
+            holderClient.identifiers().get("holder"),
             m1Client.identifiers().get("G1v2"),
             m2Client.identifiers().get("G1v2"),
         ]);
@@ -276,8 +277,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
     // Runs before EACH test so a first-test failure can't leak its unread notes into the second test.
     beforeEach(async () => {
         const [m1NotesAll, csNotesAll] = await Promise.all([
-            m1Client.notifications().list(),
-            csClient.notifications().list(),
+            m1Client.notifications().list(0, 1000),
+            csClient.notifications().list(0, 1000),
         ]);
         const leftoverM1 = (m1NotesAll.notes ?? []).filter(
             (n: any) => n.a.r === "/exn/wap/iss" && n.r === false
@@ -299,14 +300,14 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
         const nonce1 = randomNonce();
         const nonce2 = randomNonce();
         const g1Prefix = g1HabM1.prefix;
-        const alicePrefix = aliceHab.prefix;
+        const holderPrefix = holderHab.prefix;
         const regk1 = computeRegk(g1Prefix, nonce1);
         const regk2 = computeRegk(g1Prefix, nonce2);
 
         // ── CS sends two /wap/iss concurrently ────────────────────────────────
         const dt1 = signifyDatetime();
         const aBlock1 = Saider.saidify({
-            d: "", i: alicePrefix, dt: dt1, attendeeName: "Alice OOR Flow1",
+            d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder OOR Flow1",
         })[1];
         const acdcSad1 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk1,
@@ -315,7 +316,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
 
         const dt2 = signifyDatetime();
         const aBlock2 = Saider.saidify({
-            d: "", i: alicePrefix, dt: dt2, attendeeName: "Alice OOR Flow2",
+            d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder OOR Flow2",
         })[1];
         const acdcSad2 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk2,
@@ -575,14 +576,14 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
         const nonce1 = randomNonce();
         const nonce2 = randomNonce();
         const g1Prefix = g1HabM1.prefix;
-        const alicePrefix = aliceHab.prefix;
+        const holderPrefix = holderHab.prefix;
         const regk1 = computeRegk(g1Prefix, nonce1);
         const regk2 = computeRegk(g1Prefix, nonce2);
 
         // ── CS sends two /wap/iss concurrently ────────────────────────────────
         const dt1 = signifyDatetime();
         const aBlock1 = Saider.saidify({
-            d: "", i: alicePrefix, dt: dt1, attendeeName: "Alice ReverseOOR Flow1",
+            d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder ReverseOOR Flow1",
         })[1];
         const acdcSad1 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk1,
@@ -591,7 +592,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
 
         const dt2 = signifyDatetime();
         const aBlock2 = Saider.saidify({
-            d: "", i: alicePrefix, dt: dt2, attendeeName: "Alice ReverseOOR Flow2",
+            d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder ReverseOOR Flow2",
         })[1];
         const acdcSad2 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk2,
@@ -861,14 +862,14 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
         const nonce1 = randomNonce();
         const nonce2 = randomNonce();
         const g1Prefix = g1HabM1.prefix;
-        const alicePrefix = aliceHab.prefix;
+        const holderPrefix = holderHab.prefix;
         const regk1 = computeRegk(g1Prefix, nonce1);
         const regk2 = computeRegk(g1Prefix, nonce2);
 
         // ── CS sends two /wap/iss concurrently ────────────────────────────────
         const dt1 = signifyDatetime();
         const aBlock1 = Saider.saidify({
-            d: "", i: alicePrefix, dt: dt1, attendeeName: "Alice OOR3 Flow1",
+            d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder OOR3 Flow1",
         })[1];
         const acdcSad1 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk1,
@@ -876,7 +877,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
         })[1];
         const dt2 = signifyDatetime();
         const aBlock2 = Saider.saidify({
-            d: "", i: alicePrefix, dt: dt2, attendeeName: "Alice OOR3 Flow2",
+            d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder OOR3 Flow2",
         })[1];
         const acdcSad2 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk2,
@@ -1166,7 +1167,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
     it("multi-cred OOR: flow1 issues 1 cred, flow2 issues 3 creds — M1 pre-computes 8-event chain, sends all VCPs reversed then all ISS reversed — KERIA cascades both groups of 4", async () => {
         const [nonce1, nonce2, nonce3, nonce4] = [randomNonce(), randomNonce(), randomNonce(), randomNonce()];
         const g1Prefix = g1HabM1.prefix;
-        const alicePrefix = aliceHab.prefix;
+        const holderPrefix = holderHab.prefix;
         const regk1 = computeRegk(g1Prefix, nonce1);
         const regk2 = computeRegk(g1Prefix, nonce2);
         const regk3 = computeRegk(g1Prefix, nonce3);
@@ -1174,19 +1175,19 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
 
         // ── CS builds ACDCs: flow1 has 1 cred, flow2 has 3 creds ─────────────
         const dt1 = signifyDatetime();
-        const aBlock1 = Saider.saidify({ d: "", i: alicePrefix, dt: dt1, attendeeName: "Alice OOR4 Flow1 Cred1" })[1];
+        const aBlock1 = Saider.saidify({ d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder OOR4 Flow1 Cred1" })[1];
         const acdcSad1 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk1, s: SCHEMA_SAID, a: aBlock1 })[1];
 
         const dt2 = signifyDatetime();
-        const aBlock2 = Saider.saidify({ d: "", i: alicePrefix, dt: dt2, attendeeName: "Alice OOR4 Flow2 Cred1" })[1];
+        const aBlock2 = Saider.saidify({ d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder OOR4 Flow2 Cred1" })[1];
         const acdcSad2 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk2, s: SCHEMA_SAID, a: aBlock2 })[1];
 
         const dt3 = signifyDatetime();
-        const aBlock3 = Saider.saidify({ d: "", i: alicePrefix, dt: dt3, attendeeName: "Alice OOR4 Flow2 Cred2" })[1];
+        const aBlock3 = Saider.saidify({ d: "", i: holderPrefix, dt: dt3, attendeeName: "Holder OOR4 Flow2 Cred2" })[1];
         const acdcSad3 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk3, s: SCHEMA_SAID, a: aBlock3 })[1];
 
         const dt4 = signifyDatetime();
-        const aBlock4 = Saider.saidify({ d: "", i: alicePrefix, dt: dt4, attendeeName: "Alice OOR4 Flow2 Cred3" })[1];
+        const aBlock4 = Saider.saidify({ d: "", i: holderPrefix, dt: dt4, attendeeName: "Holder OOR4 Flow2 Cred3" })[1];
         const acdcSad4 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk4, s: SCHEMA_SAID, a: aBlock4 })[1];
 
         // ── CS sends two /wap/iss concurrently ────────────────────────────────
@@ -1461,7 +1462,7 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
     it("super-chaotic OOR: 1 shared registry per flow, M1 interleaves VCPs and ISS freely — M2 zigzag ISS order triggers 3-deep cascade at sn+5", async () => {
         const [nonce1, nonce2] = [randomNonce(), randomNonce()];
         const g1Prefix = g1HabM1.prefix;
-        const alicePrefix = aliceHab.prefix;
+        const holderPrefix = holderHab.prefix;
         // Only 2 registries: all creds within a flow share the same ri
         const regk1 = computeRegk(g1Prefix, nonce1);
         const regk2 = computeRegk(g1Prefix, nonce2);
@@ -1469,15 +1470,15 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
         // ── CS builds ACDCs: flow1 (3 creds, all ri=regk1), flow2 (3 creds, all ri=regk2) ───
         const makeAcdc = (ri: string, name: string) => {
             const dt = signifyDatetime();
-            const aBlock = Saider.saidify({ d: "", i: alicePrefix, dt, attendeeName: name })[1];
+            const aBlock = Saider.saidify({ d: "", i: holderPrefix, dt, attendeeName: name })[1];
             return Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri, s: SCHEMA_SAID, a: aBlock })[1];
         };
-        const acdcSad_f1c1 = makeAcdc(regk1, "Alice OOR5 Flow1 Cred1");
-        const acdcSad_f1c2 = makeAcdc(regk1, "Alice OOR5 Flow1 Cred2");
-        const acdcSad_f1c3 = makeAcdc(regk1, "Alice OOR5 Flow1 Cred3");
-        const acdcSad_f2c1 = makeAcdc(regk2, "Alice OOR5 Flow2 Cred1");
-        const acdcSad_f2c2 = makeAcdc(regk2, "Alice OOR5 Flow2 Cred2");
-        const acdcSad_f2c3 = makeAcdc(regk2, "Alice OOR5 Flow2 Cred3");
+        const acdcSad_f1c1 = makeAcdc(regk1, "Holder OOR5 Flow1 Cred1");
+        const acdcSad_f1c2 = makeAcdc(regk1, "Holder OOR5 Flow1 Cred2");
+        const acdcSad_f1c3 = makeAcdc(regk1, "Holder OOR5 Flow1 Cred3");
+        const acdcSad_f2c1 = makeAcdc(regk2, "Holder OOR5 Flow2 Cred1");
+        const acdcSad_f2c2 = makeAcdc(regk2, "Holder OOR5 Flow2 Cred2");
+        const acdcSad_f2c3 = makeAcdc(regk2, "Holder OOR5 Flow2 Cred3");
 
         // ── CS sends two /wap/iss: flow1 (3 creds, 1 registry), flow2 (3 creds, 1 registry) ──
         const wapIssDt1 = signifyDatetime();
@@ -1768,5 +1769,254 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
             expect(note.a.r).toBe("/exn/wap/iss/ack");
             await csClient.notifications().mark(note.i);
         }
+    }, 300000);
+
+    it("IPEX grant/admit: G1 grants issued credential to holder", async () => {
+        const nonce = randomNonce();
+        const g1Prefix = g1HabM1.prefix;
+        const holderPrefix = holderHab.prefix;
+        const regk = computeRegk(g1Prefix, nonce);
+
+        // Holder needs CS, G1, and the schema resolved so KERIA can store the credential after admit.
+        const [holderCs, holderG1] = await Promise.all([
+            holderClient.contacts().get(csHab.prefix).catch(() => null),
+            holderClient.contacts().get(g1Prefix).catch(() => null),
+        ]);
+        const m1OobiStr = (await m1Client.oobis().get("m1", "agent")).oobis[0] as string;
+        const keriaBase = m1OobiStr.replace(/http:\/\/keria:/g, "http://127.0.0.1:").split("/oobi/")[0];
+        const credServerBase = env.preset === "local" ? "http://localhost:3001" : "http://cred-issuance:3001";
+        const schemaOobi = `${credServerBase}/oobi/${SCHEMA_SAID}`;
+        // Resolve once per run; schema cache doesn't surface via contacts().list() but re-resolving is safe.
+        await Promise.all([
+            !holderCs
+                ? holderClient.oobis()
+                    .resolve(
+                        (await csClient.oobis().get("cs", "agent")).oobis[0]
+                            .replace(/http:\/\/keria:/g, "http://127.0.0.1:"),
+                        "cs"
+                    ).then((op: any) => waitOperation(holderClient, op))
+                : Promise.resolve(),
+            !holderG1
+                ? holderClient.oobis()
+                    .resolve(`${keriaBase}/oobi/${g1Prefix}/agent/${m1Client.agent!.pre}`, "G1v2")
+                    .then((op: any) => waitOperation(holderClient, op))
+                : Promise.resolve(),
+            holderClient.oobis()
+                .resolve(schemaOobi, "schema")
+                .then((op: any) => waitOperation(holderClient, op))
+                .catch(() => {}),
+        ]);
+        if (!holderCs || !holderG1) console.log("[SETUP] holder resolved missing OOBIs");
+
+        // CS builds ACDC and sends /wap/iss
+        const credDt = signifyDatetime();
+        const aBlock = Saider.saidify({
+            d: "", i: holderPrefix, dt: credDt, attendeeName: "Holder IPEX",
+        })[1];
+        const acdcSad = Saider.saidify({
+            v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk, s: SCHEMA_SAID, a: aBlock,
+        })[1];
+        const credSaid = acdcSad.d as string;
+
+        const wapDt = signifyDatetime();
+        const [csExn, csSigs, csAtc] = await csClient.exchanges().createExchangeMessage(
+            csHab, "/wap/iss", { n: nonce, l: [acdcSad] }, {}, g1Prefix, wapDt
+        );
+        const csExnSaid = csExn.ked.d as string;
+        await csClient.exchanges().sendFromEvents("cs", "iss", csExn, csSigs, csAtc, [g1Prefix]);
+        console.log("[CS] sent /wap/iss said=%s cred=%s", csExnSaid, credSaid);
+
+        // M1 waits for /exn/wap/iss
+        const [m1Note] = await waitForNotificationsCount(m1Client, "/exn/wap/iss", 1, 30000);
+        const reqExn = await m1Client.exchanges().get(m1Note.a.d!);
+        expect(reqExn.exn.d).toBe(csExnSaid);
+        const corrId = reqExn.exn.d as string;
+        const payload = reqExn.exn.a as { n: string; l: any[] };
+        const cred = payload.l[0];
+        console.log("[M1] received /wap/iss corrId=%s", corrId);
+
+        let m1AckExn: any = null;
+        let m1AckSigs: string[] = [];
+        let m2AckSigs: string[] = [];
+
+        await Promise.all([
+            // ── M1: pre-compute VCP → ISS chain, send both exchanges upfront ────
+            // Same OOR pattern as tests 1-5: M1 queues both events before waiting.
+            // KERIA holds ISS in escrow until VCP commits, then cascades.
+            (async () => {
+                const regResult = await m1Client.registries().create({
+                    name: "G1v2", registryName: `wap-reg-${nonce}`, nonce,
+                });
+                const vcpIxnSn = parseInt(regResult.serder.ked.s, 16);
+                const vcpIxnSaid = regResult.serder.ked.d as string;
+                console.log("[M1] VCP queued: ixnSn=%d (op NOT awaited)", vcpIxnSn);
+
+                const issResult = await m1Client.credentials().issue("G1v2", {
+                    i: g1Prefix, ri: regk,
+                    s: cred.s, a: cred.a,
+                    ...(cred.u ? { u: cred.u } : {}),
+                }, { sn: vcpIxnSn, d: vcpIxnSaid });
+                console.log("[M1] ISS queued: ixnSn=%d (op NOT awaited)", issResult.anc.sn);
+
+                const issEmbed = await buildCredentialEmbed(m1Client, g1HabM1, issResult);
+                await m1Client.exchanges().send(
+                    "m1", "registry", m1Hab, "/multisig/vcp",
+                    { gid: g1Prefix, correlationId: corrId },
+                    buildRegistryEmbed(regResult), [m2Hab.prefix]
+                );
+                await m1Client.exchanges().send(
+                    "m1", "multisig", m1Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId },
+                    issEmbed, [m2Hab.prefix]
+                );
+                console.log("[M1] VCP+ISS exchanges sent — waiting for ops");
+
+                await Promise.all([
+                    waitOperation(m1Client, await regResult.op()),
+                    waitOperation(m1Client, issResult.op),
+                ]);
+                console.log("[M1] VCP+ISS ops done");
+
+                const [ackExn, ackSigs] = await m1Client.exchanges().createExchangeMessage(
+                    g1HabM1, "/wap/iss/ack",
+                    { r: "/wap/iss/ack", p: reqExn.exn.d },
+                    {}, reqExn.exn.i, reqExn.exn.dt, reqExn.exn.d
+                );
+                m1AckExn = ackExn;
+                m1AckSigs = ackSigs;
+                await m1Client.notifications().mark(m1Note.i);
+            })(),
+
+            // ── M2: poll for both exchanges, co-sign VCP first then ISS ─────────
+            (async () => {
+                const allExchanges = await pollAllIncomingExchanges(
+                    m2Client, [corrId], m2Hab.prefix, 2, 90000
+                );
+                const vcpExch = allExchanges.find((e: any) => e.exn.r === "/multisig/vcp")!;
+                const issExch = allExchanges.find((e: any) => e.exn.r === "/multisig/iss")!;
+
+                // Phase 1: co-sign VCP
+                const vcpAncFull = vcpExch.exn.e?.anc as { s: string; p: string };
+                const vcpTargetSn = parseInt(vcpAncFull.s, 16);
+                const m2Reg = await m2Client.registries().create({
+                    name: "G1v2", registryName: `wap-reg-${nonce}`, nonce,
+                    anchorPoint: { sn: vcpTargetSn - 1, d: vcpAncFull.p },
+                });
+                await m2Client.exchanges().send(
+                    "m2", "registry", m2Hab, "/multisig/vcp",
+                    { gid: g1Prefix, correlationId: corrId },
+                    buildRegistryEmbed(m2Reg), [m1Hab.prefix]
+                );
+                // M2's KERIA checks ri in Tevers when credentials().issue() is called — registry only exists there after VCP commits. M1 skips this.
+                await waitOperation(m2Client, await m2Reg.op());
+                console.log("[M2] VCP committed");
+
+                // Phase 2: co-sign ISS
+                const acdc = issExch.exn.e?.acdc as Record<string, unknown>;
+                const iss = issExch.exn.e?.iss as { ri: string };
+                const issAncFull = issExch.exn.e?.anc as { s: string; p: string };
+                const issTargetSn = parseInt(issAncFull.s, 16);
+                const m2Iss = await m2Client.credentials().issue("G1v2", {
+                    i: g1Prefix, ri: iss.ri,
+                    s: acdc.s as string, a: acdc.a as Record<string, unknown>,
+                    ...(acdc.u ? { u: acdc.u as string } : {}),
+                }, { sn: issTargetSn - 1, d: issAncFull.p });
+                const m2IssEmbed = await buildCredentialEmbed(m2Client, g1HabM2, m2Iss);
+                await m2Client.exchanges().send(
+                    "m2", "multisig", m2Hab, "/multisig/iss",
+                    { gid: g1Prefix, correlationId: corrId },
+                    m2IssEmbed, [m1Hab.prefix]
+                );
+                await waitOperation(m2Client, m2Iss.op);
+                console.log("[M2] ISS committed");
+
+                const [, ackSigs2] = await m2Client.exchanges().createExchangeMessage(
+                    g1HabM2, "/wap/iss/ack",
+                    { r: "/wap/iss/ack", p: reqExn.exn.d },
+                    {}, reqExn.exn.i, reqExn.exn.dt, reqExn.exn.d
+                );
+                m2AckSigs = ackSigs2;
+            })(),
+        ]);
+
+        // Submit ACK with combined sigs from both members
+        await m1Client.exchanges().sendFromEvents(
+            "G1v2", "wap", m1AckExn, [...m1AckSigs, ...m2AckSigs], "", [csHab.prefix]
+        );
+        console.log("[M1] ACK submitted: said=%s", m1AckExn.ked.d);
+
+        // CS receives ACK
+        const [csAckNote] = await waitForNotificationsCount(csClient, "/exn/wap/iss/ack", 1, 90000);
+        expect(csAckNote.a.r).toBe("/exn/wap/iss/ack");
+        await csClient.notifications().mark(csAckNote.i);
+        console.log("[CS] received ACK: credential=%s", credSaid);
+
+        // M1 fetches the committed credential (M1 is a G1 member so its KERIA has it)
+        let m1Cred: any = null;
+        for (let attempt = 0; attempt < 30 && !m1Cred?.anc; attempt++) {
+            try { m1Cred = await m1Client.credentials().get(credSaid); } catch {}
+            if (!m1Cred?.anc) await new Promise(r => setTimeout(r, 1000));
+        }
+        expect(m1Cred?.anc).toBeDefined();
+
+        // G1 (M1+M2) grants the credential to holder via IPEX.
+        // Both members sign the grant exn; anchor attachment is reused from issuance
+        // so ipex().grant() doesn't re-sign the already-committed IXN.
+        const grantDt = signifyDatetime();
+        const grantArgs = {
+            senderName: "G1v2",
+            recipient: holderPrefix,
+            acdc: new Serder(m1Cred.sad),
+            iss: new Serder(m1Cred.iss),
+            anc: new Serder(m1Cred.anc),
+            acdcAttachment: m1Cred.atc,
+            issAttachment: m1Cred.issatc,
+            ancAttachment: m1Cred.ancatc,
+            datetime: grantDt,
+        };
+        const [[grantExn, m1GrSigs, grantAtc], [, m2GrSigs]] = await Promise.all([
+            m1Client.ipex().grant(grantArgs),
+            m2Client.ipex().grant(grantArgs),
+        ]);
+        const grantOp = await m1Client.ipex().submitGrant(
+            "G1v2", grantExn, [...m1GrSigs, ...m2GrSigs], grantAtc, [holderPrefix]
+        );
+        console.log("[G1] grant submitted: said=%s", grantExn.ked.d);
+
+        // Holder admits back to G1
+        const [holderGrantNote] = await waitForNotificationsCount(holderClient, "/exn/ipex/grant", 1, 90000);
+        console.log("[HOLDER] received grant: exchSaid=%s", holderGrantNote.a.d);
+
+        const admitDt = signifyDatetime();
+        const [admit, aSigs, aEnd] = await holderClient.ipex().admit({
+            senderName: "holder",
+            message: "",
+            grantSaid: holderGrantNote.a.d!,
+            recipient: g1Prefix,
+            datetime: admitDt,
+        });
+        const admitOp = await holderClient.ipex().submitAdmit("holder", admit, aSigs, aEnd, [g1Prefix]);
+        await holderClient.notifications().mark(holderGrantNote.i);
+
+        await Promise.all([
+            waitOperation(m1Client, grantOp),
+            waitOperation(holderClient, admitOp),
+        ]);
+        console.log("[HOLDER] admitted credential");
+
+        // KERIA stores the credential asynchronously — it first waits for G1's key state
+        // in Tevers (populated from witness queries). This can take up to ~60 seconds.
+        let holderCred: any = null;
+        for (let attempt = 0; attempt < 90 && !holderCred; attempt++) {
+            await new Promise(r => setTimeout(r, 1000));
+            const creds = await holderClient.credentials().list({ limit: 100 });
+            holderCred = creds.find((c: any) => c.sad.d === credSaid);
+        }
+        expect(holderCred).toBeDefined();
+        expect(holderCred.sad.i).toBe(g1Prefix);
+        expect(holderCred.sad.a.i).toBe(holderPrefix);
+        expect(holderCred.status.s).toBe("0");
+        console.log("[HOLDER] credential verified: said=%s issuer=%s holder=%s",
+            credSaid, g1Prefix, holderPrefix);
     }, 300000);
 });

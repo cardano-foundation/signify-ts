@@ -6,7 +6,7 @@
  *   M2  — group member 2 (cosigner)
  *   G1  — 2-of-2 multisig group formed by M1 + M2
  *   CS  — credential server (sends /wap/iss to G1)
- *   Alice — holder (receives the credential)
+ *   Holder — holder (receives the credential)
  *
  * Flow:
  *   1. CS sends /wap/iss exchange to G1
@@ -179,27 +179,27 @@ describe("Setup verification", () => {
         expect(clients.m1).toBeDefined();
         expect(clients.m2).toBeDefined();
         expect(clients.cs).toBeDefined();
-        expect(clients.alice).toBeDefined();
+        expect(clients.holder).toBeDefined();
         console.log("\n=== Clients ===");
         console.log(`m1: ${clients.m1.prefix} (agent: ${clients.m1.agent})`);
         console.log(`m2: ${clients.m2.prefix} (agent: ${clients.m2.agent})`);
         console.log(`cs: ${clients.cs.prefix} (agent: ${clients.cs.agent})`);
-        console.log(`alice: ${clients.alice.prefix} (agent: ${clients.alice.agent})`);
+        console.log(`holder: ${clients.holder.prefix} (agent: ${clients.holder.agent})`);
     });
 
     it("contacts should exist between all participants", async () => {
-        const [m1Client, m2Client, csClient, aliceClient] = await Promise.all([
+        const [m1Client, m2Client, csClient, holderClient] = await Promise.all([
             getClientFromFile('m1'),
             getClientFromFile('m2'),
             getClientFromFile('cs'),
-            getClientFromFile('alice'),
+            getClientFromFile('holder'),
         ]);
 
-        const [m1Hab, m2Hab, csHab, aliceHab] = await Promise.all([
+        const [m1Hab, m2Hab, csHab, holderHab] = await Promise.all([
             m1Client.identifiers().get('m1'),
             m2Client.identifiers().get('m2'),
             csClient.identifiers().get('cs'),
-            aliceClient.identifiers().get('alice'),
+            holderClient.identifiers().get('holder'),
         ]);
 
         console.log("\n=== Contacts ===");
@@ -216,14 +216,14 @@ describe("Setup verification", () => {
         console.log(`CS contacts (${csContacts.length}):`);
         for (const c of csContacts) console.log(`  ${c.alias}: ${c.id}`);
 
-        const aliceContacts = await aliceClient.contacts().list();
-        console.log(`Alice contacts (${aliceContacts.length}):`);
-        for (const c of aliceContacts) console.log(`  ${c.alias}: ${c.id}`);
+        const holderContacts = await holderClient.contacts().list();
+        console.log(`Holder contacts (${holderContacts.length}):`);
+        for (const c of holderContacts) console.log(`  ${c.alias}: ${c.id}`);
 
         expect(m1Contacts.length).toBeGreaterThan(0);
         expect(m2Contacts.length).toBeGreaterThan(0);
         expect(csContacts.length).toBeGreaterThan(0);
-        expect(aliceContacts.length).toBeGreaterThanOrEqual(0);
+        expect(holderContacts.length).toBeGreaterThanOrEqual(0);
     });
 
     it("multisig group G1v2 should exist", async () => {
@@ -251,12 +251,12 @@ describe("WAP group issuance E2E", () => {
     let m1Client: SignifyClient;
     let m2Client: SignifyClient;
     let csClient: SignifyClient;
-    let aliceClient: SignifyClient;
+    let holderClient: SignifyClient;
 
     let m1Hab: any;
     let m2Hab: any;
     let csHab: any;
-    let aliceHab: any;
+    let holderHab: any;
     let g1HabM1: any;
     let g1HabM2: any;
 
@@ -277,23 +277,23 @@ describe("WAP group issuance E2E", () => {
         void env;
 
         console.log("[SETUP] Connecting to clients from .test-clients.json...");
-        [m1Client, m2Client, csClient, aliceClient] = await Promise.all([
+        [m1Client, m2Client, csClient, holderClient] = await Promise.all([
             getClientFromFile('m1'),
             getClientFromFile('m2'),
             getClientFromFile('cs'),
-            getClientFromFile('alice'),
+            getClientFromFile('holder'),
         ]);
         console.log("[SETUP] Loading identifiers...");
-        [m1Hab, m2Hab, csHab, aliceHab, g1HabM1, g1HabM2] = await Promise.all([
+        [m1Hab, m2Hab, csHab, holderHab, g1HabM1, g1HabM2] = await Promise.all([
             m1Client.identifiers().get("m1"),
             m2Client.identifiers().get("m2"),
             csClient.identifiers().get("cs"),
-            aliceClient.identifiers().get("alice"),
+            holderClient.identifiers().get("holder"),
             m1Client.identifiers().get("G1v2"),
             m2Client.identifiers().get("G1v2"),
         ]);
-        console.log("[SETUP] m1=%s m2=%s cs=%s alice=%s G1=%s",
-            m1Hab.prefix, m2Hab.prefix, csHab.prefix, aliceHab.prefix, g1HabM1.prefix);
+        console.log("[SETUP] m1=%s m2=%s cs=%s holder=%s G1=%s",
+            m1Hab.prefix, m2Hab.prefix, csHab.prefix, holderHab.prefix, g1HabM1.prefix);
 
         // Sanity: CS must have G1 contact and members must have CS contact
         const [csG1, m1Cs, m2Cs] = await Promise.all([
@@ -310,19 +310,40 @@ describe("WAP group issuance E2E", () => {
         console.log("[SETUP] Contacts ok");
     }, 60000);
 
+    beforeEach(async () => {
+        const [m1NotesAll, csNotesAll] = await Promise.all([
+            m1Client.notifications().list(),
+            csClient.notifications().list(),
+        ]);
+        const leftoverM1 = (m1NotesAll.notes ?? []).filter(
+            (n: any) => n.a.r === "/exn/wap/iss" && n.r === false
+        );
+        const leftoverCs = (csNotesAll.notes ?? []).filter(
+            (n: any) => n.a.r === "/exn/wap/iss/ack" && n.r === false
+        );
+        await Promise.all([
+            ...leftoverM1.map((n: any) => m1Client.notifications().mark(n.i)),
+            ...leftoverCs.map((n: any) => csClient.notifications().mark(n.i)),
+        ]);
+        if (leftoverM1.length || leftoverCs.length) {
+            console.log("[BEFORE EACH] Cleared %d M1 notes, %d CS notes",
+                leftoverM1.length, leftoverCs.length);
+        }
+    }, 30000);
+
     it("M1 + M2 co-sign WAP issuance and CS receives ACK", async () => {
         const nonce = randomNonce();
         const g1Prefix = g1HabM1.prefix;
-        const alicePrefix = aliceHab.prefix;
+        const holderPrefix = holderHab.prefix;
         const regk = computeRegk(g1Prefix, nonce);
 
         // ── CS builds and sends /wap/iss ──────────────────────────────────────
         const dt = signifyDatetime();
         const aBlock = Saider.saidify({
             d: "",
-            i: alicePrefix,
+            i: holderPrefix,
             dt,
-            attendeeName: "Alice Test",
+            attendeeName: "Holder Test",
         })[1];
         const acdcSad = Saider.saidify({
             v: "ACDC10JSON000000_",

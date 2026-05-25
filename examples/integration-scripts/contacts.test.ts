@@ -31,23 +31,23 @@ describe('Contact verification', () => {
         console.log('\nClients:', JSON.stringify(clients, null, 2));
         console.log('\nContacts:', JSON.stringify(contactsData, null, 2));
 
-        const [m1Client, m2Client, csClient, aliceClient] = await Promise.all([
+        const [m1Client, m2Client, csClient, holderClient] = await Promise.all([
             getClientFromFile('m1'),
             getClientFromFile('m2'),
             getClientFromFile('cs'),
-            getClientFromFile('alice'),
+            getClientFromFile('holder'),
         ]);
 
         const m1Hab = await m1Client.identifiers().get('m1');
         const m2Hab = await m2Client.identifiers().get('m2');
         const csHab = await csClient.identifiers().get('cs');
-        const aliceHab = await aliceClient.identifiers().get('alice');
+        const holderHab = await holderClient.identifiers().get('holder');
 
         console.log('\n--- Identifiers ---');
         console.log(`m1: ${m1Hab.prefix}`);
         console.log(`m2: ${m2Hab.prefix}`);
         console.log(`cs: ${csHab.prefix}`);
-        console.log(`alice: ${aliceHab.prefix}`);
+        console.log(`holder: ${holderHab.prefix}`);
 
         console.log('\n--- Contacts from M1 ---');
         const m1Contacts = await m1Client.contacts().list();
@@ -70,10 +70,10 @@ describe('Contact verification', () => {
             console.log(`  ${c.alias}: ${c.id}`);
         }
 
-        console.log('\n--- Contacts from Alice ---');
-        const aliceContacts = await aliceClient.contacts().list();
-        console.log(`Count: ${aliceContacts.length}`);
-        for (const c of aliceContacts) {
+        console.log('\n--- Contacts from Holder ---');
+        const holderContacts = await holderClient.contacts().list();
+        console.log(`Count: ${holderContacts.length}`);
+        for (const c of holderContacts) {
             console.log(`  ${c.alias}: ${c.id}`);
         }
 
@@ -88,6 +88,6 @@ describe('Contact verification', () => {
         expect(m1Contacts.length).toBeGreaterThan(0);
         expect(m2Contacts.length).toBeGreaterThan(0);
         expect(csContacts.length).toBeGreaterThan(0);
-        expect(aliceContacts.length).toBeGreaterThan(0);
+        expect(holderContacts.length).toBeGreaterThan(0);
     });
 });

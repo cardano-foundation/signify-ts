@@ -41,30 +41,30 @@ async function getClientFromFile(name: string): Promise<SignifyClient> {
 async function main() {
     console.log('Creating contacts between clients...\n');
 
-    const [m1Client, m2Client, csClient, aliceClient] = await Promise.all([
+    const [m1Client, m2Client, csClient, holderClient] = await Promise.all([
         getClientFromFile('m1'),
         getClientFromFile('m2'),
         getClientFromFile('cs'),
-        getClientFromFile('alice'),
+        getClientFromFile('holder'),
     ]);
 
-    const [m1Hab, m2Hab, csHab, aliceHab] = await Promise.all([
+    const [m1Hab, m2Hab, csHab, holderHab] = await Promise.all([
         m1Client.identifiers().get('m1'),
         m2Client.identifiers().get('m2'),
         csClient.identifiers().get('cs'),
-        aliceClient.identifiers().get('alice'),
+        holderClient.identifiers().get('holder'),
     ]);
 
     console.log(`M1: ${m1Hab.prefix}`);
     console.log(`M2: ${m2Hab.prefix}`);
     console.log(`CS: ${csHab.prefix}`);
-    console.log(`Alice: ${aliceHab.prefix}`);
+    console.log(`Holder: ${holderHab.prefix}`);
 
-    const [m1Oobi, m2Oobi, csOobi, aliceOobi] = (await Promise.all([
+    const [m1Oobi, m2Oobi, csOobi, holderOobi] = (await Promise.all([
         m1Client.oobis().get('m1', 'agent').then((r: any) => r.oobis[0]),
         m2Client.oobis().get('m2', 'agent').then((r: any) => r.oobis[0]),
         csClient.oobis().get('cs', 'agent').then((r: any) => r.oobis[0]),
-        aliceClient.oobis().get('alice', 'agent').then((r: any) => r.oobis[0]),
+        holderClient.oobis().get('holder', 'agent').then((r: any) => r.oobis[0]),
     ])).map((o: string) => rewriteOobi(o));
 
     const groupData = JSON.parse(fs.readFileSync(groupPath, 'utf-8'));
@@ -75,15 +75,15 @@ async function main() {
     await Promise.all([
         m1Client.oobis().resolve(m2Oobi, 'm2').then((op: any) => waitOperation(m1Client, op)),
         m1Client.oobis().resolve(csOobi, 'cs').then((op: any) => waitOperation(m1Client, op)),
-        m1Client.oobis().resolve(aliceOobi, 'alice').then((op: any) => waitOperation(m1Client, op)),
+        m1Client.oobis().resolve(holderOobi, 'holder').then((op: any) => waitOperation(m1Client, op)),
         m1Client.oobis().resolve(schemaOobi, 'schema').then((op: any) => waitOperation(m1Client, op)),
         m2Client.oobis().resolve(m1Oobi, 'm1').then((op: any) => waitOperation(m2Client, op)),
         m2Client.oobis().resolve(csOobi, 'cs').then((op: any) => waitOperation(m2Client, op)),
-        m2Client.oobis().resolve(aliceOobi, 'alice').then((op: any) => waitOperation(m2Client, op)),
+        m2Client.oobis().resolve(holderOobi, 'holder').then((op: any) => waitOperation(m2Client, op)),
         m2Client.oobis().resolve(schemaOobi, 'schema').then((op: any) => waitOperation(m2Client, op)),
         csClient.oobis().resolve(m1Oobi, 'm1').then((op: any) => waitOperation(csClient, op)),
         csClient.oobis().resolve(m2Oobi, 'm2').then((op: any) => waitOperation(csClient, op)),
-        csClient.oobis().resolve(aliceOobi, 'alice').then((op: any) => waitOperation(csClient, op)),
+        csClient.oobis().resolve(holderOobi, 'holder').then((op: any) => waitOperation(csClient, op)),
         csClient.oobis().resolve(schemaOobi, 'schema').then((op: any) => waitOperation(csClient, op)),
     ]);
     console.log('Basic OOBIs resolved');
@@ -119,7 +119,7 @@ async function main() {
         m1Contacts: await listContacts(m1Client),
         m2Contacts: await listContacts(m2Client),
         csContacts: await listContacts(csClient),
-        aliceContacts: await listContacts(aliceClient),
+        holderContacts: await listContacts(holderClient),
     };
 
     fs.writeFileSync(contactsOutputPath, JSON.stringify(contactsInfo, null, 2));

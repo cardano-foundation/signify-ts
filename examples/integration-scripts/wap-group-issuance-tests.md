@@ -11,7 +11,7 @@ Actors:
 - **M2**: group member 2 (cosigner — co-signs VCP+ISS via correlationId, contributes ACK sig)
 - **G1**: 2-of-2 multisig group (M1+M2)
 - **CS**: credential server (sends `/wap/iss`)
-- **Alice**: holder
+- **Holder**: holder
 
 ## Files involved
 
@@ -29,7 +29,7 @@ Actors:
 
 ### Generated state (gitignored)
 - `examples/.test-clients.json` — 4 client brans + AIDs + agent EIDs
-- `examples/.test-group.json` — G1 prefix + OOBIs
+- `examples/.test-group.json` — G1 prefix + OOBI (via M1 agent)
 - `examples/.test-contacts.json` — resolved contacts per client
 
 ## Quick start
@@ -96,7 +96,7 @@ Runs three scripts in sequence:
 
 1. **create-test-clients.ts** (~10 s):
    - Generates 4 random brans
-   - For each: boots a KERIA agent, creates the identifier (`m1`/`m2`/`cs`/`alice`), registers the agent endRole
+   - For each: boots a KERIA agent, creates the identifier (`m1`/`m2`/`cs`/`holder`), registers the agent endRole
    - Writes `.test-clients.json` with bran/controller/agent/prefix/oobi per client
 
 2. **create-test-multisig.ts** (~10 s):
@@ -104,10 +104,10 @@ Runs three scripts in sequence:
    - Resolves M1↔M2 OOBIs (needed before sending `/multisig/icp`)
    - Creates G1v2 with isith=nsith=2, 3 witnesses
    - Registers agent endRoles for both members on the group
-   - Writes `.test-group.json` with the G1 prefix and OOBIs
+   - Writes `.test-group.json` with the G1 prefix and OOBI (via M1 agent endpoint)
 
 3. **create-test-contacts.ts** (~30–60 s):
-   - Resolves OOBIs between M1, M2, CS, Alice, and the schema server
+   - Resolves OOBIs between M1, M2, CS, Holder, and the schema server
    - Resolves G1's OOBI on CS using **M1's agent EID explicitly** (so KERIA delivers `/wap/iss` to M1, not M2 — see "Key learnings" below)
    - Writes `.test-contacts.json` summary
 
