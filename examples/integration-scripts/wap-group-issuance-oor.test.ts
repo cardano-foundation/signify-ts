@@ -112,6 +112,52 @@ function buildRegistryEmbed(regResult: any): Record<string, any> {
     return { vcp: [regResult.regser, ""], anc: [regResult.serder, atc] };
 }
 
+async function sendGroupAck(
+    m1Client: SignifyClient,
+    m2Client: SignifyClient,
+    g1HabM1: any,
+    g1HabM2: any,
+    m1Hab: any,
+    m2Hab: any,
+    csPrefix: string,
+    req: any
+): Promise<void> {
+    await Promise.all([
+        (async () => {
+            const [ackExn, ackSigs, ackAtc] = await m1Client.exchanges().createExchangeMessage(
+                g1HabM1, "/wap/iss/ack",
+                { r: "/wap/iss/ack", p: req.exn.d },
+                {}, req.exn.i, req.exn.dt, req.exn.d
+            );
+            await m1Client.exchanges().sendFromEvents("G1v2", "wap", ackExn, ackSigs, ackAtc, [csPrefix]);
+            const seal = ['SealEvent', { i: g1HabM1.prefix, s: g1HabM1['state']['ee']['s'], d: g1HabM1['state']['ee']['d'] }];
+            const sigers = ackSigs.map((sig: string) => new Siger({ qb64: sig }));
+            const wrapIms = d(messagize(ackExn, sigers, seal));
+            const embAtc = wrapIms.substring(ackExn.size) + ackAtc;
+            await m1Client.exchanges().send(
+                "m1", "wap", m1Hab, "/multisig/exn",
+                { gid: g1HabM1.prefix }, { exn: [ackExn, embAtc] }, [m2Hab.prefix]
+            );
+        })(),
+        (async () => {
+            const [ackExn, ackSigs, ackAtc] = await m2Client.exchanges().createExchangeMessage(
+                g1HabM2, "/wap/iss/ack",
+                { r: "/wap/iss/ack", p: req.exn.d },
+                {}, req.exn.i, req.exn.dt, req.exn.d
+            );
+            await m2Client.exchanges().sendFromEvents("G1v2", "wap", ackExn, ackSigs, ackAtc, [csPrefix]);
+            const seal = ['SealEvent', { i: g1HabM2.prefix, s: g1HabM2['state']['ee']['s'], d: g1HabM2['state']['ee']['d'] }];
+            const sigers = ackSigs.map((sig: string) => new Siger({ qb64: sig }));
+            const wrapIms = d(messagize(ackExn, sigers, seal));
+            const embAtc = wrapIms.substring(ackExn.size) + ackAtc;
+            await m2Client.exchanges().send(
+                "m2", "wap", m2Hab, "/multisig/exn",
+                { gid: g1HabM2.prefix }, { exn: [ackExn, embAtc] }, [m1Hab.prefix]
+            );
+        })(),
+    ]);
+}
+
 async function buildCredentialEmbed(
     client: SignifyClient,
     gHab: any,
@@ -543,22 +589,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
 
         // ── ACK both flows ─────────────────────────────────────────────────────
         for (const [req, note] of [[req1, note1], [req2, note2]] as [any, any][]) {
-            const [[ackExn, ackSigs1], [, ackSigs2]] = await Promise.all([
-                m1Client.exchanges().createExchangeMessage(
-                    g1HabM1, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: req.exn.d },
-                    {}, req.exn.i, req.exn.dt, req.exn.d
-                ),
-                m2Client.exchanges().createExchangeMessage(
-                    g1HabM2, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: req.exn.d },
-                    {}, req.exn.i, req.exn.dt, req.exn.d
-                ),
-            ]);
-            await m1Client.exchanges().sendFromEvents(
-                "G1v2", "wap", ackExn, [...ackSigs1, ...ackSigs2], "", [csHab.prefix]
-            );
-            console.log("[M1] ACK submitted: said=%s corrId=...%s", ackExn.ked.d, req.exn.d.slice(-8));
+            await sendGroupAck(m1Client, m2Client, g1HabM1, g1HabM2, m1Hab, m2Hab, csHab.prefix, req);
+            console.log("[ACK] submitted corrId=...%s", req.exn.d.slice(-8));
             await m1Client.notifications().mark(note.i);
         }
 
@@ -829,22 +861,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
 
         // ── ACK both flows ─────────────────────────────────────────────────────
         for (const [req, note] of [[req1, note1], [req2, note2]] as [any, any][]) {
-            const [[ackExn, ackSigs1], [, ackSigs2]] = await Promise.all([
-                m1Client.exchanges().createExchangeMessage(
-                    g1HabM1, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: req.exn.d },
-                    {}, req.exn.i, req.exn.dt, req.exn.d
-                ),
-                m2Client.exchanges().createExchangeMessage(
-                    g1HabM2, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: req.exn.d },
-                    {}, req.exn.i, req.exn.dt, req.exn.d
-                ),
-            ]);
-            await m1Client.exchanges().sendFromEvents(
-                "G1v2", "wap", ackExn, [...ackSigs1, ...ackSigs2], "", [csHab.prefix]
-            );
-            console.log("[M1] ACK submitted: said=%s corrId=...%s", ackExn.ked.d, req.exn.d.slice(-8));
+            await sendGroupAck(m1Client, m2Client, g1HabM1, g1HabM2, m1Hab, m2Hab, csHab.prefix, req);
+            console.log("[ACK] submitted corrId=...%s", req.exn.d.slice(-8));
             await m1Client.notifications().mark(note.i);
         }
 
@@ -1136,22 +1154,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
 
         // ── ACK both flows ─────────────────────────────────────────────────────
         for (const [req, note] of [[req1, note1], [req2, note2]] as [any, any][]) {
-            const [[ackExn, ackSigs1], [, ackSigs2]] = await Promise.all([
-                m1Client.exchanges().createExchangeMessage(
-                    g1HabM1, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: req.exn.d },
-                    {}, req.exn.i, req.exn.dt, req.exn.d
-                ),
-                m2Client.exchanges().createExchangeMessage(
-                    g1HabM2, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: req.exn.d },
-                    {}, req.exn.i, req.exn.dt, req.exn.d
-                ),
-            ]);
-            await m1Client.exchanges().sendFromEvents(
-                "G1v2", "wap", ackExn, [...ackSigs1, ...ackSigs2], "", [csHab.prefix]
-            );
-            console.log("[M1] ACK submitted: said=%s corrId=...%s", ackExn.ked.d, req.exn.d.slice(-8));
+            await sendGroupAck(m1Client, m2Client, g1HabM1, g1HabM2, m1Hab, m2Hab, csHab.prefix, req);
+            console.log("[ACK] submitted corrId=...%s", req.exn.d.slice(-8));
             await m1Client.notifications().mark(note.i);
         }
 
@@ -1432,22 +1436,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
 
         // ── ACK both flows ─────────────────────────────────────────────────────
         for (const [req, note] of [[req1, note1], [req2, note2]] as [any, any][]) {
-            const [[ackExn, ackSigs1], [, ackSigs2]] = await Promise.all([
-                m1Client.exchanges().createExchangeMessage(
-                    g1HabM1, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: req.exn.d },
-                    {}, req.exn.i, req.exn.dt, req.exn.d
-                ),
-                m2Client.exchanges().createExchangeMessage(
-                    g1HabM2, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: req.exn.d },
-                    {}, req.exn.i, req.exn.dt, req.exn.d
-                ),
-            ]);
-            await m1Client.exchanges().sendFromEvents(
-                "G1v2", "wap", ackExn, [...ackSigs1, ...ackSigs2], "", [csHab.prefix]
-            );
-            console.log("[M1] ACK submitted: said=%s corrId=...%s", ackExn.ked.d, req.exn.d.slice(-8));
+            await sendGroupAck(m1Client, m2Client, g1HabM1, g1HabM2, m1Hab, m2Hab, csHab.prefix, req);
+            console.log("[ACK] submitted corrId=...%s", req.exn.d.slice(-8));
             await m1Client.notifications().mark(note.i);
         }
 
@@ -1745,22 +1735,8 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
 
         // ── ACK both flows ─────────────────────────────────────────────────────
         for (const [req, note] of [[req1, note1], [req2, note2]] as [any, any][]) {
-            const [[ackExn, ackSigs1], [, ackSigs2]] = await Promise.all([
-                m1Client.exchanges().createExchangeMessage(
-                    g1HabM1, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: req.exn.d },
-                    {}, req.exn.i, req.exn.dt, req.exn.d
-                ),
-                m2Client.exchanges().createExchangeMessage(
-                    g1HabM2, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: req.exn.d },
-                    {}, req.exn.i, req.exn.dt, req.exn.d
-                ),
-            ]);
-            await m1Client.exchanges().sendFromEvents(
-                "G1v2", "wap", ackExn, [...ackSigs1, ...ackSigs2], "", [csHab.prefix]
-            );
-            console.log("[M1] ACK submitted: said=%s corrId=...%s", ackExn.ked.d, req.exn.d.slice(-8));
+            await sendGroupAck(m1Client, m2Client, g1HabM1, g1HabM2, m1Hab, m2Hab, csHab.prefix, req);
+            console.log("[ACK] submitted corrId=...%s", req.exn.d.slice(-8));
             await m1Client.notifications().mark(note.i);
         }
 
@@ -1839,10 +1815,6 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
         const cred = payload.l[0];
         console.log("[M1] received /wap/iss corrId=%s", corrId);
 
-        let m1AckExn: any = null;
-        let m1AckSigs: string[] = [];
-        let m2AckSigs: string[] = [];
-
         await Promise.all([
             // ── M1: pre-compute VCP → ISS chain, send both exchanges upfront ────
             // Same OOR pattern as tests 1-5: M1 queues both events before waiting.
@@ -1880,14 +1852,6 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                     waitOperation(m1Client, issResult.op),
                 ]);
                 console.log("[M1] VCP+ISS ops done");
-
-                const [ackExn, ackSigs] = await m1Client.exchanges().createExchangeMessage(
-                    g1HabM1, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: reqExn.exn.d },
-                    {}, reqExn.exn.i, reqExn.exn.dt, reqExn.exn.d
-                );
-                m1AckExn = ackExn;
-                m1AckSigs = ackSigs;
                 await m1Client.notifications().mark(m1Note.i);
             })(),
 
@@ -1934,21 +1898,11 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
                 );
                 await waitOperation(m2Client, m2Iss.op);
                 console.log("[M2] ISS committed");
-
-                const [, ackSigs2] = await m2Client.exchanges().createExchangeMessage(
-                    g1HabM2, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: reqExn.exn.d },
-                    {}, reqExn.exn.i, reqExn.exn.dt, reqExn.exn.d
-                );
-                m2AckSigs = ackSigs2;
             })(),
         ]);
 
-        // Submit ACK with combined sigs from both members
-        await m1Client.exchanges().sendFromEvents(
-            "G1v2", "wap", m1AckExn, [...m1AckSigs, ...m2AckSigs], "", [csHab.prefix]
-        );
-        console.log("[M1] ACK submitted: said=%s", m1AckExn.ked.d);
+        await sendGroupAck(m1Client, m2Client, g1HabM1, g1HabM2, m1Hab, m2Hab, csHab.prefix, reqExn);
+        console.log("[ACK] submitted");
 
         // CS receives ACK
         const [csAckNote] = await waitForNotificationsCount(csClient, "/exn/wap/iss/ack", 1, 90000);
@@ -2025,179 +1979,4 @@ describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
             credSaid, g1Prefix, holderPrefix);
     }, 300000);
 
-    it("automatic ACK (FAILS — KERIA limitation): M1 and M2 submit partial sigs separately, expecting KERIA to assemble 2/2 and deliver to CS", async () => {
-        // EXPECTED TO FAIL. Documents that ExchangeSender (agenting.py:663) does not merge
-        // partial sigs across agents. The only working path for the WAP ACK is the
-        // combined-sigs-in-one-call pattern from test 6.
-        //
-        // Test 6 collects both sigs on M1 and submits them in one call. Production wallets
-        // can't easily do that (M1 and M2 are on separate devices). This test checks whether
-        // each member submitting only its own partial sig is enough for KERIA to assemble
-        // and deliver — it is not.
-
-        const nonce = randomNonce();
-        const g1Prefix = g1HabM1.prefix;
-        const holderPrefix = holderHab.prefix;
-        const regk = computeRegk(g1Prefix, nonce);
-
-        // CS builds ACDC and sends /wap/iss to G1
-        const credDt = signifyDatetime();
-        const aBlock = Saider.saidify({
-            d: "", i: holderPrefix, dt: credDt, attendeeName: "Holder AutoACK",
-        })[1];
-        const acdcSad = Saider.saidify({
-            v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk, s: SCHEMA_SAID, a: aBlock,
-        })[1];
-
-        const wapDt = signifyDatetime();
-        const [csExn, csSigs, csAtc] = await csClient.exchanges().createExchangeMessage(
-            csHab, "/wap/iss", { n: nonce, l: [acdcSad] }, {}, g1Prefix, wapDt
-        );
-        const csExnSaid = csExn.ked.d as string;
-        await csClient.exchanges().sendFromEvents("cs", "iss", csExn, csSigs, csAtc, [g1Prefix]);
-        console.log("[CS] sent /wap/iss said=%s", csExnSaid);
-
-        // M1 waits for /exn/wap/iss
-        const [m1Note] = await waitForNotificationsCount(m1Client, "/exn/wap/iss", 1, 30000);
-        const reqExn = await m1Client.exchanges().get(m1Note.a.d!);
-        const corrId = reqExn.exn.d as string;
-        const payload = reqExn.exn.a as { n: string; l: any[] };
-        const cred = payload.l[0];
-
-        let m1AckExn: any = null;
-        let m1AckSigs: string[] = [];
-        let m2AckSigs: string[] = [];
-
-        await Promise.all([
-            // ── M1: VCP+ISS chain, then build M1's ACK sig only ──────────────
-            (async () => {
-                const regResult = await m1Client.registries().create({
-                    name: "G1v2", registryName: `wap-reg-${nonce}`, nonce,
-                });
-                const vcpIxnSn = parseInt(regResult.serder.ked.s, 16);
-                const vcpIxnSaid = regResult.serder.ked.d as string;
-
-                const issResult = await m1Client.credentials().issue("G1v2", {
-                    i: g1Prefix, ri: regk,
-                    s: cred.s, a: cred.a,
-                    ...(cred.u ? { u: cred.u } : {}),
-                }, { sn: vcpIxnSn, d: vcpIxnSaid });
-
-                const issEmbed = await buildCredentialEmbed(m1Client, g1HabM1, issResult);
-                await m1Client.exchanges().send(
-                    "m1", "registry", m1Hab, "/multisig/vcp",
-                    { gid: g1Prefix, correlationId: corrId },
-                    buildRegistryEmbed(regResult), [m2Hab.prefix]
-                );
-                await m1Client.exchanges().send(
-                    "m1", "multisig", m1Hab, "/multisig/iss",
-                    { gid: g1Prefix, correlationId: corrId },
-                    issEmbed, [m2Hab.prefix]
-                );
-
-                await Promise.all([
-                    waitOperation(m1Client, await regResult.op()),
-                    waitOperation(m1Client, issResult.op),
-                ]);
-                console.log("[M1] VCP+ISS ops done");
-
-                const [ackExn, ackSigs] = await m1Client.exchanges().createExchangeMessage(
-                    g1HabM1, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: reqExn.exn.d },
-                    {}, reqExn.exn.i, reqExn.exn.dt, reqExn.exn.d
-                );
-                m1AckExn = ackExn;
-                m1AckSigs = ackSigs;
-                await m1Client.notifications().mark(m1Note.i);
-            })(),
-
-            // ── M2: co-sign VCP then ISS, then build M2's ACK sig only ───────
-            (async () => {
-                const allExchanges = await pollAllIncomingExchanges(
-                    m2Client, [corrId], m2Hab.prefix, 2, 90000
-                );
-                const vcpExch = allExchanges.find((e: any) => e.exn.r === "/multisig/vcp")!;
-                const issExch = allExchanges.find((e: any) => e.exn.r === "/multisig/iss")!;
-
-                const vcpAncFull = vcpExch.exn.e?.anc as { s: string; p: string };
-                const vcpTargetSn = parseInt(vcpAncFull.s, 16);
-                const m2Reg = await m2Client.registries().create({
-                    name: "G1v2", registryName: `wap-reg-${nonce}`, nonce,
-                    anchorPoint: { sn: vcpTargetSn - 1, d: vcpAncFull.p },
-                });
-                await m2Client.exchanges().send(
-                    "m2", "registry", m2Hab, "/multisig/vcp",
-                    { gid: g1Prefix, correlationId: corrId },
-                    buildRegistryEmbed(m2Reg), [m1Hab.prefix]
-                );
-                await waitOperation(m2Client, await m2Reg.op());
-
-                const acdc = issExch.exn.e?.acdc as Record<string, unknown>;
-                const iss = issExch.exn.e?.iss as { ri: string };
-                const issAncFull = issExch.exn.e?.anc as { s: string; p: string };
-                const issTargetSn = parseInt(issAncFull.s, 16);
-                const m2Iss = await m2Client.credentials().issue("G1v2", {
-                    i: g1Prefix, ri: iss.ri,
-                    s: acdc.s as string, a: acdc.a as Record<string, unknown>,
-                    ...(acdc.u ? { u: acdc.u as string } : {}),
-                }, { sn: issTargetSn - 1, d: issAncFull.p });
-                const m2IssEmbed = await buildCredentialEmbed(m2Client, g1HabM2, m2Iss);
-                await m2Client.exchanges().send(
-                    "m2", "multisig", m2Hab, "/multisig/iss",
-                    { gid: g1Prefix, correlationId: corrId },
-                    m2IssEmbed, [m1Hab.prefix]
-                );
-                await waitOperation(m2Client, m2Iss.op);
-                console.log("[M2] VCP+ISS co-sign ops done");
-
-                const [, ackSigs2] = await m2Client.exchanges().createExchangeMessage(
-                    g1HabM2, "/wap/iss/ack",
-                    { r: "/wap/iss/ack", p: reqExn.exn.d },
-                    {}, reqExn.exn.i, reqExn.exn.dt, reqExn.exn.d
-                );
-                m2AckSigs = ackSigs2;
-            })(),
-        ]);
-
-        // KEY DIFFERENCE FROM TEST 6: each member submits its OWN partial sig separately.
-        // This test is intentionally left FAILING to document a KERIA limitation.
-        //
-        // Why it fails:
-        // sendFromEvents() routes through ExchangeSender.recur() (agenting.py:673), which
-        // only delivers when exc.complete(said) is true — i.e. the threshold of sigs is
-        // already present inside that single agent's DB. M1's KERIA has 1/2 sigs, M2's
-        // KERIA has 1/2 sigs; neither reaches 2/2, so neither agent ever sends.
-        //
-        // IPEX grant/admit DO support cross-agent sig assembly: Granter.recur() and
-        // Admitter.recur() (agenting.py:819, 995) process embedded sigs from /multisig/exn
-        // wrapper messages that travel through the mailbox — M2 sends its sig to M1's
-        // mailbox, M1's agent collects both, then Granter/Admitter delivers. No equivalent
-        // Doer exists for WAP exchanges: the only available path is ExchangeSender, which
-        // requires the full set of sigs in a single sendFromEvents() call (test 6's approach).
-        console.log("[M1] submitting partial ACK (sig 1/2)...");
-        await m1Client.exchanges().sendFromEvents(
-            "G1v2", "wap", m1AckExn, m1AckSigs, "", [csHab.prefix]
-        );
-
-        console.log("[M2] submitting partial ACK (sig 2/2)...");
-        await m2Client.exchanges().sendFromEvents(
-            "G1v2", "wap", m1AckExn, m2AckSigs, "", [csHab.prefix]
-        );
-
-        // CS receives the ACK only if KERIA assembled 2/2 sigs and delivered.
-        // Generous timeout because partial-sig escrow processing isn't immediate.
-        console.log("[TEST] Waiting for CS to receive /exn/wap/iss/ack via automatic delivery...");
-        const csAckNotes = await waitForNotificationsCount(csClient, "/exn/wap/iss/ack", 1, 90000);
-        expect(csAckNotes).toHaveLength(1);
-        expect(csAckNotes[0].a.r).toBe("/exn/wap/iss/ack");
-
-        const ackExch = await csClient.exchanges().get(csAckNotes[0].a.d!);
-        expect(ackExch.exn.d).toBe(m1AckExn.ked.d);
-        expect(ackExch.exn.p).toBe(reqExn.exn.d);
-
-        for (const n of csAckNotes) {
-            await csClient.notifications().mark(n.i);
-        }
-        console.log("[CS] received ACK automatically — KERIA merged 2/2 partial sigs across agents");
-    }, 300000);
 });
