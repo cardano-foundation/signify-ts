@@ -32,17 +32,17 @@
  * When VCP2 (sn+2) arrives at KERIA before VCP1 (sn+1), KERIA puts VCP2 on hold. When VCP1
  * arrives, KERIA commits sn+1 and cascades: sn+2 was waiting → commits immediately. Same cascade
  * for ISS2(sn+4) → ISS1(sn+3) → cascade fires ISS2. M1 persists the chain to
- * examples/.test-oor3-chain.json to demonstrate offline pre-computation of sn+digest.
+ * examples/.test-ooo3-chain.json to demonstrate offline pre-computation of sn+digest.
  *
- * Test 4 — multi-cred OOR (one registry per credential): flow1 issues 1 cred, flow2 issues 3 creds:
+ * Test 4 — multi-cred OOO (one registry per credential): flow1 issues 1 cred, flow2 issues 3 creds:
  * 8-event grouped chain — 4 VCPs (sn+1..sn+4) then 4 ISS (sn+5..sn+8). M1 pre-computes all 8
- * sn+digest values, writes them to examples/.test-oor4-chain.json, then sends all VCPs in
+ * sn+digest values, writes them to examples/.test-ooo4-chain.json, then sends all VCPs in
  * descending sn order (sn+4→sn+3→sn+2→sn+1) and all ISS in descending sn order
  * (sn+8→sn+7→sn+6→sn+5). M2 co-signs in the same descending order per phase. KERIA holds
  * sn+2..sn+4 in psces until sn+1 commits then cascades all 3; same for the ISS group.
  * Demonstrates that KERIA can cascade a 4-deep escrow chain in both VCP and ISS phases.
  *
- * Test 5 — super-chaotic OOR: 1 shared registry per flow, VCPs and ISS fully interleaved:
+ * Test 5 — super-chaotic OOO: 1 shared registry per flow, VCPs and ISS fully interleaved:
  * 2 flows × 3 creds = 2 VCPs + 6 ISS = 8 ixn events. Only 2 registries (one per flow); all
  * credentials within a flow share that registry's ri. M1 pre-computes all 8 sn+digests, then
  * sends in a fully chaotic order where VCPs and ISS are interleaved:
@@ -52,7 +52,7 @@
  * waits for the VCP cascade to commit both registries, then co-signs ISS in zigzag order
  * (alternating highest/lowest: sn+8→sn+3→sn+7→sn+4→sn+6→sn+5). The zigzag produces:
  * two immediate commits (sn+3, sn+4) then sn+5 triggers a 3-deep cascade (sn+6→sn+7→sn+8).
- * Chain state written to examples/.test-oor5-chain.json.
+ * Chain state written to examples/.test-ooo5-chain.json.
  *
  * Prerequisites:
  *   docker-compose down -v && docker-compose up -d
@@ -81,6 +81,7 @@ import { resolveEnvironment } from "./utils/resolve-env";
 import { waitOperation } from "./utils/test-util";
 import fs from "fs";
 import path from "path";
+import { spawnSync } from "child_process";
 
 const SCHEMA_SAID = "EJxnJdxkHbRw2wVFNe4IUOPLt8fEtg9Sr3WyTjlgKoIb";
 
@@ -260,17 +261,17 @@ async function pollAllIncomingExchanges(
 const clientsPath = path.join(__dirname, "../../examples/.test-clients.json");
 const groupPath = path.join(__dirname, "../../examples/.test-group.json");
 
-// The OOR scenarios in the first describe block are written for a 2-of-2
+// The OOO scenarios in the first describe block are written for a 2-of-2
 // group (m1 initiator + m2 sole cosigner). When the setup script created a
 // larger group (e.g. N_MEMBERS=3 THRESHOLD=2), KERIA needs sigs from peers
-// the OOR tests do not drive, so we skip them. The K-of-N describe block
+// the OOO tests do not drive, so we skip them. The K-of-N describe block
 // further down still runs for any group size.
 const groupMembersCount = fs.existsSync(groupPath)
     ? (JSON.parse(fs.readFileSync(groupPath, "utf-8")).members?.length ?? 2)
     : 2;
-const oor2of2Describe = groupMembersCount === 2 ? describe : describe.skip;
+const ooo2of2Describe = groupMembersCount === 2 ? describe : describe.skip;
 
-oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
+ooo2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", () => {
     const env = resolveEnvironment();
 
     let m1Client: SignifyClient;
@@ -375,7 +376,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         // ── CS sends two /wap/iss concurrently ────────────────────────────────
         const dt1 = signifyDatetime();
         const aBlock1 = Saider.saidify({
-            d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder OOR Flow1",
+            d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder OOO Flow1",
         })[1];
         const acdcSad1 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk1,
@@ -384,7 +385,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
 
         const dt2 = signifyDatetime();
         const aBlock2 = Saider.saidify({
-            d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder OOR Flow2",
+            d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder OOO Flow2",
         })[1];
         const acdcSad2 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk2,
@@ -528,7 +529,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
             })(),
 
             // ── M2: two flows concurrently, within each flow VCP→ISS using VCP IXN anchor ──
-            // OOR: ISS IXN is submitted while VCP IXN may still be in psces — KERIA cascades.
+            // OOO: ISS IXN is submitted while VCP IXN may still be in psces — KERIA cascades.
             // VCP HTTP response is awaited to get the IXN said before ISS is submitted.
             // This is the same pattern M1 uses — no wait for VCP op between VCP and ISS.
             (async () => {
@@ -629,7 +630,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         // ── CS sends two /wap/iss concurrently ────────────────────────────────
         const dt1 = signifyDatetime();
         const aBlock1 = Saider.saidify({
-            d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder ReverseOOR Flow1",
+            d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder ReverseOOO Flow1",
         })[1];
         const acdcSad1 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk1,
@@ -638,7 +639,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
 
         const dt2 = signifyDatetime();
         const aBlock2 = Saider.saidify({
-            d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder ReverseOOR Flow2",
+            d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder ReverseOOO Flow2",
         })[1];
         const acdcSad2 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk2,
@@ -695,7 +696,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
             ...(cred2.u ? { u: cred2.u } : {}),
         };
 
-        console.log("[TEST] Explicit reverse OOR — grouped chain VCP1→VCP2→ISS1→ISS2, sent in reverse sn=4..1");
+        console.log("[TEST] Explicit reverse OOO — grouped chain VCP1→VCP2→ISS1→ISS2, sent in reverse sn=4..1");
 
         await Promise.all([
             // ── M1: build GROUPED chain, send in REVERSE sn order: sn+4→sn+3→sn+2→sn+1 ──
@@ -892,7 +893,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         // ── CS sends two /wap/iss concurrently ────────────────────────────────
         const dt1 = signifyDatetime();
         const aBlock1 = Saider.saidify({
-            d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder OOR3 Flow1",
+            d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder OOO3 Flow1",
         })[1];
         const acdcSad1 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk1,
@@ -900,7 +901,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         })[1];
         const dt2 = signifyDatetime();
         const aBlock2 = Saider.saidify({
-            d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder OOR3 Flow2",
+            d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder OOO3 Flow2",
         })[1];
         const acdcSad2 = Saider.saidify({
             v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk2,
@@ -993,7 +994,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         );
 
         // Persist chain state — sn+digest for each event, computed before any exchange is sent
-        const chainPath = path.join(__dirname, "../../examples/.test-oor3-chain.json");
+        const chainPath = path.join(__dirname, "../../examples/.test-ooo3-chain.json");
         fs.writeFileSync(chainPath, JSON.stringify({
             testRun: new Date().toISOString(),
             g1Prefix,
@@ -1171,7 +1172,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         }
     }, 300000);
 
-    it("multi-cred OOR: flow1 issues 1 cred, flow2 issues 3 creds — M1 pre-computes 8-event chain, sends all VCPs reversed then all ISS reversed — KERIA cascades both groups of 4", async () => {
+    it("multi-cred OOO: flow1 issues 1 cred, flow2 issues 3 creds — M1 pre-computes 8-event chain, sends all VCPs reversed then all ISS reversed — KERIA cascades both groups of 4", async () => {
         const [nonce1, nonce2, nonce3, nonce4] = [randomNonce(), randomNonce(), randomNonce(), randomNonce()];
         const g1Prefix = g1HabM1.prefix;
         const holderPrefix = holderHab.prefix;
@@ -1182,19 +1183,19 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
 
         // ── CS builds ACDCs: flow1 has 1 cred, flow2 has 3 creds ─────────────
         const dt1 = signifyDatetime();
-        const aBlock1 = Saider.saidify({ d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder OOR4 Flow1 Cred1" })[1];
+        const aBlock1 = Saider.saidify({ d: "", i: holderPrefix, dt: dt1, attendeeName: "Holder OOO4 Flow1 Cred1" })[1];
         const acdcSad1 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk1, s: SCHEMA_SAID, a: aBlock1 })[1];
 
         const dt2 = signifyDatetime();
-        const aBlock2 = Saider.saidify({ d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder OOR4 Flow2 Cred1" })[1];
+        const aBlock2 = Saider.saidify({ d: "", i: holderPrefix, dt: dt2, attendeeName: "Holder OOO4 Flow2 Cred1" })[1];
         const acdcSad2 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk2, s: SCHEMA_SAID, a: aBlock2 })[1];
 
         const dt3 = signifyDatetime();
-        const aBlock3 = Saider.saidify({ d: "", i: holderPrefix, dt: dt3, attendeeName: "Holder OOR4 Flow2 Cred2" })[1];
+        const aBlock3 = Saider.saidify({ d: "", i: holderPrefix, dt: dt3, attendeeName: "Holder OOO4 Flow2 Cred2" })[1];
         const acdcSad3 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk3, s: SCHEMA_SAID, a: aBlock3 })[1];
 
         const dt4 = signifyDatetime();
-        const aBlock4 = Saider.saidify({ d: "", i: holderPrefix, dt: dt4, attendeeName: "Holder OOR4 Flow2 Cred3" })[1];
+        const aBlock4 = Saider.saidify({ d: "", i: holderPrefix, dt: dt4, attendeeName: "Holder OOO4 Flow2 Cred3" })[1];
         const acdcSad4 = Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk4, s: SCHEMA_SAID, a: aBlock4 })[1];
 
         // ── CS sends two /wap/iss concurrently ────────────────────────────────
@@ -1274,7 +1275,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         );
 
         // Persist chain — all 8 sn+digest values computed before any exchange is sent
-        const chainPath = path.join(__dirname, "../../examples/.test-oor4-chain.json");
+        const chainPath = path.join(__dirname, "../../examples/.test-ooo4-chain.json");
         fs.writeFileSync(chainPath, JSON.stringify({
             testRun: new Date().toISOString(),
             g1Prefix,
@@ -1451,7 +1452,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         }
     }, 300000);
 
-    it("super-chaotic OOR: 1 shared registry per flow, M1 interleaves VCPs and ISS freely — M2 zigzag ISS order triggers 3-deep cascade at sn+5", async () => {
+    it("super-chaotic OOO: 1 shared registry per flow, M1 interleaves VCPs and ISS freely — M2 zigzag ISS order triggers 3-deep cascade at sn+5", async () => {
         const [nonce1, nonce2] = [randomNonce(), randomNonce()];
         const g1Prefix = g1HabM1.prefix;
         const holderPrefix = holderHab.prefix;
@@ -1465,12 +1466,12 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
             const aBlock = Saider.saidify({ d: "", i: holderPrefix, dt, attendeeName: name })[1];
             return Saider.saidify({ v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri, s: SCHEMA_SAID, a: aBlock })[1];
         };
-        const acdcSad_f1c1 = makeAcdc(regk1, "Holder OOR5 Flow1 Cred1");
-        const acdcSad_f1c2 = makeAcdc(regk1, "Holder OOR5 Flow1 Cred2");
-        const acdcSad_f1c3 = makeAcdc(regk1, "Holder OOR5 Flow1 Cred3");
-        const acdcSad_f2c1 = makeAcdc(regk2, "Holder OOR5 Flow2 Cred1");
-        const acdcSad_f2c2 = makeAcdc(regk2, "Holder OOR5 Flow2 Cred2");
-        const acdcSad_f2c3 = makeAcdc(regk2, "Holder OOR5 Flow2 Cred3");
+        const acdcSad_f1c1 = makeAcdc(regk1, "Holder OOO5 Flow1 Cred1");
+        const acdcSad_f1c2 = makeAcdc(regk1, "Holder OOO5 Flow1 Cred2");
+        const acdcSad_f1c3 = makeAcdc(regk1, "Holder OOO5 Flow1 Cred3");
+        const acdcSad_f2c1 = makeAcdc(regk2, "Holder OOO5 Flow2 Cred1");
+        const acdcSad_f2c2 = makeAcdc(regk2, "Holder OOO5 Flow2 Cred2");
+        const acdcSad_f2c3 = makeAcdc(regk2, "Holder OOO5 Flow2 Cred3");
 
         // ── CS sends two /wap/iss: flow1 (3 creds, 1 registry), flow2 (3 creds, 1 registry) ──
         const wapIssDt1 = signifyDatetime();
@@ -1556,7 +1557,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         );
 
         // Persist chain — 2 shared registries + 6 ISS, computed before any exchange is sent
-        const chainPath = path.join(__dirname, "../../examples/.test-oor5-chain.json");
+        const chainPath = path.join(__dirname, "../../examples/.test-ooo5-chain.json");
         fs.writeFileSync(chainPath, JSON.stringify({
             testRun: new Date().toISOString(),
             g1Prefix,
@@ -1783,7 +1784,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
             holderClient.oobis()
                 .resolve(schemaOobi, "schema")
                 .then((op: any) => waitOperation(holderClient, op))
-                .catch(() => {}),
+                .catch(() => { }),
         ]);
         if (!holderCs || !holderG1) console.log("[SETUP] holder resolved missing OOBIs");
 
@@ -1816,7 +1817,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
 
         await Promise.all([
             // ── M1: pre-compute VCP → ISS chain, send both exchanges upfront ────
-            // Same OOR pattern as tests 1-5: M1 queues both events before waiting.
+            // Same OOO pattern as tests 1-5: M1 queues both events before waiting.
             // KERIA holds ISS in escrow until VCP commits, then cascades.
             (async () => {
                 const regResult = await m1Client.registries().create({
@@ -1916,7 +1917,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         // M1 fetches the committed credential (M1 is a G1 member so its KERIA has it)
         let m1Cred: any = null;
         for (let attempt = 0; attempt < 30 && !m1Cred?.anc; attempt++) {
-            try { m1Cred = await m1Client.credentials().get(credSaid); } catch {}
+            try { m1Cred = await m1Client.credentials().get(credSaid); } catch { }
             if (!m1Cred?.anc) await new Promise(r => setTimeout(r, 1000));
         }
         expect(m1Cred?.anc).toBeDefined();
@@ -1981,6 +1982,7 @@ oor2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
         console.log("[HOLDER] credential verified: said=%s issuer=%s holder=%s",
             credSaid, g1Prefix, holderPrefix);
     }, 300000);
+
 
 });
 
@@ -2092,7 +2094,7 @@ kOfNDescribe("WAP group issuance E2E — K-of-N IPEX grant/admit", () => {
         for (const c of allClients) {
             const notes = (await c.notifications().list(0, 1000)).notes ?? [];
             for (const n of notes) {
-                if (n.r === false) await c.notifications().mark(n.i).catch(() => {});
+                if (n.r === false) await c.notifications().mark(n.i).catch(() => { });
             }
         }
 
@@ -2421,4 +2423,558 @@ kOfNDescribe("WAP group issuance E2E — K-of-N IPEX grant/admit", () => {
             `[HOLDER] verified credential said=${credSaid} issuer=${g1Prefix}`
         );
     }, 600000);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//                          KERIA BUG REPRO
+//
+// Wallet flow being mirrored:
+//   1. CS sends /wap/iss to group G1. Both members receive the notification.
+//   2. M1 user accepts FIRST. Wallet's initiator path:
+//        - registries.create (own VCP partial)
+//        - credentials.issue (own ISS partial)
+//        - send /multisig/vcp to M2  ← M1's VCP partial enters KERIA escrow
+//        - send /multisig/iss to M2  ← M1's ISS partial enters KERIA escrow
+//        - await Promise.all([VCP op, ISS op])  ← BLOCKS until M2 cosigns
+//        - sendGroupAck → partial-sig /wap/iss/ack to KERIA + /multisig/exn
+//          wrapper to M2.
+//   3. M2 user accepts second. Wallet's cosigner path (`drainQueuedIssCosign`
+//      starts ACK before ISS cosign — the "early-ACK" mitigation):
+//        - registries.create (cosign VCP)
+//        - send /multisig/vcp to M1
+//        - await VCP op  ← KERIA combines M1+M2 VCP partials, commits
+//        - sendGroupAck → partial-sig /wap/iss/ack to KERIA + /multisig/exn
+//        - credentials.issue (cosign ISS)
+//        - send /multisig/iss to M1  ← KERIA combines ISS, ISS op resolves
+//          on M1 side, M1's Promise.all returns
+//   4. The two ACK partials hit KERIA seconds apart (M2 first because of
+//      early-ACK; M1 second after VCP+ISS combine). KERIA does NOT merge
+//      them. KERIA log shows:
+//        - 100+ recurring `Exchange partially signed failed: Not enough
+//          signatures in [1]` for the ACK SAID (M2's partial alone)
+//        - only 2 transient `Not enough signatures in [0]` for the same
+//          SAID (M1's partial — parsed twice on arrival, then silently
+//          dropped, never enters the recurring escrow)
+//      Threshold never reached → CS never gets /exn/wap/iss/ack. KERIA
+//      pegs CPU at 100% indefinitely; state persists to LMDB and survives
+//      `docker compose restart keria` (only `docker volume rm` clears it).
+//
+// Why the other tests in this file do NOT expose it:
+//   They submit M1+M2 partials via `Promise.all` — both partials hit KERIA
+//   microseconds apart and the merge path runs synchronously. The wallet
+//   cannot Promise.all across two devices, so the second partial always
+//   arrives after the first has entered the spin loop.
+//
+// Suggested KERIA-side fixes?
+//   (a) On arrival of a new partial for a SAID that is already in
+//       partial-sig escrow, MERGE the sig into the existing entry instead
+//       of dropping or creating a new bucket. This is the root cause.
+//   (b) Add backoff inside `processEscrowPartialSigned` so the re-verify
+//       loop does not peg CPU when threshold is unmet. Mitigates the
+//       failure mode but does not fix the root cause.
+//   (c) Persist epse/epsd/esigs across restarts AND clear stuck escrows
+//       on startup instead of resuming the spin.
+//
+// How to run (must be on a clean KERIA — the bug persists state to LMDB
+// so a stale spin from a prior run will skew the counts):
+//
+//   cd /Users/caso/Projects/PRIVATE-veridian-wallet
+//   docker compose down
+//   docker volume rm private-veridian-wallet_keria-data
+//   docker compose up -d
+//   sleep 10
+//   npm run test:wap-e2e:setup
+//   cd signify-ts
+//   TEST_ENVIRONMENT=local npx jest \
+//       examples/integration-scripts/wap-group-issuance-ooo.test.ts \
+//       -t "wallet flow exact replay" --testTimeout=300000 --verbose
+//
+// Inspect KERIA logs for the bug pattern:
+//
+//   docker logs private-veridian-wallet-keria-1 \
+//       | grep -E "Missing escrowed anchor|not in Tevers|Exchange partially signed"
+//
+// Expected counts on a successful repro (clean KERIA, 10s tap delay):
+//
+//   Tevery unescrow failed:              ~1500–3000
+//   Tevery unescrow error:               ~700–1500
+//   Verifier unescrow failed:            ~400–1000
+//   Exchange partially signed failed [1]: ~400–700
+//
+// The test prints these counts at the end and asserts the cascade fired.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const keriaBugReprosDescribe = fs.existsSync(clientsPath) && fs.existsSync(groupPath)
+    ? describe
+    : describe.skip;
+
+keriaBugReprosDescribe("WAP group issuance E2E — KERIA bug repros", () => {
+    const env = resolveEnvironment();
+
+    let m1Client: SignifyClient;
+    let m2Client: SignifyClient;
+    let csClient: SignifyClient;
+    let holderClient: SignifyClient;
+
+    let m1Hab: any;
+    let m2Hab: any;
+    let csHab: any;
+    let holderHab: any;
+    let g1HabM1: any;
+    let g1HabM2: any;
+
+    beforeAll(async () => {
+        if (!fs.existsSync(clientsPath) || !fs.existsSync(groupPath)) {
+            throw new Error(
+                `Clients/group file missing. Run setup first:\n  npm run test:wap-e2e:setup`
+            );
+        }
+        void env;
+    }, 10000);
+
+    beforeEach(async () => {
+        [m1Client, m2Client, csClient, holderClient] = await Promise.all([
+            getClientFromFile("m1"),
+            getClientFromFile("m2"),
+            getClientFromFile("cs"),
+            getClientFromFile("holder"),
+        ]);
+        [m1Hab, m2Hab, csHab, holderHab, g1HabM1, g1HabM2] = await Promise.all([
+            m1Client.identifiers().get("m1"),
+            m2Client.identifiers().get("m2"),
+            csClient.identifiers().get("cs"),
+            holderClient.identifiers().get("holder"),
+            m1Client.identifiers().get("G1v2"),
+            m2Client.identifiers().get("G1v2"),
+        ]);
+
+        // Drain leftover unread /exn/wap/iss + /exn/wap/iss/ack notifications
+        // from prior test runs so each repro starts on a clean state. Uses a
+        // smaller page size so a long backlog (e.g. after a manual wallet run)
+        // does not blow the beforeEach timeout.
+        const PAGE = 100;
+        const drain = async (
+            client: SignifyClient,
+            match: (n: any) => boolean
+        ): Promise<void> => {
+            let start = 0;
+            for (let i = 0; i < 10; i++) {
+                const res = await client.notifications().list(start, start + PAGE - 1);
+                const notes = res.notes ?? [];
+                if (notes.length === 0) break;
+                const unread = notes.filter((n: any) => n.r === false && match(n));
+                await Promise.all(unread.map((n: any) => client.notifications().mark(n.i)));
+                if (notes.length < PAGE) break;
+                start += PAGE;
+            }
+        };
+        await Promise.all([
+            drain(m1Client, (n) => n.a.r === "/exn/wap/iss"),
+            drain(m2Client, (n) => n.a.r === "/exn/wap/iss"),
+            drain(csClient, (n) => n.a.r === "/exn/wap/iss/ack"),
+            drain(holderClient, (n) => n.a.r === "/exn/ipex/grant"),
+        ]);
+    }, 180000);
+
+    it("KERIA bug repro: wallet flow exact replay — M2 early-ACK between VCP and ISS cosign, M1 ACK after Promise.all unblocks. CS never receives /exn/wap/iss/ack", async () => {
+        // ── Setup ──────────────────────────────────────────────────────────
+        const nonce = randomNonce();
+        const g1Prefix = g1HabM1.prefix;
+        const holderPrefix = holderHab.prefix;
+        const regk = computeRegk(g1Prefix, nonce);
+
+        const [holderCs, holderG1] = await Promise.all([
+            holderClient.contacts().get(csHab.prefix).catch(() => null),
+            holderClient.contacts().get(g1Prefix).catch(() => null),
+        ]);
+        const m1OobiStr = (await m1Client.oobis().get("m1", "agent")).oobis[0] as string;
+        const keriaBase = m1OobiStr.replace(/http:\/\/keria:/g, "http://127.0.0.1:").split("/oobi/")[0];
+        const credServerBase = env.preset === "local" ? "http://localhost:3001" : "http://cred-issuance:3001";
+        const schemaOobi = `${credServerBase}/oobi/${SCHEMA_SAID}`;
+        await Promise.all([
+            !holderCs
+                ? holderClient.oobis()
+                    .resolve(
+                        (await csClient.oobis().get("cs", "agent")).oobis[0]
+                            .replace(/http:\/\/keria:/g, "http://127.0.0.1:"),
+                        "cs"
+                    ).then((op: any) => waitOperation(holderClient, op))
+                : Promise.resolve(),
+            !holderG1
+                ? holderClient.oobis()
+                    .resolve(`${keriaBase}/oobi/${g1Prefix}/agent/${m1Client.agent!.pre}`, "G1v2")
+                    .then((op: any) => waitOperation(holderClient, op))
+                : Promise.resolve(),
+            holderClient.oobis()
+                .resolve(schemaOobi, "schema")
+                .then((op: any) => waitOperation(holderClient, op))
+                .catch(() => { }),
+        ]);
+
+        // ── Continuous notification polling on all 4 agents (the wallet's
+        //    KeriaNotificationService is always polling — KERIA is never idle).
+        let polling = true;
+        const POLL_INTERVAL_MS = 200;
+        const pollStats = { m1: 0, m2: 0, cs: 0, holder: 0 };
+        const pollLoop = async (client: SignifyClient, label: keyof typeof pollStats) => {
+            while (polling) {
+                try { await client.notifications().list(0, 50); pollStats[label]++; }
+                catch (e) { /* ignore transient */ }
+                await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+            }
+        };
+        const pollPromises = [
+            pollLoop(m1Client, "m1"),
+            pollLoop(m2Client, "m2"),
+            pollLoop(csClient, "cs"),
+            pollLoop(holderClient, "holder"),
+        ];
+
+        try {
+            // ── CS builds the credential template and sends /wap/iss to G1 ──────
+            const credDt = signifyDatetime();
+            const aBlock = Saider.saidify({
+                d: "", i: holderPrefix, dt: credDt, attendeeName: "Wallet Replay",
+            })[1];
+            const acdcSad = Saider.saidify({
+                v: "ACDC10JSON000000_", d: "", i: g1Prefix, ri: regk, s: SCHEMA_SAID, a: aBlock,
+            })[1];
+            const credSaid = acdcSad.d as string;
+            const wapDt = signifyDatetime();
+            const [csExn, csSigs, csAtc] = await csClient.exchanges().createExchangeMessage(
+                csHab, "/wap/iss", { n: nonce, l: [acdcSad] }, {}, g1Prefix, wapDt
+            );
+            const csExnSaid = csExn.ked.d as string;
+            await csClient.exchanges().sendFromEvents("cs", "iss", csExn, csSigs, csAtc, [g1Prefix]);
+            console.log("[REPLAY] CS sent /wap/iss said=%s cred=%s", csExnSaid, credSaid);
+
+            // Both members observe the request
+            const [m1Note] = await waitForNotificationsCount(m1Client, "/exn/wap/iss", 1, 30000);
+            const [m2Note] = await waitForNotificationsCount(m2Client, "/exn/wap/iss", 1, 30000);
+            const reqExn = await m1Client.exchanges().get(m1Note.a.d!);
+            expect(reqExn.exn.d).toBe(csExnSaid);
+            const corrId = reqExn.exn.d as string;
+            const payload = reqExn.exn.a as { n: string; l: any[] };
+            const cred = payload.l[0];
+            console.log("[REPLAY] both members received /wap/iss corrId=%s", corrId);
+
+            const ackPayload = { r: "/wap/iss/ack", p: reqExn.exn.d };
+
+            // ── Parallel two-member flow exactly matching the wallet ────────────
+            // M1 is the initiator: queues VCP+ISS, broadcasts, then BLOCKS on
+            //   await Promise.all([VCP op, ISS op]) until M2 has cosigned both.
+            //   Once unblocked, M1 sends its /wap/iss/ack partial.
+            // M2 is the cosigner: receives /multisig/vcp+iss, cosigns VCP and
+            //   waits for the VCP op, then sends its /wap/iss/ack partial
+            //   (early-ACK), then cosigns ISS and sends /multisig/iss. M2's ISS
+            //   send is what unblocks M1's await.
+            let m2AckSentAt = 0;
+            let m1AckSentAt = 0;
+            let m1AckSaid = "";
+
+            const tFlowStart = Date.now();
+            await Promise.all([
+                // ────────────── M1 initiator path ──────────────
+                (async () => {
+                    const m1RegResult = await m1Client.registries().create({
+                        name: "G1v2", registryName: `wap-reg-${nonce}`, nonce,
+                    });
+                    const m1VcpIxnSn = parseInt(m1RegResult.serder.ked.s, 16);
+                    const m1VcpIxnSaid = m1RegResult.serder.ked.d as string;
+
+                    const m1IssResult = await m1Client.credentials().issue("G1v2", {
+                        i: g1Prefix, ri: regk,
+                        s: cred.s, a: cred.a,
+                        ...(cred.u ? { u: cred.u } : {}),
+                    }, { sn: m1VcpIxnSn, d: m1VcpIxnSaid });
+
+                    const m1IssEmbed = await buildCredentialEmbed(m1Client, g1HabM1, m1IssResult);
+                    await m1Client.exchanges().send(
+                        "m1", "registry", m1Hab, "/multisig/vcp",
+                        { gid: g1Prefix, correlationId: corrId },
+                        buildRegistryEmbed(m1RegResult), [m2Hab.prefix]
+                    );
+                    await m1Client.exchanges().send(
+                        "m1", "multisig", m1Hab, "/multisig/iss",
+                        { gid: g1Prefix, correlationId: corrId },
+                        m1IssEmbed, [m2Hab.prefix]
+                    );
+                    console.log(
+                        "[REPLAY][t=%dms] M1 broadcast VCP+ISS to M2, awaiting ops",
+                        Date.now() - tFlowStart
+                    );
+
+                    // BLOCK until KERIA combines both partials (i.e. until M2 cosigns).
+                    // This is the exact same `await Promise.all` from the wallet's
+                    // initiateGroupIssuance path. M1's ISS op resolves the moment
+                    // M2's ISS partial arrives at KERIA — that's the natural sync
+                    // point that creates the ~1-2s gap between M2 and M1 ACKs.
+                    await Promise.all([
+                        waitOperation(m1Client, await m1RegResult.op()),
+                        waitOperation(m1Client, m1IssResult.op),
+                    ]);
+                    console.log(
+                        "[REPLAY][t=%dms] M1 Promise.all([VCP op, ISS op]) unblocked",
+                        Date.now() - tFlowStart
+                    );
+
+                    // M1 sendGroupAck — exactly mirrors submitGroupResponseAndBroadcast
+                    const [m1AckExn, m1AckSigs, m1AckAtc] = await m1Client.exchanges().createExchangeMessage(
+                        g1HabM1, "/wap/iss/ack", ackPayload, {},
+                        reqExn.exn.i, reqExn.exn.dt, reqExn.exn.d
+                    );
+                    m1AckSaid = m1AckExn.ked.d as string;
+                    await m1Client.exchanges().sendFromEvents(
+                        "G1v2", "wap", m1AckExn, m1AckSigs, m1AckAtc, [csHab.prefix]
+                    );
+                    m1AckSentAt = Date.now() - tFlowStart;
+                    {
+                        const seal = ["SealEvent", {
+                            i: g1HabM1.prefix,
+                            s: g1HabM1["state"]["ee"]["s"],
+                            d: g1HabM1["state"]["ee"]["d"],
+                        }];
+                        const sigers = m1AckSigs.map((sig: string) => new Siger({ qb64: sig }));
+                        const wrapIms = d(messagize(m1AckExn, sigers, seal));
+                        const embAtc = wrapIms.substring(m1AckExn.size) + m1AckAtc;
+                        await m1Client.exchanges().send(
+                            "m1", "wap", m1Hab, "/multisig/exn",
+                            { gid: g1HabM1.prefix }, { exn: [m1AckExn, embAtc] }, [m2Hab.prefix]
+                        );
+                    }
+                    console.log(
+                        "[REPLAY][t=%dms] M1 sent /wap/iss/ack partial + wrapper said=%s",
+                        m1AckSentAt, m1AckSaid
+                    );
+                })(),
+
+                // ────────────── M2 cosigner path ──────────────
+                (async () => {
+                    // Wait for /multisig/vcp + /multisig/iss to arrive from M1
+                    const allExchanges = await pollAllIncomingExchanges(
+                        m2Client, [corrId], m2Hab.prefix, 2, 90000
+                    );
+                    const vcpExch = allExchanges.find((e: any) => e.exn.r === "/multisig/vcp")!;
+                    const issExch = allExchanges.find((e: any) => e.exn.r === "/multisig/iss")!;
+                    console.log(
+                        "[REPLAY][t=%dms] M2 received /multisig/vcp + /multisig/iss",
+                        Date.now() - tFlowStart
+                    );
+
+                    // Simulate user-tap delay on M2. The wallet manual run was
+                    // ~9.3s and triggered the FULL bug surface: dual-escrow on
+                    // /wap/iss/ack PLUS dual-escrow on /multisig/vcp partials,
+                    // which cascades into 'Tevery unescrow failed: Missing
+                    // escrowed anchor' + 'Verifier unescrow failed: registry
+                    // identifier ... not in Tevers' loops at 100% CPU.
+                    // Setting 10s here so M2's /multisig/vcp partial reaches KERIA
+                    // ~11s after M1's, matching the wallet's window.
+                    const USER_TAP_MS = 10000;
+                    await new Promise((r) => setTimeout(r, USER_TAP_MS));
+                    console.log(
+                        "[REPLAY][t=%dms] M2 user accepted (after %dms tap delay)",
+                        Date.now() - tFlowStart, USER_TAP_MS
+                    );
+
+                    // Step 1: VCP cosign (drainQueuedVcpCosign)
+                    const vcpAncFull = vcpExch.exn.e?.anc as { s: string; p: string };
+                    const vcpTargetSn = parseInt(vcpAncFull.s, 16);
+                    const m2Reg = await m2Client.registries().create({
+                        name: "G1v2", registryName: `wap-reg-${nonce}`, nonce,
+                        anchorPoint: { sn: vcpTargetSn - 1, d: vcpAncFull.p },
+                    });
+                    await m2Client.exchanges().send(
+                        "m2", "registry", m2Hab, "/multisig/vcp",
+                        { gid: g1Prefix, correlationId: corrId },
+                        buildRegistryEmbed(m2Reg), [m1Hab.prefix]
+                    );
+                    // M2 waits for its OWN VCP op (this is what the wallet does in
+                    // drainQueuedVcpCosign via waitAndGetDoneOp before the early-ACK).
+                    await waitOperation(m2Client, await m2Reg.op());
+                    console.log(
+                        "[REPLAY][t=%dms] M2 VCP op resolved, firing early-ACK now",
+                        Date.now() - tFlowStart
+                    );
+
+                    // Step 2: EARLY-ACK — submit M2's /wap/iss/ack partial BEFORE
+                    // M2's ISS cosign. This is the wallet's drainQueuedIssCosign
+                    // entry point. M2's partial enters KERIA's escrow ALONE and
+                    // KERIA starts spinning [1] re-verify.
+                    const [m2AckExn, m2AckSigs, m2AckAtc] = await m2Client.exchanges().createExchangeMessage(
+                        g1HabM2, "/wap/iss/ack", ackPayload, {},
+                        reqExn.exn.i, reqExn.exn.dt, reqExn.exn.d
+                    );
+                    expect(m2AckExn.ked.d).toBe(m1AckSaid || m2AckExn.ked.d);
+                    await m2Client.exchanges().sendFromEvents(
+                        "G1v2", "wap", m2AckExn, m2AckSigs, m2AckAtc, [csHab.prefix]
+                    );
+                    m2AckSentAt = Date.now() - tFlowStart;
+                    {
+                        const seal = ["SealEvent", {
+                            i: g1HabM2.prefix,
+                            s: g1HabM2["state"]["ee"]["s"],
+                            d: g1HabM2["state"]["ee"]["d"],
+                        }];
+                        const sigers = m2AckSigs.map((sig: string) => new Siger({ qb64: sig }));
+                        const wrapIms = d(messagize(m2AckExn, sigers, seal));
+                        const embAtc = wrapIms.substring(m2AckExn.size) + m2AckAtc;
+                        await m2Client.exchanges().send(
+                            "m2", "wap", m2Hab, "/multisig/exn",
+                            { gid: g1HabM2.prefix }, { exn: [m2AckExn, embAtc] }, [m1Hab.prefix]
+                        );
+                    }
+                    console.log(
+                        "[REPLAY][t=%dms] M2 sent /wap/iss/ack partial + wrapper said=%s",
+                        m2AckSentAt, m2AckExn.ked.d
+                    );
+
+                    // Step 3: ISS cosign — this is what unblocks M1's Promise.all
+                    // because KERIA combines M1+M2 ISS partials. M1 then sends its
+                    // ACK, which arrives at KERIA while [1] is already spinning.
+                    const acdc = issExch.exn.e?.acdc as Record<string, unknown>;
+                    const iss = issExch.exn.e?.iss as { ri: string };
+                    const issAncFull = issExch.exn.e?.anc as { s: string; p: string };
+                    const issTargetSn = parseInt(issAncFull.s, 16);
+                    const m2Iss = await m2Client.credentials().issue("G1v2", {
+                        i: g1Prefix, ri: iss.ri,
+                        s: acdc.s as string, a: acdc.a as Record<string, unknown>,
+                        ...(acdc.u ? { u: acdc.u as string } : {}),
+                    }, { sn: issTargetSn - 1, d: issAncFull.p });
+                    const m2IssEmbed = await buildCredentialEmbed(m2Client, g1HabM2, m2Iss);
+                    await m2Client.exchanges().send(
+                        "m2", "multisig", m2Hab, "/multisig/iss",
+                        { gid: g1Prefix, correlationId: corrId },
+                        m2IssEmbed, [m1Hab.prefix]
+                    );
+                    console.log(
+                        "[REPLAY][t=%dms] M2 sent /multisig/iss cosign — unblocks M1's Promise.all",
+                        Date.now() - tFlowStart
+                    );
+                    // Don't wait for M2's local ISS op here — the wallet does in
+                    // drainQueuedIssCosign but for the repro it's not needed.
+                })(),
+            ]);
+
+            const gapMs = m1AckSentAt - m2AckSentAt;
+            console.log(
+                "[REPLAY] both ACK partials sent. M2 at t=%dms, M1 at t=%dms, gap=%dms (wallet manual was ~1500ms)",
+                m2AckSentAt, m1AckSentAt, gapMs
+            );
+
+            // ── Wait briefly for CS to receive /exn/wap/iss/ack. This is the
+            //    happy-path signal — but it is NOT the assertion target because
+            //    KERIA may eventually recover from the dual-escrow if given
+            //    enough time. The actual bug surface is the partial-sig escrow
+            //    PATTERN in KERIA's logs, which we inspect below. ──────────────
+            const CS_DEADLINE_MS = 30_000;
+            let csAckArrived = false;
+            try {
+                const [csAckNote] = await waitForNotificationsCount(
+                    csClient, "/exn/wap/iss/ack", 1, CS_DEADLINE_MS
+                );
+                expect(csAckNote.a.r).toBe("/exn/wap/iss/ack");
+                await csClient.notifications().mark(csAckNote.i);
+                csAckArrived = true;
+                console.log("[REPLAY] CS received /exn/wap/iss/ack credential=%s (KERIA recovered from dual-escrow)", credSaid);
+            } catch {
+                console.log("[REPLAY] CS did NOT receive /exn/wap/iss/ack within %dms — full bug surface (KERIA stuck)", CS_DEADLINE_MS);
+            }
+
+            await Promise.all([
+                m1Client.notifications().mark(m1Note.i).catch(() => { }),
+                m2Client.notifications().mark(m2Note.i).catch(() => { }),
+            ]);
+
+            // ── Inspect KERIA's container logs for the dual-escrow PATTERN.
+            //    This IS the bug. Both `[0]` (M1's sig index) and `[1]` (M2's
+            //    sig index) should appear in `Not enough signatures in [N]`
+            //    lines for the same SAID — meaning KERIA tracked them as two
+            //    separate escrow entries instead of merging into one. ─────────
+            const keriaLogResult = spawnSync(
+                "docker",
+                ["logs", "private-veridian-wallet-keria-1"],
+                { maxBuffer: 200 * 1024 * 1024 }
+            );
+            const keriaLog =
+                (keriaLogResult.stdout?.toString() ?? "") +
+                (keriaLogResult.stderr?.toString() ?? "");
+            const keriaLines = keriaLog.split("\n");
+            const teveryUnescrowFailed = keriaLines.filter(
+                (l: string) => l.includes("Tevery unescrow failed")
+            ).length;
+            const teveryUnescrowError = keriaLines.filter(
+                (l: string) => l.includes("Tevery unescrow error")
+            ).length;
+            const verifierUnescrowFailed = keriaLines.filter(
+                (l: string) => l.includes("Verifier unescrow failed")
+            ).length;
+            const exchangePartiallyFailed = keriaLines.filter(
+                (l: string) => l.includes("Exchange partially signed failed")
+            ).length;
+
+            console.log(
+                "[REPLAY] KERIA cascade counts: " +
+                "Tevery unescrow failed=%d, Tevery unescrow error=%d, " +
+                "Verifier unescrow failed=%d, Exchange partially signed failed=%d",
+                teveryUnescrowFailed, teveryUnescrowError, verifierUnescrowFailed, exchangePartiallyFailed
+            );
+
+            // Sample one of each cascade error for the dev to grep against
+            const sampleTevery = keriaLines.find((l: string) => l.includes("Tevery unescrow failed"));
+            const sampleVerifier = keriaLines.find((l: string) => l.includes("Verifier unescrow failed"));
+            if (sampleTevery) console.log("[REPLAY] sample Tevery err: %s", sampleTevery.trim());
+            if (sampleVerifier) console.log("[REPLAY] sample Verifier err: %s", sampleVerifier.trim());
+
+            // Snapshot KERIA CPU after the test. In the wallet-freeze condition,
+            // KERIA stays pinned at 100% CPU even minutes later because the
+            // unescrow cascade has no backoff.
+            const cpuResult = spawnSync(
+                "docker",
+                ["stats", "--no-stream", "--format", "{{.CPUPerc}}", "private-veridian-wallet-keria-1"],
+                { maxBuffer: 1024 * 1024 }
+            );
+            const cpuPct = (cpuResult.stdout?.toString() ?? "").trim();
+            console.log("[REPLAY] KERIA CPU after test: %s", cpuPct);
+
+            const fullCascadeFired =
+                teveryUnescrowFailed > 100 ||
+                verifierUnescrowFailed > 100;
+
+            if (fullCascadeFired) {
+                console.log(
+                    "[REPLAY] FULL WALLET BUG REPRODUCED: Tevery/Verifier unescrow cascade is firing. " +
+                    "This is the same pattern as the wallet-observed freeze. " +
+                    "Inspect KERIA logs for 'Missing escrowed anchor' and 'registry identifier ... not in Tevers'."
+                );
+            } else if (exchangePartiallyFailed > 0) {
+                console.log(
+                    "[REPLAY] PARTIAL BUG REPRODUCED: the ACK partial-sig escrow ran (%d times) but the " +
+                    "Tevery/Verifier cascade did NOT fire (only %d + %d events). To get the full freeze, " +
+                    "you likely need a longer M2 user-tap delay or to run on KERIA with residual stuck " +
+                    "state from a prior failed run.",
+                    exchangePartiallyFailed, teveryUnescrowFailed, verifierUnescrowFailed
+                );
+            } else {
+                console.log(
+                    "[REPLAY] No bug fired this run. " +
+                    "ackArrived=%s. Try increasing USER_TAP_MS or re-running.",
+                    csAckArrived
+                );
+            }
+
+            // Assert the FULL wallet bug surface fired (cascade present). The
+            // partial-sig escrow alone is not enough — that gets KERIA's logs
+            // dirty but the eventual merge clears it. The cascade is what pegs
+            // KERIA at 100% CPU forever in production.
+            expect(fullCascadeFired).toBe(true);
+        } finally {
+            polling = false;
+            await Promise.all(pollPromises);
+            console.log(
+                "[REPLAY] polls stopped. m1=%d m2=%d cs=%d holder=%d",
+                pollStats.m1, pollStats.m2, pollStats.cs, pollStats.holder
+            );
+        }
+    }, 240_000);
+
 });
