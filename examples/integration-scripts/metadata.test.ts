@@ -43,11 +43,12 @@ describe('metadata', () => {
 
     test('get metadata via identifier get', async () => {
         const hab = await client.identifiers().get(name);
+        const metadata = hab.metadata;
 
-        expect(hab.metadata).toBeDefined();
-        expect(hab.metadata!.displayName).toEqual('Alice');
-        expect(hab.metadata!.email).toEqual('alice@example.com');
-        expect(hab.metadata!.avatar).toEqual(
+        expect(metadata).not.toBeNull();
+        expect(metadata!.displayName).toEqual('Alice');
+        expect(metadata!.email).toEqual('alice@example.com');
+        expect(metadata!.avatar).toEqual(
             'https://example.com/avatars/alice.jpg'
         );
     });
@@ -72,10 +73,13 @@ describe('metadata', () => {
         expect(result.language).toEqual(updatedMetadata.language);
 
         const hab = await client.identifiers().get(name);
-        expect(hab.metadata!.displayName).toEqual('Bob');
-        expect(hab.metadata!.email).toEqual('bob@example.com');
-        expect(hab.metadata!.theme).toEqual('dark');
-        expect(hab.metadata!.language).toEqual('en-US');
+        const metadata = hab.metadata;
+
+        expect(metadata).not.toBeNull();
+        expect(metadata!.displayName).toEqual('Bob');
+        expect(metadata!.email).toEqual('bob@example.com');
+        expect(metadata!.theme).toEqual('dark');
+        expect(metadata!.language).toEqual('en-US');
     });
 
     test('partial update metadata', async () => {
@@ -99,14 +103,15 @@ describe('metadata', () => {
     });
 
     test('delete metadata', async () => {
-        const emptyData = {};
-
         const result = await client
             .identifiers()
-            .updateMetadata(name, emptyData);
+            .updateMetadata(name, {});
 
         expect(result).toBeDefined();
         expect(result).toEqual({ id: prefix });
+
+        const hab = await client.identifiers().get(name);
+        expect(hab.metadata).toEqual({ id: prefix });
     });
 
     test('recreate metadata after deletion', async () => {
@@ -127,10 +132,12 @@ describe('metadata', () => {
         expect(result.department).toEqual('IT');
 
         const hab = await client.identifiers().get(name);
-        expect(hab.metadata).toBeDefined();
-        expect(hab.metadata!.displayName).toEqual('Alice');
-        expect(hab.metadata!.role).toEqual('administrator');
-        expect(hab.metadata!.department).toEqual('IT');
+        const metadata = hab.metadata;
+
+        expect(metadata).not.toBeNull();
+        expect(metadata!.displayName).toEqual('Alice');
+        expect(metadata!.role).toEqual('administrator');
+        expect(metadata!.department).toEqual('IT');
     });
 
     test('metadata with identifier prefix instead of alias', async () => {
@@ -151,6 +158,9 @@ describe('metadata', () => {
         expect(result.sidebarCollapsed).toEqual('false');
 
         const hab = await client.identifiers().get(prefix);
-        expect(hab.metadata!.theme).toEqual('light');
+        const habMetadata = hab.metadata;
+
+        expect(habMetadata).not.toBeNull();
+        expect(habMetadata!.theme).toEqual('light');
     });
 });

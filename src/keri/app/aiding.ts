@@ -89,7 +89,6 @@ export interface IdentifierInfo {
  * Metadata for a managed identifier
  */
 export interface IdentifierMetadata {
-    id?: string;
     [key: string]: unknown;
 }
 
@@ -173,7 +172,7 @@ export class Identifier {
      * @async
      * @param {string} name Prefix or alias of the identifier
      * @param {IdentifierMetadata} metadata Metadata object to create/update. Use empty object {} to delete metadata
-     * @returns {Promise<IdentifierMetadata>} A promise to the metadata object with id field (identifier prefix)
+     * @returns {Promise<IdentifierMetadata>} A promise to the metadata object
      */
     async updateMetadata(
         name: string,
