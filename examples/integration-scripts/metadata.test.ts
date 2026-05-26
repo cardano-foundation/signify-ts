@@ -1,3 +1,4 @@
+import assert from 'assert';
 import { SignifyClient } from 'signify-ts';
 import {
     assertOperations,
@@ -102,16 +103,18 @@ describe('metadata', () => {
         expect(result.notifications).toEqual('true');
     });
 
-    test('delete metadata', async () => {
+    test('clear some metadata values', async () => {
+        const metadata = {
+            language: null
+        };
         const result = await client
             .identifiers()
-            .updateMetadata(name, {});
+            .updateMetadata(name, metadata);
 
-        expect(result).toBeDefined();
-        expect(result).toEqual({ id: prefix });
+        expect(result.language).toEqual(null);
 
         const hab = await client.identifiers().get(name);
-        expect(hab.metadata).toEqual({ id: prefix });
+        expect(hab.metadata?.language).toEqual(null);
     });
 
     test('recreate metadata after deletion', async () => {
