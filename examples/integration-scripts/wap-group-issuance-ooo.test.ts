@@ -2478,10 +2478,8 @@ kOfNDescribe("WAP group issuance E2E — K-of-N IPEX grant/admit", () => {
 // How to run (must be on a clean KERIA — the bug persists state to LMDB
 // so a stale spin from a prior run will skew the counts):
 //
-//   cd /Users/caso/Projects/PRIVATE-veridian-wallet
-//   docker compose down
-//   docker volume rm private-veridian-wallet_keria-data
-//   docker compose up -d
+//   cd PRIVATE-veridian-wallet
+//   docker-compose down -v && docker-compose up -d
 //   sleep 10
 //   npm run test:wap-e2e:setup
 //   cd signify-ts
