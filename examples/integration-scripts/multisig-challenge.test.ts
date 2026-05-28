@@ -75,19 +75,20 @@ async function notifyPeersMultisigChallengeResponse(
         );
 }
 
-// Delivers fully multi-signed challenge response. Must be called by the lead member (lowest key index).
+// Delivers fully multi-signed challenge response. Must be called by each member.
 async function sendGroupChallengeResponse(
     client: SignifyClient,
     groupName: string,
     exn: Serder,
     allSigs: string[],
     recipientPrefix: string
-): Promise<void> {
-    await client
+): Promise<any> {
+    const res = await client
         .exchanges()
         .sendFromEvents(groupName, 'challenge', exn, allSigs, '', [
             recipientPrefix,
         ]);
+    return res;
 }
 
 test(
@@ -247,15 +248,6 @@ test(
 
         // Member2 receives /multisig/exn notification and extracts the exn from the embed
         const m2Notes = await waitForNotifications(clientM2, '/multisig/exn');
-        console.log('Member2 received /multisig/exn notification(s):', m2Notes.length);
-        for (const note of m2Notes) {
-            console.log('  Notification:', JSON.stringify({
-                i: note.i,
-                route: note.a.r,
-                said: note.a.d,
-                read: note.r,
-            }));
-        }
         await Promise.all(m2Notes.map((n) => clientM2.notifications().mark(n.i)));
 
         // Fetch the coordination message to extract the embedded exn's datetime
@@ -265,7 +257,6 @@ test(
         const embeddedExn = multisigExnRes[0].exn.e.exn;
         const extractedDatetime = embeddedExn.dt as string;
         assert(extractedDatetime, 'embedded exn must have a dt field');
-        console.log('Member2 extracted datetime from embed:', extractedDatetime);
 
         // Member2 co-signs using the datetime from the embed
         const [exn2, sigs2] = await createChallengeResponseExn(
@@ -283,19 +274,31 @@ test(
             'Both exns must share the same SAID (same datetime → same content)'
         );
 
-        // Combine sigs and deliver (member1 is lead — lowest key index)
+        // Combine sigs and deliver — both members must submit for KERIA to process the multisig exchange
         const allSigs = [...sigs1, ...sigs2];
 
-        await sendGroupChallengeResponse(
-            clientM1,
-            GROUP_NAME,
-            exn1,
-            allSigs,
-            alicePrefix
-        );
+        await Promise.all([
+            sendGroupChallengeResponse(
+                clientM1,
+                GROUP_NAME,
+                exn1,
+                allSigs,
+                alicePrefix
+            ),
+            sendGroupChallengeResponse(
+                clientM2,
+                GROUP_NAME,
+                exn2,
+                allSigs,
+                alicePrefix
+            ),
+        ]);
         console.log(
-            'Member1 submitted fully-signed challenge response (2-of-2 threshold, member1 is lead at index 0)'
+            'Both members submitted fully-signed challenge response'
         );
+
+        // Give KERIA time to forward the challenge response to Alice's agent
+        await new Promise((r) => setTimeout(r, 5000));
 
         // Alice waits for verify op and marks response as accepted
         const completedOp = await waitOperation(clientAlice, verifyOp);
@@ -311,20 +314,20 @@ test(
         console.log('Alice marked multisig challenge response as accepted');
 
         // Verify contact record shows challenge authenticated
-        const contacts = await clientAlice.contacts().list();
-        const responderContact = contacts.find(
+        const contactsAfter = await clientAlice.contacts().list();
+        const responderAfter = contactsAfter.find(
             (c: any) => c.alias === GROUP_NAME
         );
-        assert(responderContact, 'responder contact not found');
+        assert(responderAfter, 'responder contact not found');
         assert(
-            Array.isArray(responderContact.challenges),
+            Array.isArray(responderAfter.challenges),
             'responder contact should have challenges array'
         );
         assert(
-            responderContact.challenges.length > 0,
+            responderAfter.challenges.length > 0,
             'responder contact should have at least one challenge'
         );
-        expect(responderContact.challenges[0].authenticated).toBe(true);
+        expect(responderAfter.challenges[0].authenticated).toBe(true);
 
         await assertOperations(clientAlice, clientM1, clientM2);
     },
