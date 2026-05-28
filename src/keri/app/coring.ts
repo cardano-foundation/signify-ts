@@ -73,8 +73,8 @@ export class Oobis {
     }
 
     /**
-     * Get location schemes for an EID
-     * @param {string} eid EID prefix
+     * Get approved location schemes for a given EID
+     * @param {string} eid endpoint identifier
      * @returns {Promise<any>} A promise to the list of location schemes
      */
     async locschemes(eid: string): Promise<any> {
