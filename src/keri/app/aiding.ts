@@ -171,7 +171,7 @@ export class Identifier {
      * Update metadata for a managed identifier
      * @async
      * @param {string} name Prefix or alias of the identifier
-     * @param {IdentifierMetadata} metadata Metadata object to create/update. Use empty object {} to delete metadata
+     * @param {IdentifierMetadata} metadata Metadata object to create/update
      * @returns {Promise<IdentifierMetadata>} A promise to the metadata object
      */
     async updateMetadata(
