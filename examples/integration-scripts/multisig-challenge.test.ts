@@ -41,8 +41,9 @@ async function createChallengeResponseExn(
         );
 }
 
-// Coordination step: notifies peers via /multisig/exn so they co-sign. Does NOT deliver to recipient.
-async function notifyPeersMultisigChallengeResponse(
+// Sends a /multisig/exn coordination message embedding the challenge response exn + this member's sigs.
+// The Multiplexor on each agent processes these to coordinate and aggregate signatures.
+async function sendMultisigExn(
     client: SignifyClient,
     memberName: string,
     groupName: string,
@@ -73,22 +74,6 @@ async function notifyPeersMultisigChallengeResponse(
             { exn: [exn, exnAtc] },
             otherMemberPrefixes
         );
-}
-
-// Delivers fully multi-signed challenge response. Must be called by each member.
-async function sendGroupChallengeResponse(
-    client: SignifyClient,
-    groupName: string,
-    exn: Serder,
-    allSigs: string[],
-    recipientPrefix: string
-): Promise<any> {
-    const res = await client
-        .exchanges()
-        .sendFromEvents(groupName, 'challenge', exn, allSigs, '', [
-            recipientPrefix,
-        ]);
-    return res;
 }
 
 test(
@@ -223,7 +208,7 @@ test(
         const aliceHabState = await clientAlice.identifiers().get('alice');
         const alicePrefix = aliceHabState.prefix;
 
-        // Member1 creates the /challenge/response exn and picks a datetime
+        // Member1 creates the /challenge/response exn and shares via /multisig/exn
         const datetime = new Date().toISOString().replace('Z', '000+00:00');
         const [exn1, sigs1] = await createChallengeResponseExn(
             clientM1,
@@ -233,24 +218,24 @@ test(
             datetime
         );
 
-        // Member1 notifies Member2 via /multisig/exn
-        await notifyPeersMultisigChallengeResponse(
-            clientM1,
-            'member1',
-            GROUP_NAME,
-            exn1,
-            sigs1,
-            [aidM2]
-        );
-        console.log(
-            'Member1 created challenge response exn and notified Member2 via /multisig/exn'
-        );
+        // Member1 submits their partial sig
+        // and notifies Member2 via /multisig/exn so they can co-sign.
+        await Promise.all([
+            clientM1
+                .exchanges()
+                .sendFromEvents(GROUP_NAME, 'challenge', exn1, sigs1, '', [
+                    alicePrefix,
+                ]),
+            sendMultisigExn(clientM1, 'member1', GROUP_NAME, exn1, sigs1, [
+                aidM2,
+            ]),
+        ]);
+        console.log('Member1 submitted partial sig and sent /multisig/exn to Member2');
 
-        // Member2 receives /multisig/exn notification and extracts the exn from the embed
+        // Member2 receives /multisig/exn notification and extracts the embedded exn
         const m2Notes = await waitForNotifications(clientM2, '/multisig/exn');
         await Promise.all(m2Notes.map((n) => clientM2.notifications().mark(n.i)));
 
-        // Fetch the coordination message to extract the embedded exn's datetime
         const msgSaid = m2Notes[m2Notes.length - 1].a.d;
         assert(msgSaid, 'notification must have a SAID');
         const multisigExnRes = await clientM2.groups().getRequest(msgSaid);
@@ -258,7 +243,7 @@ test(
         const extractedDatetime = embeddedExn.dt as string;
         assert(extractedDatetime, 'embedded exn must have a dt field');
 
-        // Member2 co-signs using the datetime from the embed
+        // Member2 co-signs using the datetime from the embed and submits their partial sig.
         const [exn2, sigs2] = await createChallengeResponseExn(
             clientM2,
             GROUP_NAME,
@@ -266,36 +251,22 @@ test(
             challenge.words,
             extractedDatetime
         );
-
-        // Sanity check: same SAID
         assert.equal(
             exn1.ked.d,
             exn2.ked.d,
             'Both exns must share the same SAID (same datetime → same content)'
         );
-
-        // Combine sigs and deliver — both members must submit for KERIA to process the multisig exchange
-        const allSigs = [...sigs1, ...sigs2];
-
         await Promise.all([
-            sendGroupChallengeResponse(
-                clientM1,
-                GROUP_NAME,
-                exn1,
-                allSigs,
-                alicePrefix
-            ),
-            sendGroupChallengeResponse(
-                clientM2,
-                GROUP_NAME,
-                exn2,
-                allSigs,
-                alicePrefix
-            ),
+            clientM2
+                .exchanges()
+                .sendFromEvents(GROUP_NAME, 'challenge', exn2, sigs2, '', [
+                    alicePrefix,
+                ]),
+            sendMultisigExn(clientM2, 'member2', GROUP_NAME, exn2, sigs2, [
+                aidM1,
+            ]),
         ]);
-        console.log(
-            'Both members submitted fully-signed challenge response'
-        );
+        console.log('Member2 submitted partial sig and sent /multisig/exn to Member1');
 
         // Give KERIA time to forward the challenge response to Alice's agent
         await new Promise((r) => setTimeout(r, 5000));
