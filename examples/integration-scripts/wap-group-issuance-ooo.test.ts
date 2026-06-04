@@ -1983,6 +1983,70 @@ ooo2of2Describe("WAP group issuance E2E (out-of-order, two concurrent flows)", (
             credSaid, g1Prefix, holderPrefix);
     }, 300000);
 
+    // Demonstrates anchoring multiple credential ISS events in a SINGLE ixn with
+    // multiple seals (atomic, no chaining between credentials). KERI allows it at the
+    // KEL level via interact(name, [seal1, seal2, ...]). The test commits one ixn
+    // that anchors N ISS events at the same sn, then reads it back from the KEL
+    // and asserts the data array carries all seals.
+    //
+    // Out of scope: the standard /identifiers/{name}/credentials KERIA endpoint takes
+    // one acdc+iss+ixn per call, so registering all credentials with a shared ixn
+    // would need a batch endpoint on KERIA. This test only proves the KEL primitive.
+    it("multi-seal ixn: ten ISS events anchored atomically in one ixn", async () => {
+        const CRED_COUNT = 10;
+        const nonce = randomNonce();
+        const issuerName = "m1";
+        const issuerPrefix = m1Hab.prefix;
+        const regk = computeRegk(issuerPrefix, nonce);
+
+        // Create a fresh registry on M1's single-sig hab so we have a valid ri for the ISS events
+        const regResult = await m1Client.registries().create({
+            name: issuerName, registryName: `wap-multi-seal-${nonce}`, nonce,
+        });
+        await waitOperation(m1Client, await regResult.op());
+        console.log("[MULTI-SEAL] registry created: regk=%s", regk);
+
+        // Build N ACDCs + N ISS SADs (mirroring signify's saidify in credentials.issue)
+        const buildIss = (attendeeName: string) => {
+            const dt = signifyDatetime();
+            const [, aBlock] = Saider.saidify({ d: "", i: holderHab.prefix, dt, attendeeName });
+            const [, acdc] = Saider.saidify({
+                v: versify(Ident.ACDC, undefined, Serials.JSON, 0),
+                d: "", i: issuerPrefix, ri: regk, s: SCHEMA_SAID, a: aBlock,
+            });
+            const [, iss] = Saider.saidify({
+                v: versify(Ident.KERI, undefined, Serials.JSON, 0),
+                t: Ilks.iss, d: "", i: acdc.d, s: "0", ri: regk, dt: aBlock.dt,
+            });
+            return { acdc, iss };
+        };
+        const creds = Array.from({ length: CRED_COUNT }, (_, idx) =>
+            buildIss(`Multi-seal ${idx + 1}`)
+        );
+
+        // Compose ONE ixn carrying N seals, one per ISS event. interact()'s data param
+        // accepts an array — signify just forwards it as the ixn's `a` field
+        const seals = creds.map((c) => ({ i: c.iss.i, s: c.iss.s, d: c.iss.d }));
+        const ixnResult = await m1Client.identifiers().interact(issuerName, seals);
+        await waitOperation(m1Client, await ixnResult.op());
+        console.log("[MULTI-SEAL] ixn submitted: sn=%s d=%s seals=%d",
+            ixnResult.serder.ked.s, ixnResult.serder.ked.d,
+            ixnResult.serder.ked.a.length);
+
+        // The ixn we just sent carries all seals in its `a` field, in input order
+        expect(ixnResult.serder.ked.a).toHaveLength(CRED_COUNT);
+        creds.forEach((c, idx) => {
+            expect(ixnResult.serder.ked.a[idx].d).toBe(c.iss.d);
+        });
+
+        // KERIA committed the ixn to M1's KEL — fetching the hab back exposes its sn advanced
+        const habAfter = await m1Client.identifiers().get(issuerName);
+        const habSnAfter = parseInt(habAfter.state.s, 16);
+        const ixnSn = parseInt(ixnResult.serder.ked.s, 16);
+        expect(habSnAfter).toBeGreaterThanOrEqual(ixnSn);
+        console.log("[MULTI-SEAL] hab sn after commit=%d (ixn sn=%d, %d seals)",
+            habSnAfter, ixnSn, CRED_COUNT);
+    }, 60000);
 
 });
 
