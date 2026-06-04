@@ -339,6 +339,36 @@ describe('Coring', () => {
             rpy: '{"v":"KERI10JSON00014e_","t":"rpy","d":"EDygCHTVxIyUpM1s4q9FMlv17ClOinTyZh207xjyLi-p","dt":"2025-04-16T13:27:17.352000+00:00","r":"/introduce","a":{"cid":"BDy-NRK64uh2NXeRUjhsp9SPSGf_Dhsm-OxbVzfh_Tvh","oobi":"http://127.0.0.1:3902/oobi/ENmzXRLhF5vL_wzerGjY2m1LfgVMS2FreuokVWkCKQRL/agent/EOb8OqfPUyIGKfveBvJA_drKI3yq0EFh3DRIrgbRipva"}}-CABBDy-NRK64uh2NXeRUjhsp9SPSGf_Dhsm-OxbVzfh_Tvh0BCXxC2RjltB7Z_jga7aVcvXG46p6S_51fKMdTNFEg2Ks1XUXN_J04lDpU03UQPzqdnAc1tR6iWI4itsXhY4z_sL'
         });
     });
+
+    it('Locschemes', async () => {
+        await libsodium.ready;
+        const bran = '0123456789abcdefghijk';
+
+        const client = new SignifyClient(url, bran, Tier.low, boot_url);
+        await client.boot();
+        await client.connect();
+
+        const oobis = client.oobis();
+        const eid = 'EHgwVwQT15OJvilVvW57HE4w0-GPs_Stj2OFoAHZSysY';
+
+        const mockLocSchemes = [
+            { eid, scheme: 'https', url: 'https://example.com' },
+            { eid, scheme: 'http', url: 'http://example.com' },
+        ];
+
+        fetchMock.mockImplementationOnce(async () => {
+            return new Response(JSON.stringify(mockLocSchemes), { status: 200 });
+        });
+
+        const result = await oobis.locschemes(eid);
+        const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
+        assert.equal(lastCall[0], `/locschemes/${eid}`);
+        assert.equal(lastCall[1], 'GET');
+        assert.equal(result.length, 2);
+        assert.equal(result[0].eid, eid);
+        assert.equal(result[0].scheme, 'https');
+        assert.equal(result[0].url, 'https://example.com');
+    });
 });
 
 describe('Operations', () => {
