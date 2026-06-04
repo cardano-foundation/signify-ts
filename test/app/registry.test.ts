@@ -71,6 +71,7 @@ describe('registry', () => {
             transferable: true,
             windexes: [],
             icp_dt: '2023-12-01T10:05:25.062609+00:00',
+            metadata: null,
         } as HabState;
 
         when(mockedIdentifiers.get('a name')).thenResolve(hab);

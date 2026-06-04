@@ -440,6 +440,16 @@ describe('Aiding', () => {
         assert.equal(lastCall.body.name, 'aid2');
     });
 
+    it('Can update metadata for identifier', async () => {
+        const metadata = { role: 'issuer', env: 'production' };
+        client.fetch.mockResolvedValue(Response.json(metadata));
+        await client.identifiers().updateMetadata('aid1', metadata);
+        const lastCall = client.getLastMockRequest();
+        assert.equal(lastCall.path, '/identifiers/aid1/metadata');
+        assert.equal(lastCall.method, 'PUT');
+        assert.deepEqual(lastCall.body, metadata);
+    });
+
     describe('Group identifiers', () => {
         it('Can Rotate group', async () => {
             const member1 = await createMockIdentifierState(

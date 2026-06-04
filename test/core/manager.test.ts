@@ -723,6 +723,7 @@ describe('Manager', () => {
             transferable: false,
             windexes: [],
             icp_dt: '2023-12-01T10:05:25.062609+00:00',
+            metadata: null,
         });
 
         assert(keeper0 instanceof RandyKeeper);
@@ -746,6 +747,7 @@ describe('Manager', () => {
                 transferable: false,
                 windexes: [],
                 icp_dt: '2023-12-01T10:05:25.062609+00:00',
+                metadata: null,
             })
         ).toThrow('Algo not allowed yet');
     });
@@ -824,6 +826,7 @@ describe('Manager', () => {
                 },
                 transferable: true,
                 icp_dt: '2023-12-01T10:05:25.062609+00:00',
+                metadata: null,
             });
 
             assert(keeper instanceof MockModule);
@@ -851,6 +854,7 @@ describe('Manager', () => {
                     },
                     transferable: true,
                     icp_dt: '2023-12-01T10:05:25.062609+00:00',
+                    metadata: null,
                 })
             ).toThrow('unsupported external module type mock');
         });
