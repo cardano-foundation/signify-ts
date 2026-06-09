@@ -32,7 +32,17 @@ import {
 
 import { components } from '../../types/keria-api-schema.ts';
 
-export type CredentialResult = components['schemas']['Credential'];
+export type CredentialState =
+    | components['schemas']['CredentialStateIssOrRev']
+    | components['schemas']['CredentialStateBisOrBrv'];
+
+export type CredentialResult = Omit<
+    components['schemas']['Credential'],
+    'status' | 'ancatc'
+> & {
+    status: CredentialState;
+    ancatc: string[];
+};
 export type Registry = components['schemas']['Registry'];
 export type Schema = components['schemas']['Schema'];
 
@@ -217,7 +227,7 @@ export interface IpexGrantArgs {
     iss: Serder;
     issAttachment?: string;
     anc: Serder;
-    ancAttachment?: string;
+    ancAttachment?: string | string[];
 }
 
 export interface IpexAdmitArgs {
@@ -242,8 +252,6 @@ export interface IpexAdmitArgs {
     grantSaid: string;
     datetime?: string;
 }
-
-export type CredentialState = components['schemas']['CredentialState'];
 
 /**
  * Credentials
@@ -462,7 +470,11 @@ export class Credentials {
             i: said,
             s: '1',
             ri: registryId,
-            p: cred.status.d,
+            p: (
+                cred.status as
+                    | components['schemas']['CredentialStateIssOrRev']
+                    | components['schemas']['CredentialStateBisOrBrv']
+            ).d,
             dt: dt,
         };
 
@@ -906,13 +918,17 @@ export class Ipex {
             m: args.message ?? '',
         };
 
-        let atc = args.ancAttachment;
-        if (atc === undefined) {
+        let atc: string;
+        if (args.ancAttachment === undefined) {
             const keeper = this.client.manager!.get(hab);
             const sigs = await keeper.sign(b(args.anc.raw));
             const sigers = sigs.map((sig: string) => new Siger({ qb64: sig }));
             const ims = d(messagize(args.anc, sigers));
             atc = ims.substring(args.anc.size);
+        } else {
+            atc = Array.isArray(args.ancAttachment)
+                ? args.ancAttachment.join('')
+                : args.ancAttachment;
         }
 
         const acdcAtc =
