@@ -68,6 +68,7 @@ export type DoneOperation = components['schemas']['DoneOperation'];
 export type CredentialOperation = components['schemas']['CredentialOperation'];
 export type GroupOperation = components['schemas']['GroupOperation'];
 export type DelegatorOperation = components['schemas']['DelegatorOperation'];
+export type KelOperation = components['schemas']['KelOperation'];
 
 export type PendingOOBIOperation =
     components['schemas']['PendingOOBIOperation'];

@@ -974,7 +974,7 @@ export interface components {
             | components['schemas']['FailedDelegationOperation'];
         RegistryOperationMetadata: {
             pre: string;
-            depends: unknown;
+            depends?: components['schemas']['KelOperation'];
             anchor: components['schemas']['Anchor'];
         };
         PendingRegistryOperation: {
@@ -1219,13 +1219,7 @@ export interface components {
             ced:
                 | components['schemas']['ACDC_V_1']
                 | components['schemas']['ACDC_V_2'];
-            depends?:
-                | components['schemas']['ROT_V_1']
-                | components['schemas']['ROT_V_2']
-                | components['schemas']['DRT_V_1']
-                | components['schemas']['DRT_V_2']
-                | components['schemas']['IXN_V_1']
-                | components['schemas']['IXN_V_2'];
+            depends?: components['schemas']['KelOperation'];
         };
         CredentialOperationResponse: {
             ced?:
@@ -1316,10 +1310,7 @@ export interface components {
             pre: string;
             teepre: string;
             anchor?: components['schemas']['Anchor'];
-            depends?:
-                | components['schemas']['GroupOperation']
-                | components['schemas']['WitnessOperation']
-                | components['schemas']['DoneOperation'];
+            depends?: components['schemas']['KelOperation'];
         };
         PendingDelegatorOperation: {
             name: string;
@@ -1354,6 +1345,12 @@ export interface components {
             | components['schemas']['PendingDelegatorOperation']
             | components['schemas']['CompletedDelegatorOperation']
             | components['schemas']['FailedDelegatorOperation'];
+        KelOperation:
+            | components['schemas']['GroupOperation']
+            | components['schemas']['WitnessOperation']
+            | components['schemas']['DoneOperation']
+            | components['schemas']['DelegationOperation']
+            | components['schemas']['SubmitOperation'];
         Operation:
             | components['schemas']['OOBIOperation']
             | components['schemas']['QueryOperation']
