@@ -28,11 +28,11 @@ import {
     DoneOperation,
     HabState,
     RegistryOperation,
-    CredentialState,
 } from '../core/keyState.ts';
 
 import { components } from '../../types/keria-api-schema.ts';
 
+export type CredentialState = components['schemas']['CredentialState'];
 export type CredentialResult = components['schemas']['Credential'];
 export type Registry = components['schemas']['Registry'];
 export type Schema = components['schemas']['Schema'];
@@ -344,7 +344,8 @@ export class Credentials {
         args: CredentialData
     ): Promise<IssueCredentialResult> {
         const hab = await this.client.identifiers().get(name);
-        const estOnly = hab.state?.c !== undefined && hab.state.c.includes('EO');
+        const estOnly =
+            hab.state?.c !== undefined && hab.state.c.includes('EO');
         if (estOnly) {
             // TODO implement rotation event
             throw new Error('Establishment only not implemented');

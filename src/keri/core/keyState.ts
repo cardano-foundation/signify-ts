@@ -4,8 +4,6 @@ export type KeyState = components['schemas']['KeyStateRecord'];
 
 export type EstablishmentState = components['schemas']['StateEERecord'];
 
-export type CredentialState = components['schemas']['CredentialState'];
-
 /**
  * Marker interface for state configuring an IdentifierManager.
  */
