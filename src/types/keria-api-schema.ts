@@ -394,15 +394,9 @@ export interface components {
             | components['schemas']['DIP_V_2']
             | components['schemas']['DRT_V_1']
             | components['schemas']['DRT_V_2'];
-        CredentialState: {
-            /** @enum {string} */
-            et?: CredentialStateEt;
-            /** @description Empty for iss/rev, RaFields for bis/brv */
-            ra?: Record<string, never>;
-        } & (
+        CredentialState:
             | components['schemas']['CredentialStateIssOrRev']
-            | components['schemas']['CredentialStateBisOrBrv']
-        );
+            | components['schemas']['CredentialStateBisOrBrv'];
         RegistryState: {
             vn: number[];
             i: string;
@@ -1385,12 +1379,6 @@ export enum CredentialStateIssOrRevEt {
     rev = 'rev',
 }
 export enum CredentialStateBisOrBrvEt {
-    bis = 'bis',
-    brv = 'brv',
-}
-export enum CredentialStateEt {
-    iss = 'iss',
-    rev = 'rev',
     bis = 'bis',
     brv = 'brv',
 }

@@ -28,21 +28,12 @@ import {
     DoneOperation,
     HabState,
     RegistryOperation,
+    CredentialState,
 } from '../core/keyState.ts';
 
 import { components } from '../../types/keria-api-schema.ts';
 
-export type CredentialState =
-    | components['schemas']['CredentialStateIssOrRev']
-    | components['schemas']['CredentialStateBisOrBrv'];
-
-export type CredentialResult = Omit<
-    components['schemas']['Credential'],
-    'status' | 'ancatc'
-> & {
-    status: CredentialState;
-    ancatc: string[];
-};
+export type CredentialResult = components['schemas']['Credential'];
 export type Registry = components['schemas']['Registry'];
 export type Schema = components['schemas']['Schema'];
 
