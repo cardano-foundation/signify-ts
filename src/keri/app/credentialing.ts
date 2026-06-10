@@ -218,7 +218,7 @@ export interface IpexGrantArgs {
     iss: Serder;
     issAttachment?: string;
     anc: Serder;
-    ancAttachment?: string | string[];
+    ancAttachment?: string;
 }
 
 export interface IpexAdmitArgs {
@@ -461,11 +461,7 @@ export class Credentials {
             i: said,
             s: '1',
             ri: registryId,
-            p: (
-                cred.status as
-                    | components['schemas']['CredentialStateIssOrRev']
-                    | components['schemas']['CredentialStateBisOrBrv']
-            ).d,
+            p: cred.status.d,
             dt: dt,
         };
 
@@ -909,17 +905,13 @@ export class Ipex {
             m: args.message ?? '',
         };
 
-        let atc: string;
-        if (args.ancAttachment === undefined) {
+        let atc = args.ancAttachment;
+        if (atc === undefined) {
             const keeper = this.client.manager!.get(hab);
             const sigs = await keeper.sign(b(args.anc.raw));
             const sigers = sigs.map((sig: string) => new Siger({ qb64: sig }));
             const ims = d(messagize(args.anc, sigers));
             atc = ims.substring(args.anc.size);
-        } else {
-            atc = Array.isArray(args.ancAttachment)
-                ? args.ancAttachment.join('')
-                : args.ancAttachment;
         }
 
         const acdcAtc =
