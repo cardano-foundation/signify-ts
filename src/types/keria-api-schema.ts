@@ -477,9 +477,9 @@ export interface components {
             name: string;
             prefix: string;
             icp_dt: string;
-            state: components['schemas']['KeyStateRecord'];
-            transferable: boolean;
-            windexes: string[];
+            state?: components['schemas']['KeyStateRecord'];
+            transferable?: boolean;
+            windexes?: string[];
         } & (
             | {
                   salty: components['schemas']['SaltyState'];

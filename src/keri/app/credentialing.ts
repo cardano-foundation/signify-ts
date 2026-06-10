@@ -344,7 +344,7 @@ export class Credentials {
         args: CredentialData
     ): Promise<IssueCredentialResult> {
         const hab = await this.client.identifiers().get(name);
-        const estOnly = hab.state.c !== undefined && hab.state.c.includes('EO');
+        const estOnly = hab.state?.c !== undefined && hab.state.c.includes('EO');
         if (estOnly) {
             // TODO implement rotation event
             throw new Error('Establishment only not implemented');
@@ -383,7 +383,7 @@ export class Credentials {
             dt: subject.dt,
         });
 
-        const sn = parseInt(hab.state.s, 16);
+        const sn = parseInt(hab.state!.s, 16);
         const anc = interact({
             pre: hab.prefix,
             sn: sn + 1,
@@ -394,7 +394,7 @@ export class Credentials {
                     d: iss.d,
                 },
             ],
-            dig: hab.state.d,
+            dig: hab.state!.d,
             version: undefined,
             kind: undefined,
         });
@@ -472,6 +472,9 @@ export class Credentials {
         let sigs = [];
 
         const state = hab.state;
+        if (!state) {
+            throw new Error(`No state in hab ${name}`);
+        }
         if (state.c !== undefined && state.c.includes('EO')) {
             var estOnly = true;
         } else {
@@ -621,6 +624,9 @@ export class Registries {
         }
 
         const state = hab.state;
+        if (!state) {
+            throw new Error(`No state in hab ${name}`);
+        }
         const estOnly = state.c !== undefined && state.c.includes('EO');
         if (estOnly) {
             cnfg.push(TraitDex.EstOnly);
@@ -631,7 +637,6 @@ export class Registries {
         if (estOnly) {
             throw new Error('establishment only not implemented');
         } else {
-            const state = hab.state;
             const sn = parseInt(state.s, 16);
             const dig = state.d;
 
