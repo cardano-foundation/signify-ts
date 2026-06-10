@@ -974,7 +974,7 @@ export interface components {
             | components['schemas']['FailedDelegationOperation'];
         RegistryOperationMetadata: {
             pre: string;
-            depends?: components['schemas']['Operation'];
+            depends: unknown;
             anchor: components['schemas']['Anchor'];
         };
         PendingRegistryOperation: {
@@ -1219,7 +1219,13 @@ export interface components {
             ced:
                 | components['schemas']['ACDC_V_1']
                 | components['schemas']['ACDC_V_2'];
-            depends?: components['schemas']['Operation'];
+            depends?:
+                | components['schemas']['ROT_V_1']
+                | components['schemas']['ROT_V_2']
+                | components['schemas']['DRT_V_1']
+                | components['schemas']['DRT_V_2']
+                | components['schemas']['IXN_V_1']
+                | components['schemas']['IXN_V_2'];
         };
         CredentialOperationResponse: {
             ced?:
