@@ -1,9 +1,11 @@
-import signify, { Algos, Siger, d, messagize } from 'signify-ts';
-import {
+import signify, {
+    Algos,
+    Siger,
+    d,
+    messagize,
     interact as srcInteract,
-    messagize as srcMessageize,
-} from '../../src/keri/core/eventing';
-import { b as srcB } from '../../src/keri/core/core';
+    b as srcB,
+} from 'signify-ts';
 import {
     getOrCreateClient,
     getOrCreateIdentifier,
@@ -153,7 +155,7 @@ test('Pse: latestevent returns in-flight event from partial-signature escrow', a
             jsondata
         );
 
-        const ims = d(srcMessageize(serder, sigers as any));
+        const ims = d(messagize(serder, sigers as any));
         await client1
             .exchanges()
             .send(
@@ -185,228 +187,74 @@ test('Ooe: latestevent returns highest sn across out-of-order escrow', async () 
     await signify.ready();
     const env = resolveEnvironment();
 
-    const [client1, client2] = await step('Boot clients', () =>
-        Promise.all([getOrCreateClient(), getOrCreateClient()])
-    );
+    const OOE_AID = 'ooe-singlesig';
 
-    const OOE_GROUP = 'ooe-group';
-    const OOE_M1 = 'ooe-m1';
-    const OOE_M2 = 'ooe-m2';
+    const client = await step('Boot client', () => getOrCreateClient());
 
-    const [[aid1], [aid2]] = await step('Create member AIDs', () =>
-        Promise.all([
-            getOrCreateIdentifier(client1, OOE_M1),
-            getOrCreateIdentifier(client2, OOE_M2),
-        ])
-    );
-
-    await step('Exchange OOBIs', async () => {
-        const [o1, o2] = await Promise.all([
-            client1.oobis().get(OOE_M1, 'agent'),
-            client2.oobis().get(OOE_M2, 'agent'),
-        ]);
-        await Promise.all([
-            resolveOobi(client1, o2.oobis[0], OOE_M2),
-            resolveOobi(client2, o1.oobis[0], OOE_M1),
-        ]);
-    });
-
-    await step('Create 2-of-2 group', async () => {
-        const [hab1, hab2] = await Promise.all([
-            client1.identifiers().get(OOE_M1),
-            client2.identifiers().get(OOE_M2),
-        ]);
-        const states = [hab1.state, hab2.state];
-
-        const icp1 = await client1.identifiers().create(OOE_GROUP, {
-            algo: Algos.group,
-            mhab: hab1,
-            isith: 2,
-            nsith: 2,
+    const [hab] = await step('Create AID', () =>
+        getOrCreateIdentifier(client, OOE_AID, {
             toad: env.witnessIds.length,
             wits: env.witnessIds,
-            states,
-            rstates: states,
-        });
-        const op1 = await icp1.op();
-        const sigers1 = icp1.sigs.map((s) => new Siger({ qb64: s }));
-        const ims1 = d(messagize(icp1.serder, sigers1));
-        await client1
-            .exchanges()
-            .send(
-                OOE_M1,
-                OOE_GROUP,
-                hab1,
-                '/multisig/icp',
-                {
-                    gid: icp1.serder.pre,
-                    smids: [aid1, aid2],
-                    rmids: [aid1, aid2],
-                },
-                { icp: [icp1.serder, ims1.substring(icp1.serder.size)] },
-                [aid2]
-            );
-
-        const notes = await waitForNotifications(client2, '/multisig/icp');
-        await Promise.all(notes.map((n) => client2.notifications().mark(n.i)));
-        const req = await client2
-            .groups()
-            .getRequest(notes[notes.length - 1].a.d!);
-        const exn = req[0].exn;
-        const icp2 = await client2.identifiers().create(OOE_GROUP, {
-            algo: Algos.group,
-            mhab: hab2,
-            isith: exn.e.icp.kt,
-            nsith: exn.e.icp.nt,
-            toad: parseInt(exn.e.icp.bt),
-            wits: exn.e.icp.b,
-            states,
-            rstates: states,
-        });
-        const op2 = await icp2.op();
-        const sigers2 = icp2.sigs.map((s) => new Siger({ qb64: s }));
-        const ims2 = d(messagize(icp2.serder, sigers2));
-        await client2
-            .exchanges()
-            .send(
-                OOE_M2,
-                OOE_GROUP,
-                hab2,
-                '/multisig/icp',
-                {
-                    gid: icp2.serder.pre,
-                    smids: [aid1, aid2],
-                    rmids: [aid1, aid2],
-                },
-                { icp: [icp2.serder, ims2.substring(icp2.serder.size)] },
-                [aid1]
-            );
-        await Promise.all([
-            waitOperation(client1, op1),
-            waitOperation(client2, op2),
-        ]);
-    });
-
-    const grpHab = await client1.identifiers().get(OOE_GROUP);
-    const groupPrefix = grpHab.prefix;
-
-    // Member1 submits sn=1,2,3 without waiting for member2.
-    const ops1: any[] = [];
-    await step('Member1 submits sn=1,2,3 OOO', async () => {
-        const grp = await client1.identifiers().get(OOE_GROUP);
-        const hab1 = await client1.identifiers().get(OOE_M1);
-        const keeper = client1.manager!.get(grp);
-        let prevSaid: string = grp.state.d;
-
-        for (let i = 0; i < 3; i++) {
-            const sn = 1 + i;
-            const serder: any = srcInteract({
-                pre: groupPrefix,
-                sn,
-                dig: prevSaid,
-                data: [],
-                version: undefined,
-                kind: undefined,
-            });
-            const sigs: string[] = await keeper.sign(srcB(serder.raw));
-            const sigers = sigs.map((s: string) => new Siger({ qb64: s }));
-            const jsondata: any = { ixn: serder.ked, sigs, group: true };
-            jsondata[keeper.algo] = keeper.params();
-            const res = await client1.fetch(
-                `/identifiers/${OOE_GROUP}/events`,
-                'POST',
-                jsondata
-            );
-            ops1.push(await res.json());
-
-            const ims = d(srcMessageize(serder, sigers as any));
-            await client1
-                .exchanges()
-                .send(
-                    OOE_M1,
-                    OOE_GROUP,
-                    hab1,
-                    '/multisig/ixn',
-                    {
-                        gid: groupPrefix,
-                        smids: [aid1, aid2],
-                        rmids: [aid1, aid2],
-                    },
-                    { ixn: [serder, ims.substring(serder.size)] },
-                    [aid2]
-                );
-            prevSaid = serder.ked['d'];
-        }
-    });
-
-    await step('Ooe: latestevent sn=3', async () => {
-        const evt = await client1.identifiers().getLatestEvent(OOE_GROUP);
-        assert.strictEqual(parseInt(evt.s, 16), 3, 'expected sn=3 from Ooe');
-    });
-
-    // Member2 co-signs all three so they complete
-    const ops2: any[] = [];
-    await step('Member2 joins sn=1,2,3', async () => {
-        const grp2 = await client2.identifiers().get(OOE_GROUP);
-        const hab2 = await client2.identifiers().get(OOE_M2);
-        const keeper2 = client2.manager!.get(grp2);
-        let prevSaid2: string = grp2.state.d;
-
-        for (let i = 0; i < 3; i++) {
-            const sn = 1 + i;
-            const serder2: any = srcInteract({
-                pre: groupPrefix,
-                sn,
-                dig: prevSaid2,
-                data: [],
-                version: undefined,
-                kind: undefined,
-            });
-            const sigs2: string[] = await keeper2.sign(srcB(serder2.raw));
-            const sigers2 = sigs2.map((s: string) => new Siger({ qb64: s }));
-            const jd2: any = { ixn: serder2.ked, sigs: sigs2, group: true };
-            jd2[keeper2.algo] = keeper2.params();
-            const res2 = await client2.fetch(
-                `/identifiers/${OOE_GROUP}/events`,
-                'POST',
-                jd2
-            );
-            ops2.push(await res2.json());
-
-            const ims2 = d(srcMessageize(serder2, sigers2 as any));
-            await client2
-                .exchanges()
-                .send(
-                    OOE_M2,
-                    OOE_GROUP,
-                    hab2,
-                    '/multisig/ixn',
-                    {
-                        gid: groupPrefix,
-                        smids: [aid1, aid2],
-                        rmids: [aid1, aid2],
-                    },
-                    { ixn: [serder2, ims2.substring(serder2.size)] },
-                    [aid1]
-                );
-            prevSaid2 = serder2.ked['d'];
-        }
-
-        await Promise.all([
-            ...ops1.map((op: any) => waitOperation(client1, op.name)),
-            ...ops2.map((op: any) => waitOperation(client2, op.name)),
-        ]);
-    });
-
-    await step(
-        'After completion: latestevent sn=3 and kever confirmed',
-        async () => {
-            const evt = await client1.identifiers().getLatestEvent(OOE_GROUP);
-            assert.strictEqual(parseInt(evt.s, 16), 3);
-            const grpFinal = await client1.identifiers().get(OOE_GROUP);
-            assert.strictEqual(parseInt(grpFinal.state.s, 16), 3);
-        }
+        })
     );
+
+    const prefix = hab;
+    const habState = await client.identifiers().get(OOE_AID);
+    const keeper = client.manager!.get(habState);
+
+    // Build sn=1 locally to obtain its SAID, but do not submit it.
+    const icpState = habState.state;
+    const sn1Serder: any = srcInteract({
+        pre: prefix,
+        sn: 1,
+        dig: icpState.d,
+        data: [],
+        version: undefined,
+        kind: undefined,
+    });
+    const sn1Said: string = sn1Serder.ked['d'];
+
+    // Submit sn=2, which references the unsubmitted sn=1 → lands in OOO escrow.
+    await step('Submit sn=2 (skipping sn=1) → OOO escrow', async () => {
+        const serder: any = srcInteract({
+            pre: prefix,
+            sn: 2,
+            dig: sn1Said,
+            data: [],
+            version: undefined,
+            kind: undefined,
+        });
+        const sigs: string[] = await keeper.sign(srcB(serder.raw));
+        const jsondata: any = { ixn: serder.ked, sigs };
+        jsondata[keeper.algo] = keeper.params();
+        await client.fetch(`/identifiers/${OOE_AID}/events`, 'POST', jsondata);
+    });
+
+    await step('Ooe: latestevent returns sn=2 from OOO escrow', async () => {
+        const evt = await client.identifiers().getLatestEvent(OOE_AID);
+        assert.strictEqual(parseInt(evt.s, 16), 2, 'expected sn=2 from OOO escrow');
+    });
+
+    // Now submit sn=1 to fill the gap and drain both events from escrow.
+    const op = await step('Submit sn=1 to fill gap', async () => {
+        const sigs: string[] = await keeper.sign(srcB(sn1Serder.raw));
+        const jsondata: any = { ixn: sn1Serder.ked, sigs };
+        jsondata[keeper.algo] = keeper.params();
+        const res = await client.fetch(
+            `/identifiers/${OOE_AID}/events`,
+            'POST',
+            jsondata
+        );
+        return res.json();
+    });
+
+    await step('After completion: latestevent sn=2 and kever confirmed', async () => {
+        await waitOperation(client, op.name);
+        const evt = await client.identifiers().getLatestEvent(OOE_AID);
+        assert.strictEqual(parseInt(evt.s, 16), 2);
+        const finalHab = await client.identifiers().get(OOE_AID);
+        assert.strictEqual(parseInt(finalHab.state.s, 16), 2);
+    });
 }, 180000);
 
 test('delegables: latestevent returns pending dip/drt from delegation escrow', async () => {
