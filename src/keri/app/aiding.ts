@@ -562,6 +562,18 @@ export class Identifier {
         );
         return await res.json();
     }
+
+    /**
+     * Get the latest key event for an identifier.
+     * @async
+     * @param {string} name Name or alias of the identifier
+     * @returns {Promise<any>} A promise to the latest key event dict
+     */
+    async getLatestEvent(name: string): Promise<any> {
+        const path = `/identifiers/${encodeURIComponent(name)}/latestevent`;
+        const res = await this.client.fetch(path, 'GET', null);
+        return await res.json();
+    }
 }
 
 /** Event Result */

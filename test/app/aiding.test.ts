@@ -450,6 +450,96 @@ describe('Aiding', () => {
         assert.deepEqual(lastCall.body, metadata);
     });
 
+    describe('getLatestEvent', () => {
+        it('returns the latest key event from latestevent endpoint', async () => {
+            const mockEvent = {
+                v: 'KERI10JSON00012b_',
+                t: 'icp',
+                d: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
+                i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
+                s: '0',
+            };
+            client.fetch.mockResolvedValue(Response.json(mockEvent));
+
+            const result = await client.identifiers().getLatestEvent('aid1');
+
+            const lastCall = client.getLastMockRequest();
+            assert.equal(lastCall.path, '/identifiers/aid1/latestevent');
+            assert.equal(lastCall.method, 'GET');
+            expect(result).toEqual(mockEvent);
+        });
+
+        it('returns a pending-signature escrow event when rotation is in-flight', async () => {
+            const rotEvent = {
+                v: 'KERI10JSON000160_',
+                t: 'rot',
+                d: 'EBQABdRgaxJONrSLcgrdtbASflkvLxJkiDO0H-XmuhGg',
+                i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
+                s: '1',
+            };
+            client.fetch.mockResolvedValue(Response.json(rotEvent));
+
+            const result = await client.identifiers().getLatestEvent('aid1');
+
+            const lastCall = client.getLastMockRequest();
+            assert.equal(lastCall.path, '/identifiers/aid1/latestevent');
+            assert.equal(lastCall.method, 'GET');
+            assert.equal(result.t, 'rot');
+            assert.equal(parseInt(result.s, 16), 1);
+        });
+
+        it('returns an out-of-order escrow event when higher sn ixn is pending', async () => {
+            const ixnEvent = {
+                v: 'KERI10JSON000138_',
+                t: 'ixn',
+                d: 'EPtNJLDft3CB-oz3qIhe86fnTKs-GYWiWyx8fJv3VO5e',
+                i: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
+                s: '3',
+            };
+            client.fetch.mockResolvedValue(Response.json(ixnEvent));
+
+            const result = await client.identifiers().getLatestEvent('aid1');
+
+            const lastCall = client.getLastMockRequest();
+            assert.equal(lastCall.path, '/identifiers/aid1/latestevent');
+            assert.equal(lastCall.method, 'GET');
+            assert.equal(result.t, 'ixn');
+            assert.equal(parseInt(result.s, 16), 3);
+        });
+
+        it('returns a delegables event', async () => {
+            const dipEvent = {
+                v: 'KERI10JSON000189_',
+                t: 'dip',
+                d: 'EHgwVwQT15OJvilVvW57HE4w0-GPs_Stj2OFoAHZSysY',
+                i: 'EHgwVwQT15OJvilVvW57HE4w0-GPs_Stj2OFoAHZSysY',
+                s: '0',
+                di: 'ELUvZ8aJEHAQE-0nsevyYTP98rBbGJUrTj5an-pCmwrK',
+            };
+            client.fetch.mockResolvedValue(Response.json(dipEvent));
+
+            const result = await client
+                .identifiers()
+                .getLatestEvent('delegate1');
+
+            const lastCall = client.getLastMockRequest();
+            assert.equal(lastCall.path, '/identifiers/delegate1/latestevent');
+            assert.equal(lastCall.method, 'GET');
+            assert.equal(result.t, 'dip');
+            assert.equal(parseInt(result.s, 16), 0);
+        });
+
+        it('URL-encodes the identifier name', async () => {
+            client.fetch.mockResolvedValue(Response.json({}));
+            await client.identifiers().getLatestEvent('my aid/name');
+            const lastCall = client.getLastMockRequest();
+            assert.equal(
+                lastCall.path,
+                '/identifiers/my%20aid%2Fname/latestevent'
+            );
+        });
+    });
+
     describe('Group identifiers', () => {
         it('Can Rotate group', async () => {
             const member1 = await createMockIdentifierState(
