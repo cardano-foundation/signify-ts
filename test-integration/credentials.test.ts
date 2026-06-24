@@ -253,7 +253,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
             acdc: new Serder(issuerCredential.sad),
             anc: new Serder(issuerCredential.anc),
             iss: new Serder(issuerCredential.iss),
-            ancAttachment: issuerCredential.ancatc,
+            ancAttachment: issuerCredential.ancatc.join(''),
             recipient: holderAid.prefix,
             datetime: dt,
         });
@@ -438,7 +438,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
             anc: new Serder(holderCredential.anc),
             iss: new Serder(holderCredential.iss),
             acdcAttachment: holderCredential.atc,
-            ancAttachment: holderCredential.ancatc,
+            ancAttachment: holderCredential.ancatc.join(''),
             issAttachment: holderCredential.issatc,
             agreeSaid: agreeSaid,
             datetime: createTimestamp(),
@@ -567,7 +567,7 @@ test('single signature credentials', { timeout: 90000 }, async () => {
             acdc: new Serder(leCredential.sad),
             anc: new Serder(leCredential.anc),
             iss: new Serder(leCredential.iss),
-            ancAttachment: leCredential.ancatc,
+            ancAttachment: leCredential.ancatc.join(''),
             recipient: legalEntityAid.prefix,
             datetime: dt,
         });

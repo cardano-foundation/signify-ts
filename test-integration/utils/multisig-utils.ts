@@ -115,7 +115,7 @@ export async function addEndRoleMultisig(
 
         const rpy = endRoleResult.serder;
         const sigs = endRoleResult.sigs;
-        const ghabState1 = multisigAID.state;
+        const ghabState1 = multisigAID.state!;
         const seal = [
             'SealEvent',
             {
@@ -177,7 +177,7 @@ export async function admitMultisig(
         .ipex()
         .submitAdmit(multisigAID.name, admit, sigs, end, [recipientAID.prefix]);
 
-    const mstate = multisigAID.state;
+    const mstate = multisigAID.state!;
     const seal = [
         'SealEvent',
         { i: multisigAID.prefix, s: mstate['ee']['s'], d: mstate['ee']['d'] },
@@ -385,7 +385,7 @@ export async function grantMultisig(
         .ipex()
         .submitGrant(multisigAID.name, grant, sigs, end, [recipientAID.prefix]);
 
-    const mstate = multisigAID.state;
+    const mstate = multisigAID.state!;
     const seal = [
         'SealEvent',
         { i: multisigAID.prefix, s: mstate['ee']['s'], d: mstate['ee']['d'] },
