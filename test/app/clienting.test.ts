@@ -285,6 +285,54 @@ describe('SignifyClient', () => {
         }
     });
 
+    test('rotateForRecovery PUTs the recovery body to /agent/{caid}', async () => {
+        await libsodium.ready;
+        const { Signer } = await import('../../src/keri/core/signer.ts');
+        const { MtrDex } = await import('../../src/keri/core/matter.ts');
+        const { Diger } = await import('../../src/keri/core/diger.ts');
+
+        const client = new SignifyClient(url, bran, Tier.low, boot_url);
+        await client.boot();
+        await client.connect();
+
+        // Card fixtures: cardCur (= previously committed next, the one
+        // signing in rot.k[1]) and cardNext (the new next-key digest).
+        const cardCur = new Signer({
+            raw: new Uint8Array(32).fill(0x55),
+            code: MtrDex.Ed25519_Seed,
+        });
+        const cardNext = new Signer({
+            raw: new Uint8Array(32).fill(0x77),
+            code: MtrDex.Ed25519_Seed,
+        });
+        const expectedNdig = new Diger(
+            { code: MtrDex.Blake3_256 },
+            cardNext.verfer.qb64b
+        ).qb64;
+
+        const resp = await client.rotateForRecovery(
+            'abcdefghijk0123456789',
+            cardCur.verfer.qb64,
+            cardNext.verfer.qb64,
+            [],
+            async () => new Uint8Array(0),
+            async () => new Uint8Array(64).fill(0x44)
+        );
+
+        assert.equal(resp.status, 202);
+        const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
+        assert.equal(
+            lastCall[0]!,
+            url + '/agent/ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose'
+        );
+        assert.equal(lastCall[1]!.method, 'PUT');
+        const body = JSON.parse(lastCall[1]!.body! as string);
+        assert.equal(body.rot.t, 'rot');
+        assert.deepEqual(body.rot.n, [expectedNdig]);
+        // Dual-sig now: new bran's sig + card sig (revealing the old next).
+        assert.equal(body.sigs.length, 2);
+    });
+
     test('includes HTTP status info in error message', async () => {
         await libsodium.ready;
         const bran = '0123456789abcdefghijk';
