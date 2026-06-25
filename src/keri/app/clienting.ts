@@ -376,6 +376,104 @@ export class SignifyClient {
     }
 
     /**
+     * Retrofit a recovery card onto a wallet whose controller AID was
+     * created without one. Re-uses the standard rotate plumbing (so the
+     * agent sxlt and every per-AID sxlt are re-encrypted under the new
+     * bran) but rewrites the rot's `n` to commit the card key. A future
+     * "Recover from card" tap can then sign a rotation against this
+     * prefix.
+     */
+    async rotateWithExternalNext(
+        nbran: string,
+        aids: string[],
+        nextOverride: string[]
+    ): Promise<Response> {
+        const data = this.controller.rotateWithExternalNext(
+            nbran,
+            aids,
+            nextOverride
+        );
+        return await fetch(this.url + '/agent/' + this.controller.pre, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+    }
+
+    /**
+     * Rotate the controller AID in the recovery-from-card path: the rot
+     * event is signed by an external key (the card-held previously
+     * committed next-key), the old sxlt blobs are decrypted via an
+     * external callback (the card via NFC + libsodium-off-card symmetric
+     * open), and new blobs are encrypted under nextCardPubQb64 so the
+     * card's chain keeps anchoring the next recovery.
+     *
+     * The caller is responsible for fetching the HabState of every managed
+     * AID before invoking this, since the controller (which normally pulls
+     * them) doesn't have a fresh authenticated session yet. Pass the array
+     * as `aids`.
+     */
+    async rotateForRecovery(
+        nbran: string,
+        cardPubQb64: string,
+        nextCardPubQb64: string,
+        aids: Array<any>,
+        decryptOld: (cipherQb64: string) => Promise<Uint8Array>,
+        signRot: (raw: Uint8Array) => Promise<Uint8Array>,
+        opts: {
+            recoveryFromIcp?: boolean;
+            sn?: number;
+            offCard?: boolean;
+            nextNdigs?: string[];
+            nsith?: string | string[];
+            aeidUnderNewBran?: boolean;
+        } = {}
+    ): Promise<Response> {
+        const body = await this.controller.rotateForRecovery(
+            nbran,
+            cardPubQb64,
+            nextCardPubQb64,
+            aids,
+            decryptOld,
+            signRot,
+            opts
+        );
+
+        // KERIA's PUT /agent/{caid} commits the rot to the controller hab
+        // BEFORE running authn.inbound, so the inbound signature is
+        // verified against the post-rotation k[0] (our new bran signer).
+        // Rebuild the Authenticater with the freshly mutated signer and
+        // sign the request headers manually (we can't use this.fetch
+        // because that path also verifies the response signature, and here
+        // we don't care about the agent's reply envelope).
+        //
+        // The Authenticater's verfer is only consulted by verify(), which
+        // we never call here, so passing the controller signer's own verfer
+        // is safe even when this.agent is still null (fresh-phone recovery
+        // path, pre-connect).
+        const respVerfer =
+            this.agent?.verfer ?? this.controller.signer.verfer;
+        this.authn = new Authenticater(this.controller.signer, respVerfer);
+        const path = '/agent/' + this.controller.pre;
+        const headers = new Headers();
+        headers.set('Signify-Resource', this.controller.pre);
+        headers.set(
+            HEADER_SIG_TIME,
+            new Date().toISOString().replace('Z', '000+00:00')
+        );
+        headers.set('Content-Type', 'application/json');
+        const signedHeaders = this.authn.sign(headers, 'PUT', path);
+
+        return await fetch(this.url + path, {
+            method: 'PUT',
+            body: JSON.stringify(body),
+            headers: signedHeaders,
+        });
+    }
+
+    /**
      * Get identifiers resource
      * @returns {Identifier}
      */

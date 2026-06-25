@@ -5,6 +5,7 @@ export * from './keri/app/controller.ts';
 
 export * from './keri/app/aiding.ts';
 export * from './keri/app/clienting.ts';
+export * from './keri/app/externSigner.ts';
 export * from './keri/app/contacting.ts';
 export * from './keri/app/coring.ts';
 export * from './keri/app/credentialing.ts';
