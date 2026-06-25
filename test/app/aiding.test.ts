@@ -456,8 +456,8 @@ describe('Aiding', () => {
                 randomPasscode()
             );
 
-            const states = [member1.state, member2.state];
-            const rstates = [member2.state, member3.state];
+            const states = [member1.state!, member2.state!];
+            const rstates = [member2.state!, member3.state!];
 
             // Regression guard: member1 is authorized by current keys (`states`)
             // but intentionally absent from proposed next digests (`rstates`).
@@ -494,8 +494,8 @@ describe('Aiding', () => {
                 randomPasscode()
             );
 
-            const states = [member1.state, member2.state];
-            const rstates = [member2.state, member3.state];
+            const states = [member1.state!, member2.state!];
+            const rstates = [member2.state!, member3.state!];
             // Regression guard: interaction events have no prior-next threshold
             // to expose. Excluding member1 from proposed next digests proves ixn
             // signing does not consult rstates/gdigs for ondex.
@@ -542,8 +542,7 @@ describe('Aiding', () => {
                 states: [member1.state, member2.state],
                 rstates: [member1.state, member2.state],
             });
-            setGroupPriorNextDigests(group, [member1.state, member2.state]);
-
+            setGroupPriorNextDigests(group, [member1.state!, member2.state!]);
             client.fetch.mockResolvedValueOnce(
                 Response.json(group, { status: 200 })
             );
@@ -583,7 +582,7 @@ describe('Aiding', () => {
                 states: [member1.state, member2.state],
                 rstates: [member1.state, member2.state],
             });
-            setGroupPriorNextDigests(group, [member1.state, member2.state]);
+            setGroupPriorNextDigests(group, [member1.state!, member2.state!]);
 
             client.fetch.mockResolvedValueOnce(Response.json(group));
             client.fetch.mockResolvedValueOnce(Response.json({}));
@@ -613,8 +612,8 @@ describe('Aiding', () => {
                 randomUUID(),
                 randomPasscode()
             );
-            const states = [member1.state, member2.state, member3.state];
-            const rstates = [member1.state, member2.state, member4.state];
+            const states = [member1.state!, member2.state!, member3.state!];
+            const rstates = [member1.state!, member2.state!, member4.state!];
 
             const group = await createMockIdentifierState(randomUUID(), bran, {
                 algo: Algos.group,
@@ -655,7 +654,7 @@ describe('Aiding', () => {
                 algo: Algos.salty,
                 rotate: vitest
                     .fn()
-                    .mockResolvedValue([aid.state.k, aid.state.n]),
+                    .mockResolvedValue([aid.state!.k, aid.state!.n]),
                 sign: vitest.fn().mockResolvedValue(['signature']),
                 params: vitest.fn().mockReturnValue({}),
             };
@@ -721,6 +720,6 @@ function setGroupPriorNextDigests(group: HabState, states: KeyState[]) {
     const priorNextDigests = states.map(
         (state) => new Diger({}, new Verfer({ qb64: state.k[0] }).qb64b).qb64
     );
-    group.state.n = priorNextDigests;
+    group.state!.n = priorNextDigests;
     group.group.ndigs = priorNextDigests;
 }

@@ -140,15 +140,15 @@ test('multisig', async function run() {
     console.log('Member1 marked challenge response as accepted');
 
     // First member start the creation of a multisig identifier
-    let rstates = [aid1['state'], aid2['state'], aid3['state']];
+    let rstates = [aid1['state']!, aid2['state']!, aid3['state']!];
     let states = rstates;
     let icpResult1 = await client1.identifiers().create('multisig', {
         algo: Algos.group,
         mhab: aid1,
         isith: 3,
         nsith: 3,
-        toad: aid1.state.b.length,
-        wits: aid1.state.b,
+        toad: aid1.state!.b.length,
+        wits: aid1.state!.b,
         states: states,
         rstates: rstates,
     });
@@ -165,7 +165,7 @@ test('multisig', async function run() {
     };
 
     let smids = states.map((state) => state['i']);
-    let recp = [aid2['state'], aid3['state']].map((state) => state['i']);
+    let recp = [aid2['state']!, aid3['state']!].map((state) => state['i']);
 
     await client1
         .exchanges()
@@ -212,7 +212,7 @@ test('multisig', async function run() {
     };
 
     smids = (exn.a! as { smids: string[] }).smids;
-    recp = [aid1['state'], aid3['state']].map((state) => state['i']);
+    recp = [aid1['state']!, aid3['state']!].map((state) => state['i']);
 
     await client2
         .exchanges()
@@ -264,7 +264,7 @@ test('multisig', async function run() {
         Array.isArray((exn.a as { smids: unknown }).smids)
             ? (exn.a as { smids: string[] }).smids
             : [];
-    recp = [aid1['state'], aid2['state']].map((state) => state['i']);
+    recp = [aid1['state']!, aid2['state']!].map((state) => state['i']);
 
     await client3
         .exchanges()
@@ -351,7 +351,7 @@ test('multisig', async function run() {
     const endRole1 = await endRoleRes.op();
     let rpy = endRoleRes.serder;
     sigs = endRoleRes.sigs;
-    let mstate = hab['state'];
+    let mstate = hab['state']!;
     let seal = [
         'SealEvent',
         { i: hab['prefix'], s: mstate['ee']['s'], d: mstate['ee']['d'] },
@@ -362,7 +362,7 @@ test('multisig', async function run() {
     let roleembeds = {
         rpy: [rpy, atc],
     };
-    recp = [aid2['state'], aid3['state']].map((state) => state['i']);
+    recp = [aid2['state']!, aid3['state']!].map((state) => state['i']);
     await client1
         .exchanges()
         .send(
@@ -401,7 +401,7 @@ test('multisig', async function run() {
     sigs = endRoleRes.sigs;
 
     hab = await client2.identifiers().get('multisig');
-    mstate = hab['state'];
+    mstate = hab['state']!;
     seal = [
         'SealEvent',
         { i: hab['prefix'], s: mstate['ee']['s'], d: mstate['ee']['d'] },
@@ -412,7 +412,7 @@ test('multisig', async function run() {
     roleembeds = {
         rpy: [rpy, atc],
     };
-    recp = [aid1['state'], aid3['state']].map((state) => state['i']);
+    recp = [aid1['state']!, aid3['state']!].map((state) => state['i']);
     await client2
         .exchanges()
         .send(
@@ -449,7 +449,7 @@ test('multisig', async function run() {
     rpy = endRoleRes.serder;
     sigs = endRoleRes.sigs;
     hab = await client3.identifiers().get('multisig');
-    mstate = hab['state'];
+    mstate = hab['state']!;
     seal = [
         'SealEvent',
         { i: hab['prefix'], s: mstate['ee']['s'], d: mstate['ee']['d'] },
@@ -460,7 +460,7 @@ test('multisig', async function run() {
     roleembeds = {
         rpy: [rpy, atc],
     };
-    recp = [aid1['state'], aid2['state']].map((state) => state['i']);
+    recp = [aid1['state']!, aid2['state']!].map((state) => state['i']);
     await client3
         .exchanges()
         .send(
@@ -511,7 +511,7 @@ test('multisig', async function run() {
     };
 
     smids = states.map((state) => state['i']);
-    recp = [aid2['state'], aid3['state']].map((state) => state['i']);
+    recp = [aid2['state']!, aid3['state']!].map((state) => state['i']);
 
     await client1
         .exchanges()
@@ -556,7 +556,7 @@ test('multisig', async function run() {
         throw new Error('exn.a is missing from the group interaction event');
     }
     smids = (exn.a as { smids: string[] }).smids;
-    recp = [aid1['state'], aid3['state']].map((state) => state['i']);
+    recp = [aid1['state']!, aid3['state']!].map((state) => state['i']);
 
     await client2
         .exchanges()
@@ -598,7 +598,7 @@ test('multisig', async function run() {
     };
 
     smids = (exn.a as { smids: string[] }).smids;
-    recp = [aid1['state'], aid2['state']].map((state) => state['i']);
+    recp = [aid1['state']!, aid2['state']!].map((state) => state['i']);
 
     await client3
         .exchanges()
@@ -813,7 +813,7 @@ test('multisig', async function run() {
         anc: [anc, atc],
     };
 
-    recp = [aid2['state'], aid3['state']].map((state) => state['i']);
+    recp = [aid2['state']!, aid3['state']!].map((state) => state['i']);
     await client1
         .exchanges()
         .send(
@@ -854,7 +854,7 @@ test('multisig', async function run() {
         anc: [anc, atc],
     };
 
-    recp = [aid1['state'], aid3['state']].map((state) => state['i']);
+    recp = [aid1['state']!, aid3['state']!].map((state) => state['i']);
     await client2
         .exchanges()
         .send(
@@ -895,7 +895,7 @@ test('multisig', async function run() {
         anc: [anc, atc],
     };
 
-    recp = [aid1['state'], aid2['state']].map((state) => state['i']);
+    recp = [aid1['state']!, aid2['state']!].map((state) => state['i']);
     await client3
         .exchanges()
         .send(
@@ -1010,7 +1010,7 @@ test('multisig', async function run() {
         .ipex()
         .submitGrant('multisig', grant, gsigs, end, [holder]);
 
-    mstate = m['state'];
+    mstate = m['state']!;
     seal = [
         'SealEvent',
         { i: m['prefix'], s: mstate['ee']['s'], d: mstate['ee']['d'] },
@@ -1023,7 +1023,7 @@ test('multisig', async function run() {
     let gembeds = {
         exn: [grant, atc],
     };
-    recp = [aid2['state'], aid3['state']].map((state) => state['i']);
+    recp = [aid2['state']!, aid3['state']!].map((state) => state['i']);
     await client1
         .exchanges()
         .send(
@@ -1066,7 +1066,7 @@ test('multisig', async function run() {
     gembeds = {
         exn: [grant2, atc],
     };
-    recp = [aid1['state'], aid3['state']].map((state) => state['i']);
+    recp = [aid1['state']!, aid3['state']!].map((state) => state['i']);
     await client2
         .exchanges()
         .send(
@@ -1107,7 +1107,7 @@ test('multisig', async function run() {
     gembeds = {
         exn: [grant3, atc],
     };
-    recp = [aid1['state'], aid2['state']].map((state) => state['i']);
+    recp = [aid1['state']!, aid2['state']!].map((state) => state['i']);
     await client3
         .exchanges()
         .send(

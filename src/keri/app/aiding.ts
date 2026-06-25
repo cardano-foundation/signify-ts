@@ -308,6 +308,9 @@ export class Identifier {
         const hab = await this.get(name);
         const pre: string = hab.prefix;
 
+        if (!hab.state) {
+            throw new Error(`No state in hab ${name}`);
+        }
         const state = hab.state;
         const sn = parseInt(state.s, 16);
         const dig = state.d;
@@ -349,7 +352,10 @@ export class Identifier {
 
         const hab = await this.get(name);
         const pre = hab.prefix;
-        const delegated = hab.state.di !== '';
+        if (!hab.state) {
+            throw new Error(`No state in hab ${name}`);
+        }
+        const delegated = hab.state!.di !== '';
 
         const state = hab.state;
         const count = state.k.length;
