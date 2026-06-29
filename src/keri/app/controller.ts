@@ -514,6 +514,10 @@ export class Controller {
             // (wallet stays card-bound). The bran is recoverable
             // via the on-card escrow blob.
             aeidUnderNewBran?: boolean;
+            // Prior event said to chain the rot to. Lets the caller rotate
+            // AFTER an anchoring ixn (a profile's delegation seal) instead of
+            // superseding it from the establishment event. Pair with opts.sn.
+            priorDig?: string;
         } = {}
     ): Promise<{
         rot: Record<string, unknown>;
@@ -586,9 +590,11 @@ export class Controller {
         // against the icp's original n, skipping any intermediate event an
         // attacker may have inserted. The disputed sn must still be greater
         // than the latest seen sn; the caller supplies it via opts.sn.
-        const priorDig = opts.recoveryFromIcp
-            ? this.pre
-            : (this.serder.sad['d'] as string);
+        const priorDig =
+            opts.priorDig ??
+            (opts.recoveryFromIcp
+                ? this.pre
+                : (this.serder.sad['d'] as string));
         const nextSn =
             opts.sn ?? new CesrNumber({}, this.serder.sad['s']).num + 1;
         const rot = rotate({
