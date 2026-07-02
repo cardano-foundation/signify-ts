@@ -395,12 +395,31 @@ export class SignifyClient {
             nextOverride,
             opts
         );
-        return await fetch(this.url + '/agent/' + this.controller.pre, {
+
+        // KERIA commits the rot to the controller hab BEFORE running
+        // authn.inbound, so it verifies the inbound signature against the
+        // post-rotation k[0] (our new bran signer). Sign the request with
+        // the freshly mutated controller signer, exactly like
+        // rotateForRecovery. WITHOUT this the rot is applied and THEN the
+        // request 403s, leaving the wallet's controller key rotated away on
+        // KERIA while the caller (thinking it failed) never persists the
+        // new bran -> bricked controller.
+        const path = '/agent/' + this.controller.pre;
+        const respVerfer =
+            this.agent?.verfer ?? this.controller.signer.verfer;
+        this.authn = new Authenticater(this.controller.signer, respVerfer);
+        const headers = new Headers();
+        headers.set('Signify-Resource', this.controller.pre);
+        headers.set(
+            HEADER_SIG_TIME,
+            new Date().toISOString().replace('Z', '000+00:00')
+        );
+        headers.set('Content-Type', 'application/json');
+        const signedHeaders = this.authn.sign(headers, 'PUT', path);
+        return await fetch(this.url + path, {
             method: 'PUT',
             body: JSON.stringify(data),
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: signedHeaders,
         });
     }
 
