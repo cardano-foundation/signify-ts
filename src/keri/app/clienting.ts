@@ -376,6 +376,38 @@ export class SignifyClient {
     }
 
     /**
+     * Minimal retrofit of a recovery card onto an existing controller:
+     * single-key rotation committing the card digest as the new next while
+     * keeping the SAME bran (phone stays the signer). No aids, no per-AID
+     * re-encryption. See Controller.rotateExternalNext. Signs the PUT
+     * headers with the post-rotation signer (KERIA verifies inbound auth
+     * against post-rot k[0]).
+     */
+    async rotateExternalNext(
+        externalNdigs: string[],
+        opts: { sn?: number; priorDig?: string } = {}
+    ): Promise<Response> {
+        const data = this.controller.rotateExternalNext(externalNdigs, opts);
+        const path = '/agent/' + this.controller.pre;
+        const respVerfer =
+            this.agent?.verfer ?? this.controller.signer.verfer;
+        this.authn = new Authenticater(this.controller.signer, respVerfer);
+        const headers = new Headers();
+        headers.set('Signify-Resource', this.controller.pre);
+        headers.set(
+            HEADER_SIG_TIME,
+            new Date().toISOString().replace('Z', '000+00:00')
+        );
+        headers.set('Content-Type', 'application/json');
+        const signedHeaders = this.authn.sign(headers, 'PUT', path);
+        return await fetch(this.url + path, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+            headers: signedHeaders,
+        });
+    }
+
+    /**
      * Retrofit a recovery card onto a wallet whose controller AID was
      * created without one. Re-uses the standard rotate plumbing (so the
      * agent sxlt and every per-AID sxlt are re-encrypted under the new

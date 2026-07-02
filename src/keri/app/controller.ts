@@ -771,6 +771,87 @@ export class Controller {
     }
 
     /**
+     * Commit an external next-key digest (a hardware recovery card's pub) as
+     * the controller's new next with a MINIMAL single-key rotation that keeps
+     * the SAME bran. The rotation-time twin of {@link setExternalNext}: it
+     * reveals the pre-committed bran next-key as the new current (so the phone
+     * keeps signing tap-free), sets n to the external digest, and leaves the
+     * bran untouched. Because the bran (hence the per-AID sxlt aeid) doesn't
+     * change there is nothing to re-encrypt: keys is empty and sxlt is the
+     * current bran re-wrapped under the unchanged aeid.
+     *
+     * Unlike {@link rotateWithExternalNext} this does NOT run the passcode
+     * rotation machinery (no new bran, no dual-key reveal, no per-AID
+     * re-encryption), so it needs no aids or aid HabStates.
+     *
+     * opts.sn/priorDig chain the rot after the KEL's true head (a profile's
+     * agent-delegation ixn), same as {@link rotateForRecovery}.
+     */
+    rotateExternalNext(
+        externalNdigs: string[],
+        opts: { sn?: number; priorDig?: string } = {}
+    ): Record<string, unknown> {
+        if (!externalNdigs || externalNdigs.length === 0) {
+            throw new Error('rotateExternalNext: externalNdigs required');
+        }
+
+        // The pre-committed next is the bran signer at ridx+1. Revealing it as
+        // the new current is a plain single-key rotation the phone can sign.
+        const creator = new SaltyCreator(
+            this.salter.qb64,
+            this.tier,
+            this.stem
+        );
+        const newCurrent = creator
+            .create(
+                undefined,
+                1,
+                MtrDex.Ed25519_Seed,
+                true,
+                0,
+                this.ridx + 1,
+                0,
+                false
+            )
+            .signers.pop()!;
+        const newKeys = [newCurrent.verfer.qb64];
+
+        const priorDig = opts.priorDig ?? (this.serder.sad['d'] as string);
+        const sn =
+            opts.sn ??
+            new CesrNumber({}, this.serder.sad['s'] as string).num + 1;
+        const rot = rotate({
+            pre: this.pre,
+            keys: newKeys,
+            dig: priorDig,
+            sn,
+            isith: '1',
+            nsith: '1',
+            ndigs: externalNdigs,
+            wits: this.wits,
+            toad: this.toad,
+        });
+        const sigs = [newCurrent.sign(b(rot.raw), 0).qb64];
+
+        // Bran unchanged -> aeid unchanged -> sxlt is the same bran re-wrapped
+        // and no per-AID salt needs re-keying.
+        const aeidSigner = this.salter.signer(undefined, false);
+        const encrypter = new Encrypter({}, b(aeidSigner.verfer.qb64));
+        const sxlt = encrypter.encrypt(b(this.bran)).qb64;
+
+        // Commit the new state locally. The next is the card, so the local
+        // bran-derived nsigner is meaningless.
+        this.signer = newCurrent;
+        this.keys = newKeys;
+        this.ndigs = externalNdigs;
+        this.nsigner = undefined;
+        this.serder = rot;
+        this.ridx += 1;
+
+        return { rot: rot.sad, sigs, sxlt, keys: {} };
+    }
+
+    /**
      * Replace the inception event's next-key commitment with externally
      * provided digests and rebuild this.serder. Used by hosts that want the
      * controller AID to be rotatable via an external signer (e.g. a hardware
