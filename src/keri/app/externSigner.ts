@@ -116,13 +116,20 @@ export class ExternSignerModule implements IdentifierManager {
         ser: Uint8Array,
         indexed = true,
         indices?: number[],
-        ondices?: Array<number | undefined>
+        ondices?: Array<number | undefined>,
+        rotated?: boolean
     ): Promise<SignResult> {
         const sig = await this._signer.sign(ser);
 
         if (indexed) {
             const i = indices?.[0] ?? 0;
-            const o = ondices?.[0];
+            // For a rotation the new current key was the prior next at
+            // ondex=i, so the siger must carry the ondex (same default as
+            // SaltyKeeper). Inception stays current-only (ondex undefined).
+            let o = ondices?.[0];
+            if (o === undefined && rotated) {
+                o = i;
+            }
             const only = o === undefined;
             let code: string;
             if (only) {
