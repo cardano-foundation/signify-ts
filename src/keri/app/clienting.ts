@@ -527,6 +527,90 @@ export class SignifyClient {
     }
 
     /**
+     * Card-backed -> seed via two clean single-key rotations (see
+     * Controller.rotateOffCardToSeed). Submits rot1 (reveal the card key)
+     * then rot2 (reveal the new bran key). Both PUTs are signed with the
+     * post-rotation bran signer:
+     *  - rot1's PUT 403s (KERIA validates headers against post-rot1 k[0]=card,
+     *    not our bran signer) but the event still lands, because on_put
+     *    applies the rot BEFORE checking auth. rot1's sxlt/keys are no-ops so
+     *    skipping the post-auth update is harmless.
+     *  - between the two we re-read KERIA and confirm the controller actually
+     *    moved onto the card key. If not, we abort BEFORE rot2 so a bad rot1
+     *    can never leave the controller half-rotated.
+     *  - rot2's PUT authenticates (post-rot2 k[0]=bran=our signer) and KERIA
+     *    applies the new sxlt + per-AID re-key.
+     */
+    async rotateOffCardToSeed(
+        nbran: string,
+        cardCurPubQb64: string,
+        aids: Array<any>,
+        decryptOld: (cipherQb64: string) => Promise<Uint8Array>,
+        signRot: (raw: Uint8Array) => Promise<Uint8Array>,
+        opts: { sn?: number; priorDig?: string } = {}
+    ): Promise<Response> {
+        const body = await this.controller.rotateOffCardToSeed(
+            nbran,
+            cardCurPubQb64,
+            aids,
+            decryptOld,
+            signRot,
+            opts
+        );
+
+        const path = '/agent/' + this.controller.pre;
+        const signPut = async (data: Record<string, unknown>) => {
+            const respVerfer =
+                this.agent?.verfer ?? this.controller.signer.verfer;
+            this.authn = new Authenticater(
+                this.controller.signer,
+                respVerfer
+            );
+            const headers = new Headers();
+            headers.set('Signify-Resource', this.controller.pre);
+            headers.set(
+                HEADER_SIG_TIME,
+                new Date().toISOString().replace('Z', '000+00:00')
+            );
+            headers.set('Content-Type', 'application/json');
+            const signed = this.authn.sign(headers, 'PUT', path);
+            return await fetch(this.url + path, {
+                method: 'PUT',
+                body: JSON.stringify(data),
+                headers: signed,
+            });
+        };
+
+        // rot1: lands even though the PUT 403s (see doc above).
+        await signPut({
+            rot: body.rot1,
+            sigs: body.sigs1,
+            sxlt: body.sxlt1,
+            keys: body.keys1,
+        });
+
+        // Guard: confirm rot1 landed (controller now on the card key) before
+        // revealing the bran. Never send rot2 onto an unexpected state.
+        const stateRes = await fetch(this.url + path);
+        const st = await stateRes.json();
+        const k0 = st?.controller?.state?.k?.[0];
+        if (k0 !== cardCurPubQb64) {
+            throw new Error(
+                `rotateOffCardToSeed: rot1 did not land (KERIA k[0]=${k0}, ` +
+                    `expected the card key). Aborting before rot2.`
+            );
+        }
+
+        // rot2: authenticates and applies sxlt2 + the per-AID re-key.
+        return await signPut({
+            rot: body.rot2,
+            sigs: body.sigs2,
+            sxlt: body.sxlt2,
+            keys: body.keys2,
+        });
+    }
+
+    /**
      * Get identifiers resource
      * @returns {Identifier}
      */

@@ -485,4 +485,77 @@ describe('Controller', () => {
             assert.equal(ctrl.ridx, beforeRidx + 1);
         });
     });
+
+    describe('rotateOffCardToSeed', () => {
+        // Card-backed -> seed, in two clean single-key rotations.
+        async function backedUpFixture() {
+            await libsodium.ready;
+            const ctrl = new Controller('0123456789abcdefghijk', Tier.low);
+            // the card key the backup committed as next.
+            const cardCur = new Signer({
+                raw: new Uint8Array(32).fill(0x55),
+                code: MtrDex.Ed25519_Seed,
+            });
+            const cardNdig = new Diger(
+                { code: MtrDex.Blake3_256 },
+                cardCur.verfer.qb64b
+            ).qb64;
+            // reach the post-backup state: k=[bran], n=[card].
+            const backup = ctrl.rotateExternalNext([cardNdig]);
+            return { ctrl, cardCur, cardNdig, backup, nbran: 'abcdefghijklmnopqrstu' };
+        }
+
+        it('rot1 reveals the card key, rot2 chains to a bran key, and the KEL is valid', async () => {
+            const { ctrl, cardCur, cardNdig, backup, nbran } =
+                await backedUpFixture();
+            const signRot = async (raw: Uint8Array) => cardCur.sign(raw).raw;
+
+            const body = await ctrl.rotateOffCardToSeed(
+                nbran,
+                cardCur.verfer.qb64,
+                [],
+                vi.fn(),
+                signRot
+            );
+
+            const rot1 = body.rot1 as any;
+            const rot2 = body.rot2 as any;
+
+            // rot1: single-key reveal of the committed card key.
+            assert.deepEqual(rot1.k, [cardCur.verfer.qb64]);
+            assert.deepEqual(rot1.kt, '1');
+            assert.equal(rot1.t, 'rot');
+            assert.equal(rot1.p, (backup.rot as any).d);
+            assert.equal(
+                Number(rot1.s),
+                Number((backup.rot as any).s) + 1
+            );
+
+            // rot2: single-key bran current.
+            assert.equal(rot2.k.length, 1);
+            assert.equal(new Verfer({ qb64: rot2.k[0] }).code, MtrDex.Ed25519);
+            assert.deepEqual(rot2.kt, '1');
+            assert.equal(rot2.p, rot1.d);
+            assert.equal(Number(rot2.s), Number(rot1.s) + 1);
+
+            // THE correctness invariant: rot1 must commit rot2's revealed
+            // key as its next, or the chain is invalid and KERIA rejects it.
+            const rot2KeyDigest = new Diger(
+                { code: MtrDex.Blake3_256 },
+                new Verfer({ qb64: rot2.k[0] }).qb64b
+            ).qb64;
+            assert.deepEqual(rot1.n, [rot2KeyDigest]);
+
+            // sigs: card at index 0 on rot1, bran at index 0 on rot2.
+            assert.equal(body.sigs1.length, 1);
+            assert.ok(body.sigs1[0].startsWith('A'));
+            assert.equal(body.sigs2.length, 1);
+            assert.ok(body.sigs2[0].startsWith('A'));
+
+            // local state landed on rot2 (phone-controlled, single-key).
+            assert.deepEqual((ctrl as any).keys, [rot2.k[0]]);
+            assert.equal(ctrl.serder.sad.d, rot2.d);
+            void cardNdig;
+        });
+    });
 });

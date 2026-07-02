@@ -852,6 +852,175 @@ export class Controller {
     }
 
     /**
+     * Rotate the controller from card-backed back to a fresh seed (bran) in
+     * TWO clean single-key rotations, instead of the dual-key reveal
+     * rotateForRecovery uses (only valid as a superseding recovery, which
+     * mid-KEL leaves a 2-key controller the single-key Authenticater can't
+     * drive). Prior state after a backup is k=[bran], n=[card]:
+     *
+     *   rot1: reveal k=[card] (matches the prior n=[card]), commit
+     *         n=[digest(nb0)]. Signed by the card (the revealed next).
+     *   rot2: reveal k=[nb0] (matches rot1.n), commit n=[digest(nb1)].
+     *         Signed by nb0 (the new bran current, phone-held).
+     *
+     * End state: k=[nb0] single, next bran-derived -> phone controls,
+     * seed-recoverable, and the next backup's rotateExternalNext chains
+     * cleanly. Returns BOTH events; the caller PUTs rot1 then rot2. rot1's
+     * PUT must carry card-signed auth headers (KERIA validates headers
+     * against post-rot1 k[0]=card); rot2's headers are nb0-signed.
+     */
+    async rotateOffCardToSeed(
+        nbran: string,
+        cardCurPubQb64: string,
+        aids: Array<any>,
+        decryptOld: (cipherQb64: string) => Promise<Uint8Array>,
+        signRot: (raw: Uint8Array) => Promise<Uint8Array>,
+        opts: { sn?: number; priorDig?: string } = {}
+    ): Promise<{
+        rot1: Record<string, unknown>;
+        sigs1: string[];
+        sxlt1: string;
+        keys1: Record<string, any>;
+        rot2: Record<string, unknown>;
+        sigs2: string[];
+        sxlt2: string;
+        keys2: Record<string, any>;
+    }> {
+        // New bran signers: nb0 = current after rot2, nb1 = its next.
+        const newBranQb64 = MtrDex.Salt_128 + 'A' + nbran.substring(0, 21);
+        const newSalter = new Salter({ qb64: newBranQb64, tier: this.tier });
+        const newCreator = new SaltyCreator(
+            newSalter.qb64,
+            this.tier,
+            this.stem
+        );
+        const nb0 = newCreator
+            .create(undefined, 1, MtrDex.Ed25519_Seed, true, 0, 0, 0, false)
+            .signers.pop()!;
+        const nb1 = newCreator
+            .create(undefined, 1, MtrDex.Ed25519_Seed, true, 0, 1, 0, false)
+            .signers.pop()!;
+
+        // rot1: reveal the card key as the sole new current. Its digest is
+        // already the prior n (from the backup), so a plain single-key rot.
+        const cardVerfer = new Verfer({ qb64: cardCurPubQb64 });
+        const priorDig1 = opts.priorDig ?? (this.serder.sad['d'] as string);
+        const sn1 =
+            opts.sn ??
+            new CesrNumber({}, this.serder.sad['s'] as string).num + 1;
+        const nb0Digest = new Diger(
+            { code: MtrDex.Blake3_256 },
+            nb0.verfer.qb64b
+        ).qb64;
+        const rot1 = rotate({
+            pre: this.pre,
+            keys: [cardVerfer.qb64],
+            dig: priorDig1,
+            sn: sn1,
+            isith: '1',
+            nsith: '1',
+            ndigs: [nb0Digest],
+            wits: this.wits,
+            toad: this.toad,
+        });
+        const card1Raw = await signRot(b(rot1.raw));
+        const sigs1 = [
+            new Siger({
+                raw: card1Raw,
+                code: IdrDex.Ed25519_Sig,
+                index: 0,
+            }).qb64,
+        ];
+        // rot1 doesn't touch the bran; keep the current sxlt (old bran under
+        // old aeid) so KERIA's manager stays consistent through the transient
+        // card-current step. No per-AID re-key here.
+        const oldAeidSigner = this.salter.signer(undefined, false);
+        const sxlt1 = new Encrypter({}, b(oldAeidSigner.verfer.qb64))
+            .encrypt(b(this.bran))
+            .qb64;
+
+        // rot2: reveal nb0 (matches rot1.n) as the sole new current, commit
+        // nb1 as next. nb0 is phone-held so the phone signs it.
+        const priorDig2 = rot1.sad['d'] as string;
+        const sn2 = sn1 + 1;
+        const nb1Digest = new Diger(
+            { code: MtrDex.Blake3_256 },
+            nb1.verfer.qb64b
+        ).qb64;
+        const rot2 = rotate({
+            pre: this.pre,
+            keys: [nb0.verfer.qb64],
+            dig: priorDig2,
+            sn: sn2,
+            isith: '1',
+            nsith: '1',
+            ndigs: [nb1Digest],
+            wits: this.wits,
+            toad: this.toad,
+        });
+        const sigs2 = [nb0.sign(b(rot2.raw), 0).qb64];
+
+        // rot2 switches the bran to nbran: re-key the aeid like
+        // rotateForRecovery does (proven by the onboarding-recovery path).
+        const newBranAeidSigner = newSalter.signer(
+            MtrDex.Ed25519_Seed,
+            true,
+            '',
+            this.tier
+        );
+        const encrypter = new Encrypter({}, b(newBranAeidSigner.verfer.qb64));
+        const sxlt2 = encrypter.encrypt(b(newBranQb64)).qb64;
+        const keys2: Record<string, any> = {};
+        for (const aid of aids) {
+            const pre = aid['prefix'] as string;
+            if ('salty' in aid) {
+                const plaintext = await decryptOld(
+                    aid['salty']['sxlt'] as string
+                );
+                keys2[pre] = { sxlt: encrypter.encrypt(plaintext).qb64 };
+            } else if ('randy' in aid) {
+                const randy = aid['randy'];
+                const oldPrxs = (randy['prxs'] ?? []) as string[];
+                const oldNxts = (randy['nxts'] ?? []) as string[];
+                const newPrxs: string[] = [];
+                const newNxts: string[] = [];
+                for (const prx of oldPrxs) {
+                    newPrxs.push(
+                        encrypter.encrypt(await decryptOld(prx)).qb64
+                    );
+                }
+                for (const nxt of oldNxts) {
+                    newNxts.push(
+                        encrypter.encrypt(await decryptOld(nxt)).qb64
+                    );
+                }
+                keys2[pre] = { prxs: newPrxs, nxts: newNxts };
+            }
+        }
+
+        // Commit local state to rot2 (the final, phone-controlled state).
+        this.bran = newBranQb64;
+        this.salter = newSalter;
+        this.signer = nb0;
+        this.nsigner = nb1;
+        this.keys = [nb0.verfer.qb64];
+        this.ndigs = [nb1Digest];
+        this.serder = rot2;
+        this.ridx += 1;
+
+        return {
+            rot1: rot1.sad,
+            sigs1,
+            sxlt1,
+            keys1: {},
+            rot2: rot2.sad,
+            sigs2,
+            sxlt2,
+            keys2,
+        };
+    }
+
+    /**
      * Replace the inception event's next-key commitment with externally
      * provided digests and rebuild this.serder. Used by hosts that want the
      * controller AID to be rotatable via an external signer (e.g. a hardware
