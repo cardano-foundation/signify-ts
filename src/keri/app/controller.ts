@@ -999,6 +999,11 @@ export class Controller {
         }
 
         // Commit local state to rot2 (the final, phone-controlled state).
+        // Fresh bran: the current key is nb0 (ridx 0) and the committed next
+        // is nb1 (ridx 1). ridx tracks the CURRENT key's index, so it RESETS
+        // to 0 here — NOT +=1. Getting this wrong makes the next
+        // rotateExternalNext derive create(ridx+1) at the wrong index and
+        // reveal a key KERIA never committed (500 on the following backup).
         this.bran = newBranQb64;
         this.salter = newSalter;
         this.signer = nb0;
@@ -1006,7 +1011,7 @@ export class Controller {
         this.keys = [nb0.verfer.qb64];
         this.ndigs = [nb1Digest];
         this.serder = rot2;
-        this.ridx += 1;
+        this.ridx = 0;
 
         return {
             rot1: rot1.sad,

@@ -555,7 +555,37 @@ describe('Controller', () => {
             // local state landed on rot2 (phone-controlled, single-key).
             assert.deepEqual((ctrl as any).keys, [rot2.k[0]]);
             assert.equal(ctrl.serder.sad.d, rot2.d);
+            // ridx tracks the CURRENT key of the FRESH bran = 0.
+            assert.equal(ctrl.ridx, 0);
             void cardNdig;
+        });
+
+        it('a following backup reveals the committed next (ridx stays aligned)', async () => {
+            const { ctrl, cardCur, nbran } = await backedUpFixture();
+            const body = await ctrl.rotateOffCardToSeed(
+                nbran,
+                cardCur.verfer.qb64,
+                [],
+                vi.fn(),
+                async (raw: Uint8Array) => cardCur.sign(raw).raw
+            );
+            const committedNext = (body.rot2 as any).n[0];
+
+            // Now back up to a card again. rotateExternalNext must reveal the
+            // key card->seed committed as next (nb1), i.e. H(new k[0]) === n.
+            const nextCardNdig = new Diger(
+                { code: MtrDex.Blake3_256 },
+                new Signer({
+                    raw: new Uint8Array(32).fill(0x66),
+                    code: MtrDex.Ed25519_Seed,
+                }).verfer.qb64b
+            ).qb64;
+            const rot = ctrl.rotateExternalNext([nextCardNdig]);
+            const revealedDigest = new Diger(
+                { code: MtrDex.Blake3_256 },
+                new Verfer({ qb64: (rot.rot as any).k[0] }).qb64b
+            ).qb64;
+            assert.equal(revealedDigest, committedNext);
         });
     });
 });
