@@ -386,12 +386,14 @@ export class SignifyClient {
     async rotateWithExternalNext(
         nbran: string,
         aids: string[],
-        nextOverride: string[]
+        nextOverride: string[],
+        opts: { sn?: number; priorDig?: string } = {}
     ): Promise<Response> {
         const data = this.controller.rotateWithExternalNext(
             nbran,
             aids,
-            nextOverride
+            nextOverride,
+            opts
         );
         return await fetch(this.url + '/agent/' + this.controller.pre, {
             method: 'PUT',

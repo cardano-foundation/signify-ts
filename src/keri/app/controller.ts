@@ -705,7 +705,17 @@ export class Controller {
     rotateWithExternalNext(
         bran: string,
         aids: Array<any>,
-        nextOverride: string[]
+        nextOverride: string[],
+        opts: {
+            // Explicit sn/prior for the rebuilt rot. The standard rotate
+            // derives them from this.serder, which after connect is the
+            // establishment event; if the KEL advanced past it with an
+            // anchoring ixn (agent delegation seal) the derived rot lands
+            // ON that ixn's sn and KERIA rejects it as a bad recovery
+            // attempt. Same override pair rotateForRecovery already takes.
+            sn?: number;
+            priorDig?: string;
+        } = {}
     ): Record<string, unknown> {
         if (!nextOverride || nextOverride.length === 0) {
             throw new Error('rotateWithExternalNext: nextOverride required');
@@ -734,13 +744,16 @@ export class Controller {
         // Run the standard rotate so re-encryption side effects happen.
         const body: any = this.rotate(bran, aids);
 
-        // Rebuild rot with the override ndigs but the SAME dual-key shape,
-        // threshold AND sn the standard rotate emitted.
-        const rebuiltSn = new CesrNumber({}, body.rot.s as string).num;
+        // Rebuild rot with the override ndigs but the SAME dual-key shape
+        // and threshold the standard rotate emitted. sn/prior come from
+        // opts when the caller knows the KEL's true head (see opts docs),
+        // else fall back to what the standard rotate derived.
+        const rebuiltSn =
+            opts.sn ?? new CesrNumber({}, body.rot.s as string).num;
         const rebuilt = rotate({
             pre: this.pre,
             keys: this.keys,
-            dig: body.rot.p,
+            dig: opts.priorDig ?? body.rot.p,
             sn: rebuiltSn,
             isith: body.rot.kt,
             nsith: '1',
