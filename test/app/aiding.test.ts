@@ -272,6 +272,45 @@ describe('Aiding', () => {
         });
     });
 
+    it('createRotationData builds the event without submitting it', async () => {
+        const aid1 = await createMockIdentifierState('aid1', bran, {});
+        client.fetch.mockResolvedValueOnce(Response.json(aid1));
+
+        const body = await client.identifiers().createRotationData('aid1');
+
+        // only the state lookup happened, no POST to /events
+        const lastCall = client.getLastMockRequest();
+        assert.equal(lastCall.path, '/identifiers/aid1');
+        assert.equal(lastCall.method, 'GET');
+
+        assert.equal(body.rot.t, 'rot');
+        assert.equal(body.rot.s, '1');
+        assert.equal(body.sigs.length, 1);
+        assert.equal(body.salty!.kidx, 1);
+    });
+
+    it('submitRotationData submits a prebuilt event idempotently', async () => {
+        const aid1 = await createMockIdentifierState('aid1', bran, {});
+        client.fetch.mockResolvedValueOnce(Response.json(aid1));
+        const body = await client.identifiers().createRotationData('aid1');
+
+        client.fetch.mockResolvedValueOnce(Response.json({}));
+        await client.identifiers().submitRotationData('aid1', body);
+        const first = client.getLastMockRequest();
+
+        client.fetch.mockResolvedValueOnce(Response.json({}));
+        await client.identifiers().submitRotationData('aid1', body);
+        const second = client.getLastMockRequest();
+
+        assert.equal(first.path, '/identifiers/aid1/events');
+        assert.equal(first.method, 'POST');
+        assert.deepEqual(first.body.rot, body.rot);
+        assert.deepEqual(first.body.sigs, body.sigs);
+        // resubmitting the same body posts the exact same event
+        assert.equal(second.body.rot.d, first.body.rot.d);
+        assert.deepEqual(second.body.sigs, first.body.sigs);
+    });
+
     it('Can create interact event', async () => {
         const data = [
             {
