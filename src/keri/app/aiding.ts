@@ -64,6 +64,18 @@ export interface RotateIdentifierArgs {
     rstates?: any[];
 }
 
+export interface RotateIdentifierBody {
+    name: string,
+    rot: EstablishmentEvent,
+    sigs: string[],
+    smids?: string[],
+    rmids?: string[],
+    [Algos.salty]?: SaltyState;
+    [Algos.randy]?: RandyState;
+    [Algos.group]?: GroupState;
+    [Algos.extern]?: ExternState;
+}
+
 /**
  * Reducing the SignifyClient dependencies used by Identifier class
  */
@@ -352,10 +364,10 @@ export class Identifier {
      * @param {RotateIdentifierArgs} [kargs] Optional parameters requiered to generate the rotation event
      * @returns {Promise<EventResult>} A promise to the rotation event result
      */
-    async rotate(
+    async createRotationData(
         name: string,
         kargs: RotateIdentifierArgs = {}
-    ): Promise<EventResult> {
+    ): Promise<RotateIdentifierBody> {
         const transferable = kargs.transferable ?? true;
         const ncode = kargs.ncode ?? MtrDex.Ed25519_Seed;
         const ncount = kargs.ncount ?? 1;
@@ -422,7 +434,8 @@ export class Identifier {
 
         const sigs = await keeper.sign(b(serder.raw));
 
-        const jsondata: any = {
+        const body: any = {
+            name,
             rot: serder.ked,
             sigs: sigs,
             smids:
@@ -434,14 +447,28 @@ export class Identifier {
                     ? rstates.map((state) => state.i)
                     : undefined,
         };
-        jsondata[keeper.algo] = keeper.params();
+        body[keeper.algo] = keeper.params();
+        return body;
+    }
 
+    async submitRotationData(
+        jsondata: RotateIdentifierBody
+    ): Promise<EventResult> {
+        const { name, ...body } = jsondata;
         const res = await this.client.fetch(
             '/identifiers/' + name + '/events',
             'POST',
-            jsondata
+            body
         );
-        return new EventResult(serder, sigs, res);
+        return new EventResult(new Serder(jsondata.rot), jsondata.sigs, res);
+    }
+
+    async rotate(
+        name: string,
+        kargs: RotateIdentifierArgs = {}
+    ): Promise<EventResult> {
+        const jsondata = await this.createRotationData(name, kargs);
+        return await this.submitRotationData(jsondata);
     }
 
     /**
