@@ -65,7 +65,6 @@ export interface RotateIdentifierArgs {
 }
 
 export interface RotateIdentifierBody {
-    name: string,
     rot: EstablishmentEvent,
     sigs: string[],
     smids?: string[],
@@ -358,12 +357,6 @@ export class Identifier {
         return { serder, sigs, jsondata };
     }
 
-    /**
-     * Generate a rotation event in a managed identifier
-     * @param {string} name Name or alias of the identifier
-     * @param {RotateIdentifierArgs} [kargs] Optional parameters requiered to generate the rotation event
-     * @returns {Promise<EventResult>} A promise to the rotation event result
-     */
     async createRotationData(
         name: string,
         kargs: RotateIdentifierArgs = {}
@@ -435,7 +428,6 @@ export class Identifier {
         const sigs = await keeper.sign(b(serder.raw));
 
         const body: any = {
-            name,
             rot: serder.ked,
             sigs: sigs,
             smids:
@@ -452,23 +444,29 @@ export class Identifier {
     }
 
     async submitRotationData(
+        name: string,
         jsondata: RotateIdentifierBody
     ): Promise<EventResult> {
-        const { name, ...body } = jsondata;
         const res = await this.client.fetch(
             '/identifiers/' + name + '/events',
             'POST',
-            body
+            jsondata
         );
         return new EventResult(new Serder(jsondata.rot), jsondata.sigs, res);
     }
 
+    /**
+     * Rotate a managed identifier
+     * @param {string} name Name or alias of the identifier
+     * @param {RotateIdentifierArgs} [kargs] Optional parameters requiered to generate the rotation event
+     * @returns {Promise<EventResult>} A promise to the rotation event result
+     */
     async rotate(
         name: string,
         kargs: RotateIdentifierArgs = {}
     ): Promise<EventResult> {
         const jsondata = await this.createRotationData(name, kargs);
-        return await this.submitRotationData(jsondata);
+        return await this.submitRotationData(name, jsondata);
     }
 
     /**

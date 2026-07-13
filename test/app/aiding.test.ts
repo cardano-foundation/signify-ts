@@ -283,7 +283,8 @@ describe('Aiding', () => {
         assert.equal(lastCall.path, '/identifiers/aid1');
         assert.equal(lastCall.method, 'GET');
 
-        assert.equal(body.name, 'aid1');
+        // name is not part of the body, it only drives the submit url
+        assert.equal((body as any).name, undefined);
         assert.equal(body.rot.t, 'rot');
         assert.equal(body.rot.s, '1');
         assert.equal(body.sigs.length, 1);
@@ -296,17 +297,15 @@ describe('Aiding', () => {
         const body = await client.identifiers().createRotationData('aid1');
 
         client.fetch.mockResolvedValueOnce(Response.json({}));
-        await client.identifiers().submitRotationData(body);
+        await client.identifiers().submitRotationData('aid1', body);
         const first = client.getLastMockRequest();
 
         client.fetch.mockResolvedValueOnce(Response.json({}));
-        await client.identifiers().submitRotationData(body);
+        await client.identifiers().submitRotationData('aid1', body);
         const second = client.getLastMockRequest();
 
         assert.equal(first.path, '/identifiers/aid1/events');
         assert.equal(first.method, 'POST');
-        // the name only drives the url, it is not part of the posted body
-        assert.equal(first.body.name, undefined);
         assert.deepEqual(first.body.rot, body.rot);
         assert.deepEqual(first.body.sigs, body.sigs);
         // resubmitting the same body posts the exact same event
