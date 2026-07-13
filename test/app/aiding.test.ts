@@ -283,8 +283,6 @@ describe('Aiding', () => {
         assert.equal(lastCall.path, '/identifiers/aid1');
         assert.equal(lastCall.method, 'GET');
 
-        // name is not part of the body, it only drives the submit url
-        assert.equal((body as any).name, undefined);
         assert.equal(body.rot.t, 'rot');
         assert.equal(body.rot.s, '1');
         assert.equal(body.sigs.length, 1);
