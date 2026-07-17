@@ -9,7 +9,7 @@ import signify, {
     d,
     messagize,
 } from 'signify-ts';
-import { getStates, waitAndMarkNotification } from './test-util';
+import { getStates, waitAndMarkNotification, waitOperation } from './test-util';
 import { HabState } from '../../../src/keri/core/state';
 import assert from 'assert';
 
@@ -68,7 +68,7 @@ export async function acceptMultisigIncept(
 
     const recipients = smids.filter((id: string) => memberHab.prefix !== id);
 
-    client2
+    const exnOp = await client2
         .exchanges()
         .send(
             localMemberName,
@@ -79,6 +79,7 @@ export async function acceptMultisigIncept(
             embeds,
             recipients
         );
+    await waitOperation(client2, exnOp);
 
     return op2;
 }
@@ -128,7 +129,7 @@ export async function addEndRoleMultisig(
             rpy: [rpy, atc],
         };
         const recp = otherMembersAIDs.map((aid) => aid.prefix);
-        await client
+        const exnOp = await client
             .exchanges()
             .send(
                 aid.name,
@@ -139,6 +140,7 @@ export async function addEndRoleMultisig(
                 roleembeds,
                 recp
             );
+        await waitOperation(client, exnOp);
     }
 
     return opList;
@@ -184,7 +186,7 @@ export async function admitMultisig(
     };
     const recp = otherMembersAIDs.map((aid) => aid.prefix);
 
-    await client
+    const exnOp = await client
         .exchanges()
         .send(
             aid.name,
@@ -195,6 +197,7 @@ export async function admitMultisig(
             gembeds,
             recp
         );
+    await waitOperation(client, exnOp);
 }
 
 export async function createAIDMultisig(
@@ -221,7 +224,7 @@ export async function createAIDMultisig(
     const smids = kargs.states?.map((state) => state['i']);
     const recp = otherMembersAIDs.map((aid) => aid.prefix);
 
-    await client
+    const exnOp = await client
         .exchanges()
         .send(
             aid.name,
@@ -232,6 +235,7 @@ export async function createAIDMultisig(
             embeds,
             recp
         );
+    await waitOperation(client, exnOp);
 
     return op;
 }
@@ -268,7 +272,7 @@ export async function createRegistryMultisig(
     };
     const recp = otherMembersAIDs.map((aid) => aid.prefix);
 
-    await client
+    const exnOp = await client
         .exchanges()
         .send(
             aid.name,
@@ -279,6 +283,7 @@ export async function createRegistryMultisig(
             regbeds,
             recp
         );
+    await waitOperation(client, exnOp);
 
     const ancSn: number = anc.sn;
     const ancDig: string = anc.ked['d'];
@@ -333,7 +338,7 @@ export async function delegateMultisig(
     const smids = [aid.prefix, ...otherMembersAIDs.map((aid) => aid.prefix)];
     const recp = otherMembersAIDs.map((aid) => aid.prefix);
 
-    await client
+    const exnOp = await client
         .exchanges()
         .send(
             aid.name,
@@ -344,6 +349,7 @@ export async function delegateMultisig(
             xembeds,
             recp
         );
+    await waitOperation(client, exnOp);
 
     if (isInitiator) {
         console.log(
@@ -395,7 +401,7 @@ export async function grantMultisig(
     };
     const recp = otherMembersAIDs.map((aid) => aid.prefix);
 
-    await client
+    const exnOp = await client
         .exchanges()
         .send(
             aid.name,
@@ -406,6 +412,7 @@ export async function grantMultisig(
             gembeds,
             recp
         );
+    await waitOperation(client, exnOp);
 }
 
 export async function issueCredentialMultisig(
@@ -441,7 +448,7 @@ export async function issueCredentialMultisig(
     };
     const recp = otherMembersAIDs.map((aid) => aid.prefix);
 
-    await client
+    const exnOp = await client
         .exchanges()
         .send(
             aid.name,
@@ -452,6 +459,7 @@ export async function issueCredentialMultisig(
             embeds,
             recp
         );
+    await waitOperation(client, exnOp);
 
     return { op, anc };
 }
@@ -491,7 +499,7 @@ export async function startMultisigIncept(
 
     const smids = participantStates.map((state) => state['i']);
 
-    await client
+    const exnOp = await client
         .exchanges()
         .send(
             localMemberName,
@@ -502,5 +510,6 @@ export async function startMultisigIncept(
             embeds,
             participants
         );
+    await waitOperation(client, exnOp);
     return op1;
 }

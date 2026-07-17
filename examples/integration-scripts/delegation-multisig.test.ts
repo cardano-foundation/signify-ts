@@ -182,8 +182,16 @@ test('delegation-multisig', async () => {
                 opList2.map((op) => waitOperation(delegator2Client, op))
             );
 
-            await waitAndMarkNotification(delegator1Client, '/multisig/rpy');
-            await waitAndMarkNotification(delegator2Client, '/multisig/rpy');
+            await waitAndMarkNotification(
+                delegator1Client,
+                '/multisig/rpy',
+                true
+            );
+            await waitAndMarkNotification(
+                delegator2Client,
+                '/multisig/rpy',
+                true
+            );
 
             const [odelegatorGroupName1, odelegatorGroupName2] =
                 await Promise.all([

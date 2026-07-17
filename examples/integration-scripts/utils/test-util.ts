@@ -461,13 +461,38 @@ export async function waitForCredential(
     throw Error('Credential SAID: ' + credSAID + ' has not been received');
 }
 
+/**
+ * Send an exn and drain the long-running operation KERIA returns for it.
+ * @see waitOperation
+ */
+export async function sendExchange(
+    client: SignifyClient,
+    ...args: Parameters<ReturnType<SignifyClient['exchanges']>['send']>
+): Promise<void> {
+    const op = await client.exchanges().send(...args);
+    await waitOperation(client, op);
+}
+
+/**
+ * @param markAll mark every notification on the route, not just the first. Needed
+ * where one step produces several notices, e.g. an end role rpy per signing member.
+ */
 export async function waitAndMarkNotification(
     client: SignifyClient,
-    route: string
+    route: string,
+    markAll = false
 ) {
     const notes = await waitForNotifications(client, route);
 
-    await markNotification(client, notes[0]);
+    if (markAll) {
+        await Promise.all(
+            notes.map(async (note) => {
+                await markNotification(client, note);
+            })
+        );
+    } else {
+        await markNotification(client, notes[0]);
+    }
 
     return notes[0]?.a.d ?? '';
 }
