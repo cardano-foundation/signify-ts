@@ -332,6 +332,23 @@ test('delegation-multisig', async () => {
     const agtee = await delegatee1Client.identifiers().get(delegateeGroupName);
     assert.equal(agtee.prefix, teepre);
 
+    // Consume the /delegate/request prompt, delivered to one delegator member's agent.
+    let sawDelegateRequest = false;
+    for (let i = 0; i < 15 && !sawDelegateRequest; i++) {
+        for (const cl of [delegator1Client, delegator2Client]) {
+            const res = await cl.notifications().list();
+            const notes = res.notes.filter(
+                (n: any) => n.a.r === '/delegate/request' && n.r === false
+            );
+            for (const note of notes) {
+                await cl.notifications().mark(note.i);
+                sawDelegateRequest = true;
+            }
+        }
+        if (!sawDelegateRequest) await new Promise((r) => setTimeout(r, 1000));
+    }
+    assert(sawDelegateRequest, 'delegator never received /delegate/request');
+
     await assertOperations(
         delegator1Client,
         delegator2Client,
