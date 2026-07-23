@@ -373,3 +373,115 @@ test('two divergent rots at the same sn wedge a 2-of-2 group', async () => {
         assert.strictEqual(await groupSn(client2, groupName), '0');
     });
 }, 120000);
+
+// The designed flow: a group does not fix the rotation sn until every member has
+// rotated their KEL, and a member only rotates once its outbox has cleared. So an
+// in-flight issuance commits first, and the rotation lands on the next sn. Both
+// succeed, no collision.
+test('an issuance that completes before the rotation lands on the next sn (no race)', async () => {
+    await signify.ready();
+    const { client1, client2, aid1, aid2, groupName } =
+        await setup2of2('race-seq');
+
+    let ixnSaid = '';
+    let rotSaid = '';
+
+    await step('the group ixn commits at sn=1 while both members still hold their keys', async () => {
+        const data = { i: aid1, s: '0', d: aid1 };
+        const res1 = await client1.identifiers().interact(groupName, data);
+        const op1 = await res1.op();
+        const s1 = res1.serder;
+        ixnSaid = s1.said;
+        const hab1 = await client1.identifiers().get('member1');
+        await client1
+            .exchanges()
+            .send(
+                'member1',
+                'multisig',
+                hab1,
+                '/multisig/ixn',
+                { gid: s1.pre, smids: [aid1, aid2], rmids: [aid1, aid2] },
+                { ixn: [s1, atcOf(s1, res1.sigs)] },
+                [aid2]
+            );
+
+        const res2 = await client2.identifiers().interact(groupName, data);
+        const op2 = await res2.op();
+        const s2 = res2.serder;
+        const hab2 = await client2.identifiers().get('member2');
+        await client2
+            .exchanges()
+            .send(
+                'member2',
+                'multisig',
+                hab2,
+                '/multisig/ixn',
+                { gid: s2.pre, smids: [aid1, aid2], rmids: [aid1, aid2] },
+                { ixn: [s2, atcOf(s2, res2.sigs)] },
+                [aid1]
+            );
+
+        await Promise.all([
+            waitOperation(client1, op1),
+            waitOperation(client2, op2),
+        ]);
+        const g = await client1.identifiers().get(groupName);
+        console.log(`[ixn] issuance committed at sn=${g.state.s} et=${g.state.et} said=${ixnSaid}`);
+        assert.strictEqual(g.state.s, '1');
+        assert.strictEqual(g.state.et, 'ixn');
+    });
+
+    await step('the rotation is built afterwards, so it lands at sn=2', async () => {
+        const states = await rotateMembersAndSyncStates(client1, client2);
+        const smids = states.map((s) => s.i);
+
+        const res1 = await client1
+            .identifiers()
+            .rotate(groupName, { states, rstates: states });
+        const op1 = await res1.op();
+        const s1 = res1.serder;
+        rotSaid = s1.said;
+        assert.strictEqual(s1.sn, 2);
+        const hab1 = await client1.identifiers().get('member1');
+        await client1
+            .exchanges()
+            .send(
+                'member1',
+                'multisig',
+                hab1,
+                '/multisig/rot',
+                { gid: s1.pre, smids, rmids: smids },
+                { rot: [s1, atcOf(s1, res1.sigs)] },
+                [states[1].i]
+            );
+
+        const res2 = await client2
+            .identifiers()
+            .rotate(groupName, { states, rstates: states });
+        const op2 = await res2.op();
+        const s2 = res2.serder;
+        const hab2 = await client2.identifiers().get('member2');
+        await client2
+            .exchanges()
+            .send(
+                'member2',
+                'multisig',
+                hab2,
+                '/multisig/rot',
+                { gid: s2.pre, smids, rmids: smids },
+                { rot: [s2, atcOf(s2, res2.sigs)] },
+                [states[0].i]
+            );
+
+        await Promise.all([
+            waitOperation(client1, op1),
+            waitOperation(client2, op2),
+        ]);
+        const g = await client1.identifiers().get(groupName);
+        console.log(`[rot] rotation committed at sn=${g.state.s} et=${g.state.et} said=${rotSaid}`);
+        console.log(`[result] ixn at sn=1, rot at sn=2 -> different sn, no collision`);
+        assert.strictEqual(g.state.s, '2');
+        assert.strictEqual(g.state.et, 'rot');
+        assert.notStrictEqual(rotSaid, ixnSaid);
+    });
+}, 120000);
