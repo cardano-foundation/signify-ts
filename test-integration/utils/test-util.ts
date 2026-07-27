@@ -52,7 +52,7 @@ export interface Notification {
     i: string;
     dt: string;
     r: boolean;
-    a: { r: string; d?: string; m?: string };
+    a: { r: string; d?: string; m?: string; delpre?: string };
 }
 
 export interface NotificationOptions extends RetryOptions {
@@ -488,6 +488,32 @@ export async function markAndRemoveNotification(
     } finally {
         await client.notifications().delete(note.i);
     }
+}
+
+/**
+ * Mark and remove unread notifications matching a route, across clients.
+ */
+export async function drainNotifications(
+    route: string,
+    ...clients: SignifyClient[]
+): Promise<Notification[]> {
+    const handled: Notification[] = [];
+
+    for (const client of clients) {
+        const response: { notes: Notification[] } = await client
+            .notifications()
+            .list();
+        const notes = response.notes.filter((note) =>
+            matchesNotification(note, route)
+        );
+
+        for (const note of notes) {
+            await markAndRemoveNotification(client, note);
+            handled.push(note);
+        }
+    }
+
+    return handled;
 }
 
 /**
