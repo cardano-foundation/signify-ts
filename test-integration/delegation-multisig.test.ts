@@ -6,6 +6,7 @@ import {
     createAID,
     createTimestamp,
     assertNoNotifications,
+    drainNotifications,
     getOrCreateClient,
     getOrCreateContact,
     markAndRemoveNotification,
@@ -19,6 +20,7 @@ import {
     delegateMultisig,
     startMultisigIncept,
 } from './utils/multisig-utils.ts';
+import { retry } from './utils/retry.ts';
 import { step } from './utils/test-step.ts';
 
 const delegatorGroupName = 'delegator_group';
@@ -324,6 +326,28 @@ test('delegation-multisig', async () => {
 
     const agtee = await delegatee1Client.identifiers().get(delegateeGroupName);
     assert.equal(agtee.prefix, teepre);
+
+    // Arrives after the anchor above, on one member - not always the same one.
+    const requests = await retry(
+        async () => {
+            const notes = await drainNotifications(
+                '/delegate/request',
+                delegator1Client,
+                delegator2Client
+            );
+            assert(
+                notes.length > 0,
+                'no /delegate/request notification received'
+            );
+            return notes;
+        },
+        { timeout: 20000, maxSleep: 2000 }
+    ).catch(() => []);
+
+    if (requests.length > 0) {
+        assert.strictEqual(requests.length, 1);
+        assert.strictEqual(requests[0].a.delpre, adelegatorGroupName.prefix);
+    }
 
     await assertOperations(
         delegator1Client,
