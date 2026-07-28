@@ -271,15 +271,16 @@ export class EssrAuthenticator extends Authenticator {
     }
 
     static async serializeRequest(request: Request) {
+        // KERIA's environ lookup is case-sensitive
         let headers = '';
         request.headers.forEach((value, name) => {
-            headers += `${name}: ${value}\r\n`;
+            headers += `${name.toLowerCase()}: ${value}\r\n`;
         });
 
         let body = '';
         if (request.method !== 'GET' && request.body) {
-            body = Buffer.from(await this.streamToBytes(request.body)).toString(
-                'utf-8'
+            body = new TextDecoder('utf-8', { fatal: true }).decode(
+                await this.streamToBytes(request.body)
             );
         }
 
@@ -363,14 +364,9 @@ export class EssrAuthenticator extends Authenticator {
             throw new Error('Invalid signature');
         }
 
-        const plaintext = d(
-            libsodium.crypto_box_seal_open(
-                ciphertext,
-                this.cx25519Pub,
-                this.cx25519Priv
-            )
+        const response = EssrAuthenticator.deserializeResponse(
+            d(this.decrypt(ciphertext))
         );
-        const response = EssrAuthenticator.deserializeResponse(plaintext);
 
         if (response.headers.get(HEADER_SIG_SENDER) !== sender) {
             throw new Error(
@@ -381,35 +377,50 @@ export class EssrAuthenticator extends Authenticator {
         return response;
     }
 
+    // KERIA seals the response to the client key it has in the controller's KEL
+    private decrypt(ciphertext: Uint8Array): Uint8Array {
+        try {
+            return libsodium.crypto_box_seal_open(
+                ciphertext,
+                this.cx25519Pub,
+                this.cx25519Priv
+            );
+        } catch (e) {
+            throw new Error(
+                'Failed to decrypt ESSR response - sealed to a different client key',
+                { cause: e }
+            );
+        }
+    }
+
     static deserializeResponse(httpString: string): Response {
-        const lines = httpString.split('\r\n');
+        const sep = httpString.indexOf('\r\n\r\n');
+        const head =
+            sep === -1 ? httpString.trimEnd() : httpString.slice(0, sep);
 
-        const [_, statusCode, ...statusTextArr] = lines[0].split(' ');
-        const statusText = statusTextArr.join(' ');
-        const status = Number(statusCode);
+        const [statusLine, ...headerLines] = head.split('\r\n');
+        const [, statusCode, ...statusTextArr] = statusLine.split(' ');
 
-        const headers = new Headers();
-        let body = '';
-        let bodyStart = false;
-
-        for (let i = 1; i < lines.length; i++) {
-            if (lines[i] === '') {
-                bodyStart = true;
-                continue;
-            }
-
-            if (bodyStart) {
-                body += lines[i] + '\n';
-                continue;
-            }
-
-            const [key, value] = lines[i].split(': ');
-            headers.append(key, value);
+        let body = sep === -1 ? '' : httpString.slice(sep + 4);
+        // KERIA's serializeResponse emits an extra CRLF when there are no headers
+        if (headerLines.length === 0 && body.startsWith('\r\n')) {
+            body = body.slice(2);
         }
 
-        return new Response(body ? body.trim() : null, {
-            status,
-            statusText,
+        const headers = new Headers();
+        for (const line of headerLines) {
+            const i = line.indexOf(':');
+            if (i !== -1) {
+                headers.append(
+                    line.slice(0, i).trim(),
+                    line.slice(i + 1).trim()
+                );
+            }
+        }
+
+        return new Response(body.length ? body : null, {
+            status: Number(statusCode),
+            statusText: statusTextArr.join(' '),
             headers,
         });
     }
