@@ -278,9 +278,15 @@ export class EssrAuthenticator extends Authenticator {
 
         let body = '';
         if (request.method !== 'GET' && request.body) {
-            body = new TextDecoder('utf-8', { fatal: true }).decode(
-                await this.streamToBytes(request.body)
-            );
+            const bytes = await this.streamToBytes(request.body);
+            try {
+                body = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+            } catch (e) {
+                throw new Error(
+                    'Failed to serialize ESSR request - body is not valid UTF-8',
+                    { cause: e }
+                );
+            }
         }
 
         return `${request.method} ${request.url} HTTP/1.1\r\n${headers}\r\n${body}`;
