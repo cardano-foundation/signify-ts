@@ -103,6 +103,20 @@ export interface IdentifierMetadata {
     [key: string]: unknown;
 }
 
+/** Result of resetting a group's partial activity for one rotation round. */
+export interface IdentifierActivityReset {
+    identifier: string;
+    rotationId: string;
+    alreadyReset: boolean;
+    kelEvents: string[];
+    telEvents: string[];
+    credentialEscrows: string[];
+    exchanges: string[];
+    operations: string[];
+    notifications: string[];
+    queues: Record<string, number>;
+}
+
 export interface LocSchemeArgs {
     url: string;
     scheme?: string;
@@ -597,6 +611,20 @@ export class Identifier {
     async getLatestEvent(name: string): Promise<any> {
         const path = `/identifiers/${encodeURIComponent(name)}/latestevent`;
         const res = await this.client.fetch(path, 'GET', null);
+        return await res.json();
+    }
+
+    /**
+     * Clear a rotating group's partial non-rotation activity.
+     */
+    async resetPendingActivities(
+        name: string,
+        rotationId: string
+    ): Promise<IdentifierActivityReset> {
+        const path = `/identifiers/${encodeURIComponent(
+            name
+        )}/activities/reset`;
+        const res = await this.client.fetch(path, 'POST', { rotationId });
         return await res.json();
     }
 }

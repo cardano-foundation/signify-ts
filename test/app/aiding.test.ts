@@ -579,6 +579,37 @@ describe('Aiding', () => {
         });
     });
 
+    describe('rotation activity reset', () => {
+        it('resets partial group activity', async () => {
+            const reset = {
+                identifier: 'EGroup',
+                rotationId: 'round-1',
+                alreadyReset: false,
+                kelEvents: ['EKel'],
+                telEvents: ['ETel'],
+                credentialEscrows: ['ECredential'],
+                exchanges: ['EExchange'],
+                operations: ['group.EKel'],
+                notifications: ['ENotification'],
+                queues: { groups: 1 },
+            };
+            client.fetch.mockResolvedValue(Response.json(reset));
+
+            const result = await client
+                .identifiers()
+                .resetPendingActivities('my group', 'round-1');
+
+            const lastCall = client.getLastMockRequest();
+            assert.equal(
+                lastCall.path,
+                '/identifiers/my%20group/activities/reset'
+            );
+            assert.equal(lastCall.method, 'POST');
+            assert.deepEqual(lastCall.body, { rotationId: 'round-1' });
+            expect(result).toEqual(reset);
+        });
+    });
+
     describe('Group identifiers', () => {
         it('Can Rotate group', async () => {
             const member1 = await createMockIdentifierState(
