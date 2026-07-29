@@ -310,6 +310,15 @@ describe('Credentialing', () => {
         );
         assert.equal(lastCall[1], 'DELETE');
         assert.equal(lastCall[2], undefined);
+
+        await credentials.deletePending('my group', 'EActivity/1');
+        lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]!;
+        assert.equal(
+            lastCall[0],
+            '/identifiers/my%20group/credentials/pending/EActivity%2F1'
+        );
+        assert.equal(lastCall[1], 'DELETE');
+        assert.equal(lastCall[2], null);
     });
 
     it('issue() with anchorPoint uses provided sn+1 and d for ixn', async () => {

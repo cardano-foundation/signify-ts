@@ -103,6 +103,19 @@ export interface RevokeCredentialResult {
     op: Operation;
 }
 
+/** Result of deleting one exact pending credential activity. */
+export interface PendingCredentialDeletion {
+    identifier: string;
+    said: string;
+    kelEvents: string[];
+    telEvents: string[];
+    credentialEscrows: string[];
+    exchanges: string[];
+    operations: string[];
+    notifications: string[];
+    queues: Record<string, number>;
+}
+
 export interface IpexApplyArgs {
     /**
      * Alias for the IPEX sender AID
@@ -320,6 +333,20 @@ export class Credentials {
         const path = `/credentials/${said}`;
         const method = 'DELETE';
         await this.client.fetch(path, method, undefined);
+    }
+
+    /**
+     * Delete one exact pending issuance or revocation by activity SAID.
+     */
+    async deletePending(
+        name: string,
+        activitySaid: string
+    ): Promise<PendingCredentialDeletion> {
+        const path =
+            `/identifiers/${encodeURIComponent(name)}/credentials/pending/` +
+            encodeURIComponent(activitySaid);
+        const res = await this.client.fetch(path, 'DELETE', null);
+        return await res.json();
     }
 
     /**
