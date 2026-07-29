@@ -325,6 +325,16 @@ test('delegation-multisig', async () => {
     const agtee = await delegatee1Client.identifiers().get(delegateeGroupName);
     assert.equal(agtee.prefix, teepre);
 
+    // KERIA main sends a /delegate/request EXN to the GEDA members; 0.4.0 does not
+    for (const client of [delegator1Client, delegator2Client]) {
+        const notes = await waitForNotifications(client, '/delegate/request', {
+            timeout: 10000,
+        }).catch(() => []);
+        for (const note of notes) {
+            await markAndRemoveNotification(client, note);
+        }
+    }
+
     await assertOperations(
         delegator1Client,
         delegator2Client,
