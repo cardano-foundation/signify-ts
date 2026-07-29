@@ -43,18 +43,10 @@ export enum AuthMode {
     ESSR = 'ESSR',
 }
 
-// KERIA parses the tunnelled request with Python's splitlines(), which breaks on these
 function jsonBody(data: unknown): string | null {
     // typed as string, but returns undefined for undefined/functions/symbols
     const json: string | undefined = JSON.stringify(data);
-    if (json === undefined) {
-        return null;
-    }
-
-    return json.replace(
-        /[\u0085\u2028\u2029]/g,
-        (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')
-    );
+    return json ?? null;
 }
 
 /**

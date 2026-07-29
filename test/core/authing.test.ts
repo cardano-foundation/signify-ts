@@ -596,24 +596,6 @@ signify-resource: ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose\r
         );
     });
 
-    test('Serialises header names lowercase', async () => {
-        const request = new Request('http://127.0.0.1:3901/oobis', {
-            method: 'POST',
-            body: 'Hi',
-            headers: {
-                'Content-Type': 'application/json',
-                'Signify-Resource':
-                    'ELI7pg979AdhmvrjDeam2eAO2SR5niCgnjAJXJHtJose',
-            },
-        });
-        const serialised = await EssrAuthenticator.serializeRequest(request);
-        const headerLines = serialised.split('\r\n').slice(1, -2);
-        assert.deepEqual(
-            headerLines.map((line) => line.split(':')[0]),
-            ['content-type', 'signify-resource']
-        );
-    });
-
     test('Can serialise a POST request with a text body', async () => {
         const request = new Request('http://127.0.0.1:3901/oobis', {
             method: 'POST',
@@ -665,16 +647,6 @@ location: http://example.com: 8080\r
             response.headers.get('location'),
             'http://example.com: 8080'
         );
-    });
-
-    test('Handles the extra CRLF KERIA emits when there are no headers', async () => {
-        const response =
-            EssrAuthenticator.deserializeResponse(`HTTP/1.1 200 OK\r
-\r
-\r
-{"a":1}`);
-        assert.equal(response.status, 200);
-        assert.deepEqual(await response.json(), { a: 1 });
     });
 
     test('Parses a status-line-only payload with no separator', () => {

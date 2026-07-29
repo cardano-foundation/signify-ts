@@ -353,7 +353,7 @@ describe('SignifyClient', () => {
         );
     });
 
-    test('Escapes Python splitlines separators in the request body', async () => {
+    test('Sends the request body verbatim, without escaping separators', async () => {
         const prepareSpy = vi.spyOn(
             SignedHeaderAuthenticator.prototype,
             'prepare'
@@ -376,9 +376,7 @@ describe('SignifyClient', () => {
             .find(
                 (req) => req.url.endsWith('/contacts') && req.method === 'POST'
             )!;
-        const raw = await request.text();
-        assert.equal(/[\u0085\u2028\u2029]/.test(raw), false);
-        assert.deepEqual(JSON.parse(raw), { alias });
+        assert.equal(await request.text(), JSON.stringify({ alias }));
     });
 
     test('ESSR protected fetch', async () => {

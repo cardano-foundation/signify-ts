@@ -271,10 +271,9 @@ export class EssrAuthenticator extends Authenticator {
     }
 
     static async serializeRequest(request: Request) {
-        // KERIA's environ lookup is case-sensitive
         let headers = '';
         request.headers.forEach((value, name) => {
-            headers += `${name.toLowerCase()}: ${value}\r\n`;
+            headers += `${name}: ${value}\r\n`;
         });
 
         let body = '';
@@ -401,11 +400,7 @@ export class EssrAuthenticator extends Authenticator {
         const [statusLine, ...headerLines] = head.split('\r\n');
         const [, statusCode, ...statusTextArr] = statusLine.split(' ');
 
-        let body = sep === -1 ? '' : httpString.slice(sep + 4);
-        // KERIA's serializeResponse emits an extra CRLF when there are no headers
-        if (headerLines.length === 0 && body.startsWith('\r\n')) {
-            body = body.slice(2);
-        }
+        const body = sep === -1 ? '' : httpString.slice(sep + 4);
 
         const headers = new Headers();
         for (const line of headerLines) {
