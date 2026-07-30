@@ -52,6 +52,7 @@ export interface CreateIdentifierBody {
 /** Arguments required to rotate an identfier */
 export interface RotateIdentifierArgs {
     transferable?: boolean;
+    isith?: string | number | string[];
     nsith?: string | number | string[];
     toad?: number;
     cuts?: string[];
@@ -374,7 +375,7 @@ export class Identifier {
         const dig = state.d;
         const ridx = parseInt(state.s, 16) + 1;
         const wits = state.b;
-        let isith = state.nt;
+        let isith = kargs.isith ?? state.nt;
 
         let nsith = kargs.nsith ?? isith;
 
