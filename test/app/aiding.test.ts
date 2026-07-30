@@ -579,6 +579,22 @@ describe('Aiding', () => {
         });
     });
 
+    describe('cancelEvent', () => {
+        it('deletes one exact pending event', async () => {
+            client.fetch.mockResolvedValue(new Response(null, { status: 204 }));
+
+            await client.identifiers().cancelEvent('my aid/name', 'event/said');
+
+            const lastCall = client.getLastMockRequest();
+            assert.equal(
+                lastCall.path,
+                '/identifiers/my%20aid%2Fname/events/event%2Fsaid'
+            );
+            assert.equal(lastCall.method, 'DELETE');
+            assert.equal(lastCall.body, null);
+        });
+    });
+
     describe('Group identifiers', () => {
         it('Can Rotate group', async () => {
             const member1 = await createMockIdentifierState(

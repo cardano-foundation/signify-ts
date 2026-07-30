@@ -599,6 +599,19 @@ export class Identifier {
         const res = await this.client.fetch(path, 'GET', null);
         return await res.json();
     }
+
+    /**
+     * Cancel one exact pending identifier interaction event.
+     * @async
+     * @param {string} name Name or alias of the identifier
+     * @param {string} said SAID of the pending interaction event
+     */
+    async cancelEvent(name: string, said: string): Promise<void> {
+        const path =
+            `/identifiers/${encodeURIComponent(name)}/events/` +
+            encodeURIComponent(said);
+        await this.client.fetch(path, 'DELETE', null);
+    }
 }
 
 /** Event Result */
