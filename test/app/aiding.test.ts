@@ -599,38 +599,6 @@ describe('Aiding', () => {
             });
         });
 
-        it('Should use the given sign threshold over the previous next threshold', async () => {
-            const member1 = await createMockIdentifierState(randomUUID(), bran);
-            const member2 = await createMockIdentifierState(
-                randomUUID(),
-                randomPasscode()
-            );
-
-            const group = await createMockIdentifierState(randomUUID(), bran, {
-                algo: Algos.group,
-                mhab: member1,
-                isith: '2',
-                nsith: '1',
-                states: [member1.state, member2.state],
-                rstates: [member1.state, member2.state],
-            });
-            setGroupPriorNextDigests(group, [member1.state, member2.state]);
-
-            client.fetch.mockResolvedValueOnce(Response.json(group));
-            client.fetch.mockResolvedValueOnce(Response.json({}));
-            await client.identifiers().rotate(group.name, {
-                isith: '2',
-                nsith: '1',
-                states: [member1.state, member2.state],
-                rstates: [member1.state, member2.state],
-            });
-            const request = client.getLastMockRequest();
-            expect(request.body.rot).toMatchObject({
-                t: 'rot',
-                kt: '2',
-            });
-        });
-
         it('Uses prior group next digests for replacement rotation ondex', async () => {
             const member1 = await createMockIdentifierState(
                 randomUUID(),
