@@ -46,6 +46,11 @@ export class Serder {
         return this._sad;
     }
 
+    // back-compat alias: older consumers read `.ked` for the event dict.
+    get ked(): Dict<any> {
+        return this._sad;
+    }
+
     get pre(): string {
         return this._sad['i'];
     }

@@ -21,7 +21,11 @@ import {
 
 /** External module definition */
 export interface ExternalModuleType {
-    new (pidx: number, args: IdentifierManagerParams): IdentifierManager;
+    new (
+        pidx: number,
+        args: IdentifierManagerParams,
+        aid?: any
+    ): IdentifierManager;
 }
 
 export interface ExternalModule {
@@ -234,7 +238,15 @@ export class IdentifierManagerFactory {
         } else if (Algos.extern in aid) {
             const typ = aid.extern.extern_type;
             if (typ in this.modules) {
-                const mod = new this.modules[typ](aid.extern.pidx, aid.extern);
+                // Pass the full HabState as a 3rd arg so stateful modules
+                // (like ExternSignerModule for the BioCard) can look the
+                // live signer up from a registry by aid.prefix when
+                // aid.extern.signer is not serialised by KERIA.
+                const mod = new this.modules[typ](
+                    aid.extern.pidx,
+                    aid.extern,
+                    aid
+                );
                 return mod;
             } else {
                 throw new Error(`unsupported external module type ${typ}`);
