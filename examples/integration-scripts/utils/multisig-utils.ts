@@ -93,11 +93,16 @@ export async function addEndRoleMultisig(
     timestamp: string,
     isInitiator: boolean = false
 ) {
-    if (!isInitiator) await waitAndMarkNotification(client, '/multisig/rpy');
-
     const opList: any[] = [];
     const members = await client.identifiers().members(multisigAID.name);
     const signings = members['signing'];
+
+    // One notice per member: each member sends a /multisig/rpy exn per signing member.
+    if (!isInitiator) {
+        await waitAndMarkNotification(client, '/multisig/rpy', true, {
+            minCount: signings.length,
+        });
+    }
 
     for (const signing of signings) {
         const eid = Object.keys(signing.ends.agent)[0];
@@ -152,9 +157,14 @@ export async function admitMultisig(
     otherMembersAIDs: HabState[],
     multisigAID: HabState,
     recipientAID: HabState,
-    timestamp: string
+    timestamp: string,
+    isInitiator: boolean = false
     // numGrantMsgs: number
 ) {
+    // A joiner must consume the initiator's exn before sending its own, otherwise
+    // whichever registers with the Multiplexor first silences the notice for the rest.
+    if (!isInitiator) await waitAndMarkNotification(client, '/multisig/exn');
+
     const grantMsgSaid = await waitAndMarkNotification(
         client,
         '/exn/ipex/grant'

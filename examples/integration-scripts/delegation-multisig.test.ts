@@ -12,6 +12,7 @@ import {
     waitAndMarkNotification,
     waitForNotifications,
     waitOperation,
+    assertNoNotifications,
 } from './utils/test-util';
 import {
     acceptMultisigIncept,
@@ -182,16 +183,8 @@ test('delegation-multisig', async () => {
                 opList2.map((op) => waitOperation(delegator2Client, op))
             );
 
-            await waitAndMarkNotification(
-                delegator1Client,
-                '/multisig/rpy',
-                true
-            );
-            await waitAndMarkNotification(
-                delegator2Client,
-                '/multisig/rpy',
-                true
-            );
+            await assertNoNotifications(delegator1Client, '/multisig/rpy');
+            await assertNoNotifications(delegator2Client, '/multisig/rpy');
 
             const [odelegatorGroupName1, odelegatorGroupName2] =
                 await Promise.all([
@@ -302,7 +295,7 @@ test('delegation-multisig', async () => {
 
         assert.equal(dresult1.response, dresult2.response);
 
-        await waitAndMarkNotification(delegator1Client, '/multisig/ixn');
+        await assertNoNotifications(delegator1Client, '/multisig/ixn');
     });
 
     const queryOp1 = await delegator1Client
