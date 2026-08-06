@@ -16,6 +16,7 @@ export interface EstablishmentEvent {
     b: string[];
     c: string[];
     a: string[];
+    di?: string;
 }
 
 export interface State {
