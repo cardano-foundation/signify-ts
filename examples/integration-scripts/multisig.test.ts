@@ -3,6 +3,7 @@ import signify, {
     SignifyClient,
     Serder,
     IssueCredentialResult,
+    Operation,
 } from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env';
 import {
@@ -10,6 +11,7 @@ import {
     getOrCreateClient,
     getOrCreateIdentifier,
     markNotification,
+    sendExchange,
     waitAndMarkNotification,
     waitForNotifications,
     waitOperation,
@@ -101,10 +103,16 @@ test('multisig', async function run() {
     const words = (await client1.challenges().generate(128)).words;
     console.log('Member1 generated challenge words:', words);
 
-    await client2.challenges().respond('member2', aid1.prefix, words);
+    const chOp2 = await client2
+        .challenges()
+        .respond('member2', aid1.prefix, words);
+    await waitOperation(client2, chOp2 as Operation<unknown>);
     console.log('Member2 responded challenge with signed words');
 
-    await client3.challenges().respond('member3', aid1.prefix, words);
+    const chOp3 = await client3
+        .challenges()
+        .respond('member3', aid1.prefix, words);
+    await waitOperation(client3, chOp3 as Operation<unknown>);
     console.log('Member3 responded challenge with signed words');
 
     op1 = await client1.challenges().verify(aid2.prefix, words);
@@ -149,17 +157,16 @@ test('multisig', async function run() {
     let smids = states.map((state) => state['i']);
     let recp = [aid2['state'], aid3['state']].map((state) => state['i']);
 
-    await client1
-        .exchanges()
-        .send(
-            'member1',
-            'multisig',
-            aid1,
-            '/multisig/icp',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            embeds,
-            recp
-        );
+    await sendExchange(
+        client1,
+        'member1',
+        'multisig',
+        aid1,
+        '/multisig/icp',
+        { gid: serder.pre, smids: smids, rmids: smids },
+        embeds,
+        recp
+    );
     console.log('Member1 initiated multisig, waiting for others to join...');
 
     // Second member check notifications and join the multisig
@@ -195,17 +202,16 @@ test('multisig', async function run() {
     smids = exn.a.smids;
     recp = [aid1['state'], aid3['state']].map((state) => state['i']);
 
-    await client2
-        .exchanges()
-        .send(
-            'member2',
-            'multisig',
-            aid2,
-            '/multisig/icp',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            embeds,
-            recp
-        );
+    await sendExchange(
+        client2,
+        'member2',
+        'multisig',
+        aid2,
+        '/multisig/icp',
+        { gid: serder.pre, smids: smids, rmids: smids },
+        embeds,
+        recp
+    );
     console.log('Member2 joined multisig, waiting for others...');
 
     // Third member check notifications and join the multisig
@@ -239,17 +245,16 @@ test('multisig', async function run() {
     smids = exn.a.smids;
     recp = [aid1['state'], aid2['state']].map((state) => state['i']);
 
-    await client3
-        .exchanges()
-        .send(
-            'member3',
-            'multisig',
-            aid3,
-            '/multisig/icp',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            embeds,
-            recp
-        );
+    await sendExchange(
+        client3,
+        'member3',
+        'multisig',
+        aid3,
+        '/multisig/icp',
+        { gid: serder.pre, smids: smids, rmids: smids },
+        embeds,
+        recp
+    );
     console.log('Member3 joined, multisig waiting for others...');
 
     // Check for completion
@@ -334,17 +339,16 @@ test('multisig', async function run() {
         rpy: [rpy, atc],
     };
     recp = [aid2['state'], aid3['state']].map((state) => state['i']);
-    res = await client1
-        .exchanges()
-        .send(
-            'member1',
-            'multisig',
-            aid1,
-            '/multisig/rpy',
-            { gid: aid },
-            roleembeds,
-            recp
-        );
+    await sendExchange(
+        client1,
+        'member1',
+        'multisig',
+        aid1,
+        '/multisig/rpy',
+        { gid: aid },
+        roleembeds,
+        recp
+    );
     console.log(
         `Member1 authorized agent role to ${eid1}, waiting for others to authorize...`
     );
@@ -382,17 +386,16 @@ test('multisig', async function run() {
         rpy: [rpy, atc],
     };
     recp = [aid1['state'], aid3['state']].map((state) => state['i']);
-    res = await client2
-        .exchanges()
-        .send(
-            'member2',
-            'multisig',
-            aid2,
-            '/multisig/rpy',
-            { gid: aid },
-            roleembeds,
-            recp
-        );
+    await sendExchange(
+        client2,
+        'member2',
+        'multisig',
+        aid2,
+        '/multisig/rpy',
+        { gid: aid },
+        roleembeds,
+        recp
+    );
     console.log(
         `Member2 authorized agent role to ${eid1}, waiting for others to authorize...`
     );
@@ -429,17 +432,16 @@ test('multisig', async function run() {
         rpy: [rpy, atc],
     };
     recp = [aid1['state'], aid2['state']].map((state) => state['i']);
-    res = await client3
-        .exchanges()
-        .send(
-            'member3',
-            'multisig',
-            aid3,
-            '/multisig/rpy',
-            { gid: aid },
-            roleembeds,
-            recp
-        );
+    await sendExchange(
+        client3,
+        'member3',
+        'multisig',
+        aid3,
+        '/multisig/rpy',
+        { gid: aid },
+        roleembeds,
+        recp
+    );
     console.log(
         `Member3 authorized agent role to ${eid1}, waiting for others to authorize...`
     );
@@ -479,17 +481,16 @@ test('multisig', async function run() {
     smids = states.map((state) => state['i']);
     recp = [aid2['state'], aid3['state']].map((state) => state['i']);
 
-    await client1
-        .exchanges()
-        .send(
-            'member1',
-            'multisig',
-            aid1,
-            '/multisig/ixn',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            xembeds,
-            recp
-        );
+    await sendExchange(
+        client1,
+        'member1',
+        'multisig',
+        aid1,
+        '/multisig/ixn',
+        { gid: serder.pre, smids: smids, rmids: smids },
+        xembeds,
+        recp
+    );
     console.log(
         'Member1 initiates interaction event, waiting for others to join...'
     );
@@ -519,17 +520,16 @@ test('multisig', async function run() {
     smids = exn.a.smids;
     recp = [aid1['state'], aid3['state']].map((state) => state['i']);
 
-    await client2
-        .exchanges()
-        .send(
-            'member2',
-            'multisig',
-            aid2,
-            '/multisig/ixn',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            xembeds,
-            recp
-        );
+    await sendExchange(
+        client2,
+        'member2',
+        'multisig',
+        aid2,
+        '/multisig/ixn',
+        { gid: serder.pre, smids: smids, rmids: smids },
+        xembeds,
+        recp
+    );
     console.log('Member2 joins interaction event, waiting for others...');
 
     // Member3 check for notifications and join the interaction event
@@ -557,17 +557,16 @@ test('multisig', async function run() {
     smids = exn.a.smids;
     recp = [aid1['state'], aid2['state']].map((state) => state['i']);
 
-    await client3
-        .exchanges()
-        .send(
-            'member3',
-            'multisig',
-            aid3,
-            '/multisig/ixn',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            xembeds,
-            recp
-        );
+    await sendExchange(
+        client3,
+        'member3',
+        'multisig',
+        aid3,
+        '/multisig/ixn',
+        { gid: serder.pre, smids: smids, rmids: smids },
+        xembeds,
+        recp
+    );
     console.log('Member3 joins interaction event, waiting for others...');
 
     // Check for completion
@@ -644,17 +643,16 @@ test('multisig', async function run() {
     smids = states.map((state) => state['i']);
     recp = [aid2State, aid3State].map((state) => state['i']);
 
-    await client1
-        .exchanges()
-        .send(
-            'member1',
-            'multisig',
-            aid1,
-            '/multisig/rot',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            rembeds,
-            recp
-        );
+    await sendExchange(
+        client1,
+        'member1',
+        'multisig',
+        aid1,
+        '/multisig/rot',
+        { gid: serder.pre, smids: smids, rmids: smids },
+        rembeds,
+        recp
+    );
     console.log(
         'Member1 initiates rotation event, waiting for others to join...'
     );
@@ -684,17 +682,16 @@ test('multisig', async function run() {
     smids = exn.a.smids;
     recp = [aid1State, aid3State].map((state) => state['i']);
 
-    await client2
-        .exchanges()
-        .send(
-            'member2',
-            'multisig',
-            aid2,
-            '/multisig/ixn',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            rembeds,
-            recp
-        );
+    await sendExchange(
+        client2,
+        'member2',
+        'multisig',
+        aid2,
+        '/multisig/ixn',
+        { gid: serder.pre, smids: smids, rmids: smids },
+        rembeds,
+        recp
+    );
     console.log('Member2 joins rotation event, waiting for others...');
 
     // Member3 check for notifications and join the rotation event
@@ -720,17 +717,16 @@ test('multisig', async function run() {
     smids = exn.a.smids;
     recp = [aid1State, aid2State].map((state) => state['i']);
 
-    await client3
-        .exchanges()
-        .send(
-            'member3',
-            'multisig',
-            aid3,
-            '/multisig/ixn',
-            { gid: serder.pre, smids: smids, rmids: smids },
-            rembeds,
-            recp
-        );
+    await sendExchange(
+        client3,
+        'member3',
+        'multisig',
+        aid3,
+        '/multisig/ixn',
+        { gid: serder.pre, smids: smids, rmids: smids },
+        rembeds,
+        recp
+    );
     console.log('Member3 joins rotation event, waiting for others...');
 
     // Check for completion
@@ -770,17 +766,16 @@ test('multisig', async function run() {
     };
 
     recp = [aid2['state'], aid3['state']].map((state) => state['i']);
-    res = await client1
-        .exchanges()
-        .send(
-            'member1',
-            'registry',
-            aid1,
-            '/multisig/vcp',
-            { gid: multisig, usage: 'Issue vLEIs' },
-            regbeds,
-            recp
-        );
+    await sendExchange(
+        client1,
+        'member1',
+        'registry',
+        aid1,
+        '/multisig/vcp',
+        { gid: multisig, usage: 'Issue vLEIs' },
+        regbeds,
+        recp
+    );
 
     console.log('Member1 initiated registry, waiting for others to join...');
 
@@ -812,17 +807,16 @@ test('multisig', async function run() {
     };
 
     recp = [aid1['state'], aid3['state']].map((state) => state['i']);
-    await client2
-        .exchanges()
-        .send(
-            'member2',
-            'registry',
-            aid2,
-            '/multisig/vcp',
-            { gid: multisig, usage: 'Issue vLEIs' },
-            regbeds,
-            recp
-        );
+    await sendExchange(
+        client2,
+        'member2',
+        'registry',
+        aid2,
+        '/multisig/vcp',
+        { gid: multisig, usage: 'Issue vLEIs' },
+        regbeds,
+        recp
+    );
     console.log('Member2 joins registry event, waiting for others...');
 
     // Member3 check for notifications and join the create registry event
@@ -854,17 +848,16 @@ test('multisig', async function run() {
     };
 
     recp = [aid1['state'], aid2['state']].map((state) => state['i']);
-    await client3
-        .exchanges()
-        .send(
-            'member3',
-            'multisig',
-            aid3,
-            '/multisig/vcp',
-            { gid: multisig, usage: 'Issue vLEIs' },
-            regbeds,
-            recp
-        );
+    await sendExchange(
+        client3,
+        'member3',
+        'multisig',
+        aid3,
+        '/multisig/vcp',
+        { gid: multisig, usage: 'Issue vLEIs' },
+        regbeds,
+        recp
+    );
 
     // Done
     op1 = await waitOperation(client1, op1);
@@ -975,17 +968,16 @@ test('multisig', async function run() {
         exn: [grant, atc],
     };
     recp = [aid2['state'], aid3['state']].map((state) => state['i']);
-    await client1
-        .exchanges()
-        .send(
-            'member1',
-            'multisig',
-            aid1,
-            '/multisig/exn',
-            { gid: m['prefix'] },
-            gembeds,
-            recp
-        );
+    await sendExchange(
+        client1,
+        'member1',
+        'multisig',
+        aid1,
+        '/multisig/exn',
+        { gid: m['prefix'] },
+        gembeds,
+        recp
+    );
 
     console.log(
         'Member1 initiated grant message, waiting for others to join...'
@@ -1019,17 +1011,16 @@ test('multisig', async function run() {
         exn: [grant2, atc],
     };
     recp = [aid1['state'], aid3['state']].map((state) => state['i']);
-    await client2
-        .exchanges()
-        .send(
-            'member2',
-            'multisig',
-            aid2,
-            '/multisig/exn',
-            { gid: m['prefix'] },
-            gembeds,
-            recp
-        );
+    await sendExchange(
+        client2,
+        'member2',
+        'multisig',
+        aid2,
+        '/multisig/exn',
+        { gid: m['prefix'] },
+        gembeds,
+        recp
+    );
 
     console.log('Member2 joined grant message, waiting for others to join...');
 
@@ -1061,17 +1052,16 @@ test('multisig', async function run() {
         exn: [grant3, atc],
     };
     recp = [aid1['state'], aid2['state']].map((state) => state['i']);
-    await client3
-        .exchanges()
-        .send(
-            'member3',
-            'multisig',
-            aid3,
-            '/multisig/exn',
-            { gid: m['prefix'] },
-            gembeds,
-            recp
-        );
+    await sendExchange(
+        client3,
+        'member3',
+        'multisig',
+        aid3,
+        '/multisig/exn',
+        { gid: m['prefix'] },
+        gembeds,
+        recp
+    );
 
     console.log('Member3 joined grant message, waiting for others to join...');
 
@@ -1210,17 +1200,16 @@ async function multisigIssue(
         .map((m: { aid: string }) => m.aid)
         .filter((aid: string) => aid !== leaderHab.prefix);
 
-    await client
-        .exchanges()
-        .send(
-            memberName,
-            'multisig',
-            leaderHab,
-            '/multisig/iss',
-            { gid: groupHab.prefix },
-            embeds,
-            recipients
-        );
+    await sendExchange(
+        client,
+        memberName,
+        'multisig',
+        leaderHab,
+        '/multisig/iss',
+        { gid: groupHab.prefix },
+        embeds,
+        recipients
+    );
 }
 
 async function multisigRevoke(
@@ -1249,15 +1238,14 @@ async function multisigRevoke(
         .map((m: { aid: string }) => m.aid)
         .filter((aid: string) => aid !== leaderHab.prefix);
 
-    await client
-        .exchanges()
-        .send(
-            memberName,
-            'multisig',
-            leaderHab,
-            '/multisig/rev',
-            { gid: groupHab.prefix },
-            embeds,
-            recipients
-        );
+    await sendExchange(
+        client,
+        memberName,
+        'multisig',
+        leaderHab,
+        '/multisig/rev',
+        { gid: groupHab.prefix },
+        embeds,
+        recipients
+    );
 }

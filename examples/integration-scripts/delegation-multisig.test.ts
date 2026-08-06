@@ -12,6 +12,7 @@ import {
     waitAndMarkNotification,
     waitForNotifications,
     waitOperation,
+    assertNoNotifications,
 } from './utils/test-util';
 import {
     acceptMultisigIncept,
@@ -182,8 +183,8 @@ test('delegation-multisig', async () => {
                 opList2.map((op) => waitOperation(delegator2Client, op))
             );
 
-            await waitAndMarkNotification(delegator1Client, '/multisig/rpy');
-            await waitAndMarkNotification(delegator2Client, '/multisig/rpy');
+            await assertNoNotifications(delegator1Client, '/multisig/rpy');
+            await assertNoNotifications(delegator2Client, '/multisig/rpy');
 
             const [odelegatorGroupName1, odelegatorGroupName2] =
                 await Promise.all([
@@ -294,7 +295,7 @@ test('delegation-multisig', async () => {
 
         assert.equal(dresult1.response, dresult2.response);
 
-        await waitAndMarkNotification(delegator1Client, '/multisig/ixn');
+        await assertNoNotifications(delegator1Client, '/multisig/ixn');
     });
 
     const queryOp1 = await delegator1Client
@@ -323,6 +324,23 @@ test('delegation-multisig', async () => {
 
     const agtee = await delegatee1Client.identifiers().get(delegateeGroupName);
     assert.equal(agtee.prefix, teepre);
+
+    // Consume the /delegate/request prompt, delivered to one delegator member's agent.
+    let sawDelegateRequest = false;
+    for (let i = 0; i < 15 && !sawDelegateRequest; i++) {
+        for (const cl of [delegator1Client, delegator2Client]) {
+            const res = await cl.notifications().list();
+            const notes = res.notes.filter(
+                (n: any) => n.a.r === '/delegate/request' && n.r === false
+            );
+            for (const note of notes) {
+                await cl.notifications().mark(note.i);
+                sawDelegateRequest = true;
+            }
+        }
+        if (!sawDelegateRequest) await new Promise((r) => setTimeout(r, 1000));
+    }
+    assert(sawDelegateRequest, 'delegator never received /delegate/request');
 
     await assertOperations(
         delegator1Client,

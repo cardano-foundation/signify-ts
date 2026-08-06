@@ -1,5 +1,5 @@
 import { strict as assert } from 'assert';
-import signify, { Serder } from 'signify-ts';
+import signify, { Operation, Serder } from 'signify-ts';
 import { resolveEnvironment } from './utils/resolve-env';
 import {
     assertOperations,
@@ -102,7 +102,10 @@ test('challenge', async () => {
     expect(bobContact?.challenges).toHaveLength(0);
 
     // Bob responds to Alice challenge
-    await client2.challenges().respond('bob', aid1.i, challenge1_small.words);
+    const respondOperation = await client2
+        .challenges()
+        .respond('bob', aid1.i, challenge1_small.words);
+    await waitOperation(client2, respondOperation as Operation<unknown>);
     console.log('Bob responded to Alice challenge with signed words');
 
     // Alice verifies Bob's response

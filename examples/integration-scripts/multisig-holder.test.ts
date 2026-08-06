@@ -173,6 +173,7 @@ test('multisig', async function run() {
             roleembeds,
             recp
         );
+    await waitOperation(client1, res);
     console.log(
         `Member1 authorized agent role to ${eid1}, waiting for others to authorize...`
     );
@@ -226,6 +227,7 @@ test('multisig', async function run() {
             roleembeds,
             recp
         );
+    await waitOperation(client2, res);
     console.log(
         `Member2 authorized agent role to ${eid1}, waiting for others to authorize...`
     );
@@ -273,6 +275,7 @@ test('multisig', async function run() {
             roleembeds,
             recp
         );
+    await waitOperation(client1, res);
     console.log(
         `Member1 authorized agent role to ${eid2}, waiting for others to authorize...`
     );
@@ -327,6 +330,7 @@ test('multisig', async function run() {
             roleembeds,
             recp
         );
+    await waitOperation(client2, res);
 
     console.log(
         `Member2 authorized agent role to ${eid2}, waiting for others to authorize...`
@@ -535,7 +539,7 @@ async function multisigAdmitCredential(
         exn: [admit, atc],
     };
 
-    await client
+    const exnOp = await client
         .exchanges()
         .send(
             mHab.name,
@@ -546,6 +550,7 @@ async function multisigAdmitCredential(
             gembeds,
             recipients
         );
+    await waitOperation(client, exnOp);
 
     return op;
 }

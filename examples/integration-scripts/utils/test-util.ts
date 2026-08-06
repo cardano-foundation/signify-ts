@@ -19,6 +19,10 @@ export interface Aid {
     oobi: string;
 }
 
+export interface NotificationOptions extends RetryOptions {
+    minCount?: number;
+}
+
 export interface Notification {
     i: string;
     dt: string;
@@ -82,6 +86,22 @@ export async function assertNotifications(
         const notes = res.notes.filter((i: { r: boolean }) => i.r === false);
         expect(notes).toHaveLength(0);
     }
+}
+
+/**
+ * Assert no unread notification arrived on a route.
+ * <p>Peers that joined consume their notice inside the multisig helper, and the
+ * originator is deduped by the Multiplexor, so by this point nothing should remain.
+ */
+export async function assertNoNotifications(
+    client: SignifyClient,
+    route: string
+): Promise<void> {
+    const res = await client.notifications().list();
+    const notes = res.notes.filter(
+        (note: Notification) => note.a.r === route && note.r === false
+    );
+    expect(notes).toHaveLength(0);
 }
 
 export async function createAid(
@@ -461,13 +481,39 @@ export async function waitForCredential(
     throw Error('Credential SAID: ' + credSAID + ' has not been received');
 }
 
+/**
+ * Send an exn and drain the long-running operation KERIA returns for it.
+ * @see waitOperation
+ */
+export async function sendExchange(
+    client: SignifyClient,
+    ...args: Parameters<ReturnType<SignifyClient['exchanges']>['send']>
+): Promise<void> {
+    const op = await client.exchanges().send(...args);
+    await waitOperation(client, op);
+}
+
+/**
+ * @param markAll mark every notification on the route, not just the first. Needed
+ * where one step produces several notices, e.g. an end role rpy per signing member.
+ */
 export async function waitAndMarkNotification(
     client: SignifyClient,
-    route: string
+    route: string,
+    markAll = false,
+    options: NotificationOptions = {}
 ) {
-    const notes = await waitForNotifications(client, route);
+    const notes = await waitForNotifications(client, route, options);
 
-    await markNotification(client, notes[0]);
+    if (markAll || (options.minCount ?? 0) > 1) {
+        await Promise.all(
+            notes.map(async (note) => {
+                await markNotification(client, note);
+            })
+        );
+    } else {
+        await markNotification(client, notes[0]);
+    }
 
     return notes[0]?.a.d ?? '';
 }
@@ -475,7 +521,7 @@ export async function waitAndMarkNotification(
 export async function waitForNotifications(
     client: SignifyClient,
     route: string,
-    options: RetryOptions = {}
+    options: NotificationOptions = {}
 ): Promise<Notification[]> {
     return retry(async () => {
         const response: { notes: Notification[] } = await client
@@ -486,8 +532,11 @@ export async function waitForNotifications(
             (note) => note.a.r === route && note.r === false
         );
 
-        if (!notes.length) {
-            throw new Error(`No notifications with route ${route}`);
+        const minCount = options.minCount ?? 1;
+        if (notes.length < minCount) {
+            throw new Error(
+                `No notifications with route ${route}; expected at least ${minCount}, got ${notes.length}`
+            );
         }
 
         return notes;
